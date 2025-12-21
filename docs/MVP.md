@@ -1,4 +1,4 @@
-# Vyapar App - MVP & Beta Release Plan
+# Business App - MVP & Beta Release Plan
 
 **Version:** 1.0  
 **Created:** 2025-12-20  
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This document defines the Minimum Viable Product (MVP) scope for the Vyapar App, focusing on core features that allow real customers to use the product for their business operations. The MVP will be released in beta to select customers for testing and feedback before the full public launch.
+This document defines the Minimum Viable Product (MVP) scope for the Business App, focusing on core features that allow real customers to use the product for their business operations. The MVP will be released in beta to select customers for testing and feedback before the full public launch.
 
 ### MVP Goals
 1. **Enable Real Business Operations** - Customers can actually run their business

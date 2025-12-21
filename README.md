@@ -1,7 +1,7 @@
-# Vyapar App Clone - Project Overview
+# Business App - Project Overview
 
 ## Introduction
-This project aims to build a comprehensive billing, accounting, and GST management application for Indian MSMEs, inspired by the Vyapar App.
+This project aims to build a comprehensive billing, accounting, and GST management application for Indian MSMEs.
 
 ## Key Features
 - **Invoicing**: GST & Non-GST invoices, thermal printing support.
@@ -48,11 +48,11 @@ This project aims to build a comprehensive billing, accounting, and GST manageme
 - [NFR Requirements](./docs/NFR_REQUIREMENTS.md) - Performance, security, scalability requirements
 
 ### Original Reference
-- [DPR Report](./Vyapar_App_Full_DPR_Report.pdf) - Original project report
+- [DPR Report](./Vyapar_App_Full_DPR_Report.pdf) - Original project report (Note: File name unchanged)
 
 ## Project Structure
 ```
-vyapar-app/
+business-app/
 ├── apps/
 │   ├── mobile/                 # React Native App
 │   ├── api-gateway/            # NestJS API Gateway

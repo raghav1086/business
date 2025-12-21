@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document provides a high-level summary of the comprehensive development planning completed for the Vyapar App. All planning documents are ready for review and approval.
+This document provides a high-level summary of the comprehensive development planning completed for the Business App. All planning documents are ready for review and approval.
 
 ---
 

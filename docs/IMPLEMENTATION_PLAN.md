@@ -1,4 +1,4 @@
-# Vyapar App Implementation Plan & Gap Analysis
+# Business App Implementation Plan & Gap Analysis
 
 ## 1. Gap Analysis: What is Missing?
 

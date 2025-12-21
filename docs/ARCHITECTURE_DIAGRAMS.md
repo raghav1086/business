@@ -1,4 +1,4 @@
-# Vyapar App - Architecture Diagrams & Application Flow
+# Business App - Architecture Diagrams & Application Flow
 
 **Version:** 1.0  
 **Created:** 2025-12-20  

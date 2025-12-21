@@ -1,4 +1,4 @@
-# Vyapar App - Comprehensive Development Plan
+# Business App - Comprehensive Development Plan
 
 **Version:** 1.0  
 **Created:** 2025-12-20  
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This document provides a comprehensive development plan for the Vyapar App, breaking down all 35 modules into sprints with effort estimation, dependencies, and resource requirements. The plan is organized into 5 major phases with a total of 48 sprints (2-week sprints).
+This document provides a comprehensive development plan for the Business App, breaking down all 35 modules into sprints with effort estimation, dependencies, and resource requirements. The plan is organized into 5 major phases with a total of 48 sprints (2-week sprints).
 
 ### Key Metrics
 - **Total Modules:** 35
@@ -656,7 +656,7 @@ This document provides a comprehensive development plan for the Vyapar App, brea
 
 ## Conclusion
 
-This development plan provides a comprehensive roadmap for building the Vyapar App over 18-24 months. The phased approach ensures:
+This development plan provides a comprehensive roadmap for building the Business App over 18-24 months. The phased approach ensures:
 
 1. **MVP Launch** in 6 months
 2. **India Compliance** in 12 months

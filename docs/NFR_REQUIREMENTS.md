@@ -1,4 +1,4 @@
-# Vyapar App - Non-Functional Requirements (NFRs)
+# Business App - Non-Functional Requirements (NFRs)
 
 ## 1. Performance Requirements
 

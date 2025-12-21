@@ -298,7 +298,7 @@ The PRD now contains **35 comprehensive modules** covering every aspect of a 100
 
 ### vs Competitors
 
-**vs Vyapar:**
+**vs Competitors:**
 - ✅ More advanced GST features (GSTR-2A/2B, IMS)
 - ✅ Manufacturing support (BOM, Production)
 - ✅ Partner ecosystem (Accountants, White-label)

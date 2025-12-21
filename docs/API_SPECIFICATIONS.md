@@ -1,10 +1,10 @@
-# Vyapar App - API Specifications
+# Business App - API Specifications
 
 ## Overview
 This document provides detailed API specifications for all microservices. All APIs follow RESTful conventions and use JSON for request/response bodies.
 
 ## Base URLs
-- **API Gateway**: `https://api.vyapar-app.com/v1`
+- **API Gateway**: `https://api.business-app.com/v1`
 - **Local Development**: `http://localhost:3000/api/v1`
 
 ## Authentication

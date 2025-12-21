@@ -1,7 +1,7 @@
-# Vyapar App - Database Schema Design
+# Business App - Database Schema Design
 
 ## Overview
-This document defines the PostgreSQL database schema for the Vyapar App microservices. Each microservice has its own database following the Database-per-Service pattern.
+This document defines the PostgreSQL database schema for the Business App microservices. Each microservice has its own database following the Database-per-Service pattern.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the comprehensive AI and Agentic AI strategy for the Vyapar App, based on the "AI & Agentic AI for Indian SME Accounting Apps: A Strategic Blueprint" PDF. It includes implementation recommendations, phased rollout strategy, and my strategic thoughts on AI integration.
+This document outlines the comprehensive AI and Agentic AI strategy for the Business App, based on the "AI & Agentic AI for Indian SME Accounting Apps: A Strategic Blueprint" PDF. It includes implementation recommendations, phased rollout strategy, and my strategic thoughts on AI integration.
 
 ## Executive Summary
 

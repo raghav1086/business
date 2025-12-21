@@ -1,4 +1,4 @@
-# Vyapar App - Sprint Planning & Roadmap
+# Business App - Sprint Planning & Roadmap
 
 ## Release Overview
 
@@ -22,10 +22,10 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-101 | Initialize NX Monorepo | 5 | Backend Lead |
-| VYAPAR-102 | Setup React Native App | 5 | Frontend Lead |
-| VYAPAR-103 | Setup API Gateway | 8 | Backend Lead |
-| VYAPAR-108 | Setup Shared Libraries | 5 | Full Stack |
+| BUSINESS-101 | Initialize NX Monorepo | 5 | Backend Lead |
+| BUSINESS-102 | Setup React Native App | 5 | Frontend Lead |
+| BUSINESS-103 | Setup API Gateway | 8 | Backend Lead |
+| BUSINESS-108 | Setup Shared Libraries | 5 | Full Stack |
 
 **Sprint Capacity:** 23 Points  
 **Sprint Goal:** Development environment fully operational
@@ -49,13 +49,13 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-104 | Setup Auth Service | 8 | Backend |
-| VYAPAR-105 | Setup Business Service | 5 | Backend |
-| VYAPAR-106 | Setup Inventory Service | 5 | Backend |
-| VYAPAR-107 | Setup Invoice Service | 8 | Backend |
-| VYAPAR-109 | Docker Development Setup | 5 | DevOps |
-| VYAPAR-110 | CI/CD Pipeline | 8 | DevOps |
-| VYAPAR-201 | User Registration API | 8 | Backend |
+| BUSINESS-104 | Setup Auth Service | 8 | Backend |
+| BUSINESS-105 | Setup Business Service | 5 | Backend |
+| BUSINESS-106 | Setup Inventory Service | 5 | Backend |
+| BUSINESS-107 | Setup Invoice Service | 8 | Backend |
+| BUSINESS-109 | Docker Development Setup | 5 | DevOps |
+| BUSINESS-110 | CI/CD Pipeline | 8 | DevOps |
+| BUSINESS-201 | User Registration API | 8 | Backend |
 
 **Sprint Capacity:** 47 Points  
 **Sprint Goal:** All microservices scaffolded, CI/CD working
@@ -72,12 +72,12 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-202 | User Login API | 5 | Backend |
-| VYAPAR-203 | Token Refresh | 5 | Backend |
-| VYAPAR-204 | User Profile API | 5 | Backend |
-| VYAPAR-205 | Session Management | 5 | Backend |
-| VYAPAR-206 | Mobile Auth UI | 8 | Frontend |
-| VYAPAR-301 | Create Business API | 8 | Backend |
+| BUSINESS-202 | User Login API | 5 | Backend |
+| BUSINESS-203 | Token Refresh | 5 | Backend |
+| BUSINESS-204 | User Profile API | 5 | Backend |
+| BUSINESS-205 | Session Management | 5 | Backend |
+| BUSINESS-206 | Mobile Auth UI | 8 | Frontend |
+| BUSINESS-301 | Create Business API | 8 | Backend |
 
 **Sprint Capacity:** 36 Points  
 **Sprint Goal:** Users can register, login, and create business
@@ -94,13 +94,13 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-302 | Edit Business | 5 | Backend |
-| VYAPAR-303 | Multi-Business Support | 8 | Full Stack |
-| VYAPAR-304 | Add Party API | 8 | Backend |
-| VYAPAR-305 | Party List & Search | 5 | Full Stack |
-| VYAPAR-306 | Party Detail View | 5 | Frontend |
-| VYAPAR-801 | Local Database Setup | 8 | Frontend |
-| VYAPAR-401 | Add Item API | 8 | Backend |
+| BUSINESS-302 | Edit Business | 5 | Backend |
+| BUSINESS-303 | Multi-Business Support | 8 | Full Stack |
+| BUSINESS-304 | Add Party API | 8 | Backend |
+| BUSINESS-305 | Party List & Search | 5 | Full Stack |
+| BUSINESS-306 | Party Detail View | 5 | Frontend |
+| BUSINESS-801 | Local Database Setup | 8 | Frontend |
+| BUSINESS-401 | Add Item API | 8 | Backend |
 
 **Sprint Capacity:** 47 Points  
 **Sprint Goal:** Business and party management complete
@@ -117,13 +117,13 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-402 | Item List & Search | 5 | Full Stack |
-| VYAPAR-403 | Edit Item | 3 | Backend |
-| VYAPAR-404 | Stock Adjustment | 5 | Full Stack |
-| VYAPAR-406 | Item Categories | 3 | Backend |
-| VYAPAR-307 | Import from Contacts | 5 | Frontend |
-| VYAPAR-802 | Offline Create Operations | 13 | Frontend |
-| VYAPAR-501 | Create Invoice (Part 1) | 8 | Full Stack |
+| BUSINESS-402 | Item List & Search | 5 | Full Stack |
+| BUSINESS-403 | Edit Item | 3 | Backend |
+| BUSINESS-404 | Stock Adjustment | 5 | Full Stack |
+| BUSINESS-406 | Item Categories | 3 | Backend |
+| BUSINESS-307 | Import from Contacts | 5 | Frontend |
+| BUSINESS-802 | Offline Create Operations | 13 | Frontend |
+| BUSINESS-501 | Create Invoice (Part 1) | 8 | Full Stack |
 
 **Sprint Capacity:** 42 Points  
 **Sprint Goal:** Inventory management complete, offline basics working
@@ -141,15 +141,15 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-501 | Create Invoice (Part 2) | 5 | Full Stack |
-| VYAPAR-502 | Invoice PDF Generation | 8 | Full Stack |
-| VYAPAR-503 | Share Invoice | 5 | Frontend |
-| VYAPAR-504 | Invoice List & Filters | 5 | Full Stack |
-| VYAPAR-505 | Invoice Detail View | 3 | Frontend |
-| VYAPAR-405 | Low Stock Alerts | 5 | Full Stack |
-| VYAPAR-803 | Background Sync | 8 | Frontend |
-| VYAPAR-805 | Sync Status Indicator | 3 | Frontend |
-| VYAPAR-407 | Barcode Scanning | 8 | Frontend |
+| BUSINESS-501 | Create Invoice (Part 2) | 5 | Full Stack |
+| BUSINESS-502 | Invoice PDF Generation | 8 | Full Stack |
+| BUSINESS-503 | Share Invoice | 5 | Frontend |
+| BUSINESS-504 | Invoice List & Filters | 5 | Full Stack |
+| BUSINESS-505 | Invoice Detail View | 3 | Frontend |
+| BUSINESS-405 | Low Stock Alerts | 5 | Full Stack |
+| BUSINESS-803 | Background Sync | 8 | Frontend |
+| BUSINESS-805 | Sync Status Indicator | 3 | Frontend |
+| BUSINESS-407 | Barcode Scanning | 8 | Frontend |
 
 **Sprint Capacity:** 50 Points  
 **Sprint Goal:** Users can create, view, and share invoices
@@ -168,13 +168,13 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-506 | Edit Invoice | 5 | Full Stack |
-| VYAPAR-507 | Cancel Invoice | 3 | Backend |
-| VYAPAR-508 | Create Quotation | 8 | Full Stack |
-| VYAPAR-509 | Purchase Invoice | 8 | Full Stack |
-| VYAPAR-510 | Record Payment | 5 | Full Stack |
-| VYAPAR-601 | Party Ledger View | 5 | Full Stack |
-| VYAPAR-804 | Conflict Resolution | 13 | Frontend |
+| BUSINESS-506 | Edit Invoice | 5 | Full Stack |
+| BUSINESS-507 | Cancel Invoice | 3 | Backend |
+| BUSINESS-508 | Create Quotation | 8 | Full Stack |
+| BUSINESS-509 | Purchase Invoice | 8 | Full Stack |
+| BUSINESS-510 | Record Payment | 5 | Full Stack |
+| BUSINESS-601 | Party Ledger View | 5 | Full Stack |
+| BUSINESS-804 | Conflict Resolution | 13 | Frontend |
 
 **Sprint Capacity:** 47 Points  
 **Sprint Goal:** Complete invoicing with purchases and payments
@@ -191,11 +191,11 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-602 | Cash & Bank Book | 5 | Full Stack |
-| VYAPAR-603 | Expense Recording | 5 | Full Stack |
-| VYAPAR-604 | Day Book Report | 5 | Backend |
-| VYAPAR-1101 | Invoice Settings | 5 | Full Stack |
-| VYAPAR-1102 | Tax Configuration | 3 | Full Stack |
+| BUSINESS-602 | Cash & Bank Book | 5 | Full Stack |
+| BUSINESS-603 | Expense Recording | 5 | Full Stack |
+| BUSINESS-604 | Day Book Report | 5 | Backend |
+| BUSINESS-1101 | Invoice Settings | 5 | Full Stack |
+| BUSINESS-1102 | Tax Configuration | 3 | Full Stack |
 
 **Sprint Capacity:** 23 Points  
 **Sprint Goal:** Basic accounting features complete
@@ -212,11 +212,11 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-605 | Profit & Loss Report | 8 | Full Stack |
-| VYAPAR-701 | GSTR-1 Report | 13 | Backend |
-| VYAPAR-703 | HSN Summary | 5 | Backend |
-| VYAPAR-1103 | App Preferences | 5 | Frontend |
-| VYAPAR-1104 | Data Backup & Restore | 8 | Full Stack |
+| BUSINESS-605 | Profit & Loss Report | 8 | Full Stack |
+| BUSINESS-701 | GSTR-1 Report | 13 | Backend |
+| BUSINESS-703 | HSN Summary | 5 | Backend |
+| BUSINESS-1103 | App Preferences | 5 | Frontend |
+| BUSINESS-1104 | Data Backup & Restore | 8 | Full Stack |
 
 **Sprint Capacity:** 39 Points  
 **Sprint Goal:** GST compliance and user settings complete
@@ -234,11 +234,11 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-702 | GSTR-3B Summary | 8 | Backend |
-| VYAPAR-704 | E-Invoice Generation | 13 | Backend |
-| VYAPAR-901 | Push Notifications | 5 | Full Stack |
-| VYAPAR-902 | WhatsApp Integration | 8 | Backend |
-| VYAPAR-1204 | Performance Testing | 8 | QA |
+| BUSINESS-702 | GSTR-3B Summary | 8 | Backend |
+| BUSINESS-704 | E-Invoice Generation | 13 | Backend |
+| BUSINESS-901 | Push Notifications | 5 | Full Stack |
+| BUSINESS-902 | WhatsApp Integration | 8 | Backend |
+| BUSINESS-1204 | Performance Testing | 8 | QA |
 
 **Sprint Capacity:** 42 Points  
 **Sprint Goal:** Notifications working, E-Invoice complete
@@ -255,9 +255,9 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-903 | SMS Notifications | 5 | Backend |
-| VYAPAR-1001 | Home Dashboard | 8 | Frontend |
-| VYAPAR-1002 | Sales Analytics | 8 | Full Stack |
+| BUSINESS-903 | SMS Notifications | 5 | Backend |
+| BUSINESS-1001 | Home Dashboard | 8 | Frontend |
+| BUSINESS-1002 | Sales Analytics | 8 | Full Stack |
 
 **Sprint Capacity:** 21 Points  
 **Sprint Goal:** Dashboard and analytics ready
@@ -275,7 +275,7 @@
 ### Stories
 | ID | Story | Points | Assignee |
 |----|-------|--------|----------|
-| VYAPAR-1003 | Stock Reports | 5 | Full Stack |
+| BUSINESS-1003 | Stock Reports | 5 | Full Stack |
 | BUG-XXX | Bug Fixes | 15 | All |
 | TECH-XXX | Performance Optimization | 10 | All |
 | REL-001 | Release Preparation | 5 | All |

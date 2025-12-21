@@ -298,7 +298,7 @@ Features inspired by competitors:
    - Barcode scanning
    - Multi-device support
 
-4. **From Vyapar:**
+4. **From Competitors:**
    - Offline-first architecture
    - Ease of use
    - SMS/WhatsApp sharing

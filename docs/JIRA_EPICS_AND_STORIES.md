@@ -1,29 +1,29 @@
-# Vyapar App - Jira Epics & User Stories
+# Business App - Jira Epics & User Stories
 
 ## Epic Overview
 
 | Epic ID | Epic Name | Priority | Sprint Target |
 |---------|-----------|----------|---------------|
-| VYAPAR-E01 | Project Setup & Infrastructure | P0 | Sprint 1-2 |
-| VYAPAR-E02 | Authentication & User Management | P0 | Sprint 2-3 |
-| VYAPAR-E03 | Business & Party Management | P0 | Sprint 3-4 |
-| VYAPAR-E04 | Inventory Management | P0 | Sprint 4-5 |
-| VYAPAR-E05 | Invoice & Billing | P0 | Sprint 5-7 |
-| VYAPAR-E06 | Accounting & Ledger | P1 | Sprint 7-9 |
-| VYAPAR-E07 | GST Compliance & Reports | P1 | Sprint 9-10 |
-| VYAPAR-E08 | Offline Sync Engine | P0 | Sprint 4-8 |
-| VYAPAR-E09 | Notifications & Integrations | P2 | Sprint 10-11 |
-| VYAPAR-E10 | Dashboard & Analytics | P2 | Sprint 11-12 |
-| VYAPAR-E11 | Settings & Configuration | P1 | Sprint 8-9 |
-| VYAPAR-E12 | Testing & QA | P0 | Continuous |
+| BUSINESS-E01 | Project Setup & Infrastructure | P0 | Sprint 1-2 |
+| BUSINESS-E02 | Authentication & User Management | P0 | Sprint 2-3 |
+| BUSINESS-E03 | Business & Party Management | P0 | Sprint 3-4 |
+| BUSINESS-E04 | Inventory Management | P0 | Sprint 4-5 |
+| BUSINESS-E05 | Invoice & Billing | P0 | Sprint 5-7 |
+| BUSINESS-E06 | Accounting & Ledger | P1 | Sprint 7-9 |
+| BUSINESS-E07 | GST Compliance & Reports | P1 | Sprint 9-10 |
+| BUSINESS-E08 | Offline Sync Engine | P0 | Sprint 4-8 |
+| BUSINESS-E09 | Notifications & Integrations | P2 | Sprint 10-11 |
+| BUSINESS-E10 | Dashboard & Analytics | P2 | Sprint 11-12 |
+| BUSINESS-E11 | Settings & Configuration | P1 | Sprint 8-9 |
+| BUSINESS-E12 | Testing & QA | P0 | Continuous |
 
 ---
 
-## EPIC 1: Project Setup & Infrastructure (VYAPAR-E01)
+## EPIC 1: Project Setup & Infrastructure (BUSINESS-E01)
 
 ### User Stories
 
-#### VYAPAR-101: Initialize NX Monorepo Workspace
+#### BUSINESS-101: Initialize NX Monorepo Workspace
 **As a** developer  
 **I want** a properly configured NX monorepo workspace  
 **So that** I can develop frontend and backend in a unified codebase
@@ -42,7 +42,7 @@
 
 ---
 
-#### VYAPAR-102: Setup React Native Mobile Application
+#### BUSINESS-102: Setup React Native Mobile Application
 **As a** developer  
 **I want** a React Native app scaffolded within NX  
 **So that** I can build the mobile frontend
@@ -61,7 +61,7 @@
 
 ---
 
-#### VYAPAR-103: Setup NestJS API Gateway
+#### BUSINESS-103: Setup NestJS API Gateway
 **As a** developer  
 **I want** an API Gateway service  
 **So that** it can route requests to appropriate microservices
@@ -80,7 +80,7 @@
 
 ---
 
-#### VYAPAR-104: Setup Auth Microservice
+#### BUSINESS-104: Setup Auth Microservice
 **As a** developer  
 **I want** a dedicated authentication service  
 **So that** user authentication is handled independently
@@ -99,7 +99,7 @@
 
 ---
 
-#### VYAPAR-105: Setup Business Microservice
+#### BUSINESS-105: Setup Business Microservice
 **As a** developer  
 **I want** a business management service  
 **So that** business profiles and parties can be managed
@@ -117,7 +117,7 @@
 
 ---
 
-#### VYAPAR-106: Setup Inventory Microservice
+#### BUSINESS-106: Setup Inventory Microservice
 **As a** developer  
 **I want** an inventory management service  
 **So that** items and stock can be tracked
@@ -134,7 +134,7 @@
 
 ---
 
-#### VYAPAR-107: Setup Invoice Microservice
+#### BUSINESS-107: Setup Invoice Microservice
 **As a** developer  
 **I want** an invoicing service  
 **So that** billing operations can be handled
@@ -151,7 +151,7 @@
 
 ---
 
-#### VYAPAR-108: Setup Shared Libraries
+#### BUSINESS-108: Setup Shared Libraries
 **As a** developer  
 **I want** shared libraries for common code  
 **So that** code duplication is minimized
@@ -169,7 +169,7 @@
 
 ---
 
-#### VYAPAR-109: Setup Docker Development Environment
+#### BUSINESS-109: Setup Docker Development Environment
 **As a** developer  
 **I want** a Docker Compose setup  
 **So that** I can run all services locally with one command
@@ -188,7 +188,7 @@
 
 ---
 
-#### VYAPAR-110: Setup CI/CD Pipeline
+#### BUSINESS-110: Setup CI/CD Pipeline
 **As a** developer  
 **I want** automated CI/CD pipelines  
 **So that** code quality and deployments are automated
@@ -206,11 +206,11 @@
 
 ---
 
-## EPIC 2: Authentication & User Management (VYAPAR-E02)
+## EPIC 2: Authentication & User Management (BUSINESS-E02)
 
 ### User Stories
 
-#### VYAPAR-201: User Registration with Phone OTP
+#### BUSINESS-201: User Registration with Phone OTP
 **As a** new user  
 **I want** to register using my phone number  
 **So that** I can quickly onboard without remembering passwords
@@ -234,7 +234,7 @@
 
 ---
 
-#### VYAPAR-202: User Login with OTP
+#### BUSINESS-202: User Login with OTP
 **As a** returning user  
 **I want** to login using OTP  
 **So that** I can access my account securely
@@ -253,7 +253,7 @@
 
 ---
 
-#### VYAPAR-203: Token Refresh Mechanism
+#### BUSINESS-203: Token Refresh Mechanism
 **As a** user  
 **I want** my session to be extended automatically  
 **So that** I don't have to login repeatedly
@@ -274,7 +274,7 @@
 
 ---
 
-#### VYAPAR-204: User Profile Management
+#### BUSINESS-204: User Profile Management
 **As a** user  
 **I want** to manage my profile information  
 **So that** my details are up to date
@@ -297,7 +297,7 @@
 
 ---
 
-#### VYAPAR-205: Logout & Session Management
+#### BUSINESS-205: Logout & Session Management
 **As a** user  
 **I want** to logout and manage my sessions  
 **So that** I can secure my account
@@ -320,7 +320,7 @@
 
 ---
 
-#### VYAPAR-206: Mobile App Auth Flow UI
+#### BUSINESS-206: Mobile App Auth Flow UI
 **As a** mobile user  
 **I want** a smooth authentication UI  
 **So that** onboarding is seamless
@@ -340,11 +340,11 @@
 
 ---
 
-## EPIC 3: Business & Party Management (VYAPAR-E03)
+## EPIC 3: Business & Party Management (BUSINESS-E03)
 
 ### User Stories
 
-#### VYAPAR-301: Create Business Profile
+#### BUSINESS-301: Create Business Profile
 **As a** business owner  
 **I want** to create my business profile  
 **So that** my invoices have correct business details
@@ -369,7 +369,7 @@
 
 ---
 
-#### VYAPAR-302: Edit Business Profile
+#### BUSINESS-302: Edit Business Profile
 **As a** business owner  
 **I want** to update my business details  
 **So that** changes reflect in future invoices
@@ -389,7 +389,7 @@
 
 ---
 
-#### VYAPAR-303: Multi-Business Support
+#### BUSINESS-303: Multi-Business Support
 **As a** user managing multiple businesses  
 **I want** to switch between businesses  
 **So that** I can manage all my ventures from one app
@@ -406,7 +406,7 @@
 
 ---
 
-#### VYAPAR-304: Add Customer (Party)
+#### BUSINESS-304: Add Customer (Party)
 **As a** business user  
 **I want** to add customers  
 **So that** I can create invoices for them
@@ -431,7 +431,7 @@
 
 ---
 
-#### VYAPAR-305: Party List & Search
+#### BUSINESS-305: Party List & Search
 **As a** business user  
 **I want** to view and search parties  
 **So that** I can quickly find customers/suppliers
@@ -453,7 +453,7 @@
 
 ---
 
-#### VYAPAR-306: Party Detail View
+#### BUSINESS-306: Party Detail View
 **As a** business user  
 **I want** to see party details and history  
 **So that** I can track my relationship with them
@@ -475,7 +475,7 @@
 
 ---
 
-#### VYAPAR-307: Import Parties from Contacts
+#### BUSINESS-307: Import Parties from Contacts
 **As a** business user  
 **I want** to import parties from phone contacts  
 **So that** I can quickly add existing contacts
@@ -493,11 +493,11 @@
 
 ---
 
-## EPIC 4: Inventory Management (VYAPAR-E04)
+## EPIC 4: Inventory Management (BUSINESS-E04)
 
 ### User Stories
 
-#### VYAPAR-401: Add Item/Product
+#### BUSINESS-401: Add Item/Product
 **As a** business user  
 **I want** to add products to my inventory  
 **So that** I can include them in invoices
@@ -524,7 +524,7 @@
 
 ---
 
-#### VYAPAR-402: Item List & Search
+#### BUSINESS-402: Item List & Search
 **As a** business user  
 **I want** to view and search items  
 **So that** I can manage my inventory
@@ -546,7 +546,7 @@
 
 ---
 
-#### VYAPAR-403: Edit Item
+#### BUSINESS-403: Edit Item
 **As a** business user  
 **I want** to edit item details  
 **So that** information stays current
@@ -565,7 +565,7 @@
 
 ---
 
-#### VYAPAR-404: Stock Adjustment
+#### BUSINESS-404: Stock Adjustment
 **As a** business user  
 **I want** to adjust stock manually  
 **So that** I can account for damages, theft, or corrections
@@ -585,7 +585,7 @@
 
 ---
 
-#### VYAPAR-405: Low Stock Alerts
+#### BUSINESS-405: Low Stock Alerts
 **As a** business user  
 **I want** to be alerted when stock is low  
 **So that** I can reorder in time
@@ -602,7 +602,7 @@
 
 ---
 
-#### VYAPAR-406: Item Categories
+#### BUSINESS-406: Item Categories
 **As a** business user  
 **I want** to organize items in categories  
 **So that** inventory is structured
@@ -625,7 +625,7 @@
 
 ---
 
-#### VYAPAR-407: Barcode Scanning
+#### BUSINESS-407: Barcode Scanning
 **As a** business user  
 **I want** to scan barcodes to add/find items  
 **So that** data entry is faster
@@ -643,11 +643,11 @@
 
 ---
 
-## EPIC 5: Invoice & Billing (VYAPAR-E05)
+## EPIC 5: Invoice & Billing (BUSINESS-E05)
 
 ### User Stories
 
-#### VYAPAR-501: Create Sales Invoice
+#### BUSINESS-501: Create Sales Invoice
 **As a** business user  
 **I want** to create GST-compliant sales invoices  
 **So that** I can bill my customers properly
@@ -678,7 +678,7 @@
 
 ---
 
-#### VYAPAR-502: Invoice PDF Generation
+#### BUSINESS-502: Invoice PDF Generation
 **As a** business user  
 **I want** to generate PDF invoices  
 **So that** I can share them with customers
@@ -700,7 +700,7 @@
 
 ---
 
-#### VYAPAR-503: Share Invoice
+#### BUSINESS-503: Share Invoice
 **As a** business user  
 **I want** to share invoices via multiple channels  
 **So that** customers receive them conveniently
@@ -718,7 +718,7 @@
 
 ---
 
-#### VYAPAR-504: Invoice List & Filters
+#### BUSINESS-504: Invoice List & Filters
 **As a** business user  
 **I want** to view all invoices with filters  
 **So that** I can manage billing history
@@ -740,7 +740,7 @@
 
 ---
 
-#### VYAPAR-505: Invoice Detail View
+#### BUSINESS-505: Invoice Detail View
 **As a** business user  
 **I want** to view invoice details  
 **So that** I can see complete information
@@ -761,7 +761,7 @@
 
 ---
 
-#### VYAPAR-506: Edit Invoice
+#### BUSINESS-506: Edit Invoice
 **As a** business user  
 **I want** to edit invoices  
 **So that** I can correct mistakes
@@ -781,7 +781,7 @@
 
 ---
 
-#### VYAPAR-507: Delete/Cancel Invoice
+#### BUSINESS-507: Delete/Cancel Invoice
 **As a** business user  
 **I want** to cancel invoices  
 **So that** incorrect invoices can be voided
@@ -801,7 +801,7 @@
 
 ---
 
-#### VYAPAR-508: Create Quotation/Estimate
+#### BUSINESS-508: Create Quotation/Estimate
 **As a** business user  
 **I want** to create quotations  
 **So that** I can share pricing before billing
@@ -822,7 +822,7 @@
 
 ---
 
-#### VYAPAR-509: Create Purchase Invoice
+#### BUSINESS-509: Create Purchase Invoice
 **As a** business user  
 **I want** to record purchases  
 **So that** I can track expenses and input tax credit
@@ -843,7 +843,7 @@
 
 ---
 
-#### VYAPAR-510: Record Payment Against Invoice
+#### BUSINESS-510: Record Payment Against Invoice
 **As a** business user  
 **I want** to record payments received  
 **So that** I can track outstanding amounts
@@ -864,11 +864,11 @@
 
 ---
 
-## EPIC 6: Accounting & Ledger (VYAPAR-E06)
+## EPIC 6: Accounting & Ledger (BUSINESS-E06)
 
 ### User Stories
 
-#### VYAPAR-601: Party Ledger View
+#### BUSINESS-601: Party Ledger View
 **As a** business user  
 **I want** to see party-wise ledger  
 **So that** I can track balances with each party
@@ -890,7 +890,7 @@
 
 ---
 
-#### VYAPAR-602: Cash & Bank Book
+#### BUSINESS-602: Cash & Bank Book
 **As a** business user  
 **I want** to view cash and bank transactions  
 **So that** I can reconcile balances
@@ -911,7 +911,7 @@
 
 ---
 
-#### VYAPAR-603: Expense Recording
+#### BUSINESS-603: Expense Recording
 **As a** business user  
 **I want** to record business expenses  
 **So that** I can track spending
@@ -933,7 +933,7 @@
 
 ---
 
-#### VYAPAR-604: Day Book Report
+#### BUSINESS-604: Day Book Report
 **As a** business user  
 **I want** a day book report  
 **So that** I can see all transactions for a day
@@ -952,7 +952,7 @@
 
 ---
 
-#### VYAPAR-605: Profit & Loss Report
+#### BUSINESS-605: Profit & Loss Report
 **As a** business user  
 **I want** to see profit and loss  
 **So that** I can understand business performance
@@ -974,11 +974,11 @@
 
 ---
 
-## EPIC 7: GST Compliance & Reports (VYAPAR-E07)
+## EPIC 7: GST Compliance & Reports (BUSINESS-E07)
 
 ### User Stories
 
-#### VYAPAR-701: GSTR-1 Report Generation
+#### BUSINESS-701: GSTR-1 Report Generation
 **As a** GST-registered business  
 **I want** to generate GSTR-1 report  
 **So that** I can file my returns
@@ -1000,7 +1000,7 @@
 
 ---
 
-#### VYAPAR-702: GSTR-3B Summary
+#### BUSINESS-702: GSTR-3B Summary
 **As a** GST-registered business  
 **I want** to see GSTR-3B summary  
 **So that** I know my tax liability
@@ -1020,7 +1020,7 @@
 
 ---
 
-#### VYAPAR-703: HSN Summary Report
+#### BUSINESS-703: HSN Summary Report
 **As a** GST-registered business  
 **I want** HSN-wise sales summary  
 **So that** I can report correctly
@@ -1037,7 +1037,7 @@
 
 ---
 
-#### VYAPAR-704: E-Invoice Generation
+#### BUSINESS-704: E-Invoice Generation
 **As a** business with turnover >5Cr  
 **I want** to generate E-Invoices  
 **So that** I comply with government mandate
@@ -1055,11 +1055,11 @@
 
 ---
 
-## EPIC 8: Offline Sync Engine (VYAPAR-E08)
+## EPIC 8: Offline Sync Engine (BUSINESS-E08)
 
 ### User Stories
 
-#### VYAPAR-801: Local Database Setup
+#### BUSINESS-801: Local Database Setup
 **As a** mobile user  
 **I want** data stored locally  
 **So that** the app works offline
@@ -1076,7 +1076,7 @@
 
 ---
 
-#### VYAPAR-802: Create Operations Offline
+#### BUSINESS-802: Create Operations Offline
 **As a** user without internet  
 **I want** to create invoices and records offline  
 **So that** business isn't disrupted
@@ -1094,7 +1094,7 @@
 
 ---
 
-#### VYAPAR-803: Background Sync
+#### BUSINESS-803: Background Sync
 **As a** user  
 **I want** data to sync automatically when online  
 **So that** I don't have to manually sync
@@ -1111,7 +1111,7 @@
 
 ---
 
-#### VYAPAR-804: Conflict Resolution
+#### BUSINESS-804: Conflict Resolution
 **As a** user with multiple devices  
 **I want** conflicts resolved automatically  
 **So that** data is consistent
@@ -1128,7 +1128,7 @@
 
 ---
 
-#### VYAPAR-805: Sync Status Indicator
+#### BUSINESS-805: Sync Status Indicator
 **As a** user  
 **I want** to see sync status  
 **So that** I know if data is up to date
@@ -1145,11 +1145,11 @@
 
 ---
 
-## EPIC 9: Notifications & Integrations (VYAPAR-E09)
+## EPIC 9: Notifications & Integrations (BUSINESS-E09)
 
 ### User Stories
 
-#### VYAPAR-901: Push Notifications
+#### BUSINESS-901: Push Notifications
 **As a** user  
 **I want** to receive push notifications  
 **So that** I'm alerted about important events
@@ -1166,7 +1166,7 @@
 
 ---
 
-#### VYAPAR-902: WhatsApp Integration
+#### BUSINESS-902: WhatsApp Integration
 **As a** business user  
 **I want** to send invoices via WhatsApp  
 **So that** customers receive them instantly
@@ -1182,7 +1182,7 @@
 
 ---
 
-#### VYAPAR-903: SMS Notifications
+#### BUSINESS-903: SMS Notifications
 **As a** business user  
 **I want** to send SMS to customers  
 **So that** they're notified even without internet
@@ -1199,11 +1199,11 @@
 
 ---
 
-## EPIC 10: Dashboard & Analytics (VYAPAR-E10)
+## EPIC 10: Dashboard & Analytics (BUSINESS-E10)
 
 ### User Stories
 
-#### VYAPAR-1001: Home Dashboard
+#### BUSINESS-1001: Home Dashboard
 **As a** business user  
 **I want** to see key metrics on home  
 **So that** I get a business snapshot
@@ -1221,7 +1221,7 @@
 
 ---
 
-#### VYAPAR-1002: Sales Analytics
+#### BUSINESS-1002: Sales Analytics
 **As a** business user  
 **I want** to see sales trends  
 **So that** I can make informed decisions
@@ -1238,7 +1238,7 @@
 
 ---
 
-#### VYAPAR-1003: Stock Reports
+#### BUSINESS-1003: Stock Reports
 **As a** business user  
 **I want** comprehensive stock reports  
 **So that** I can manage inventory effectively
@@ -1254,11 +1254,11 @@
 
 ---
 
-## EPIC 11: Settings & Configuration (VYAPAR-E11)
+## EPIC 11: Settings & Configuration (BUSINESS-E11)
 
 ### User Stories
 
-#### VYAPAR-1101: Invoice Settings
+#### BUSINESS-1101: Invoice Settings
 **As a** business user  
 **I want** to customize invoice settings  
 **So that** invoices match my preferences
@@ -1276,7 +1276,7 @@
 
 ---
 
-#### VYAPAR-1102: Tax Configuration
+#### BUSINESS-1102: Tax Configuration
 **As a** business user  
 **I want** to configure tax rates  
 **So that** correct taxes are applied
@@ -1292,7 +1292,7 @@
 
 ---
 
-#### VYAPAR-1103: App Preferences
+#### BUSINESS-1103: App Preferences
 **As a** user  
 **I want** to customize app settings  
 **So that** it works as I prefer
@@ -1309,7 +1309,7 @@
 
 ---
 
-#### VYAPAR-1104: Data Backup & Restore
+#### BUSINESS-1104: Data Backup & Restore
 **As a** user  
 **I want** to backup my data  
 **So that** I don't lose it
@@ -1326,11 +1326,11 @@
 
 ---
 
-## EPIC 12: Testing & QA (VYAPAR-E12)
+## EPIC 12: Testing & QA (BUSINESS-E12)
 
 ### User Stories
 
-#### VYAPAR-1201: Unit Test Coverage
+#### BUSINESS-1201: Unit Test Coverage
 **As a** developer  
 **I want** comprehensive unit tests  
 **So that** code quality is maintained
@@ -1346,7 +1346,7 @@
 
 ---
 
-#### VYAPAR-1202: API Integration Tests
+#### BUSINESS-1202: API Integration Tests
 **As a** developer  
 **I want** API integration tests  
 **So that** endpoints work correctly
@@ -1362,7 +1362,7 @@
 
 ---
 
-#### VYAPAR-1203: E2E Mobile Tests
+#### BUSINESS-1203: E2E Mobile Tests
 **As a** QA  
 **I want** end-to-end mobile tests  
 **So that** user flows are verified
@@ -1378,7 +1378,7 @@
 
 ---
 
-#### VYAPAR-1204: Performance Testing
+#### BUSINESS-1204: Performance Testing
 **As a** developer  
 **I want** performance benchmarks  
 **So that** app performs well under load
@@ -1395,11 +1395,11 @@
 
 ---
 
-## EPIC 13: E-Way Bill & Advanced GST (VYAPAR-E13)
+## EPIC 13: E-Way Bill & Advanced GST (BUSINESS-E13)
 
 ### User Stories
 
-#### VYAPAR-1301: E-Way Bill Generation
+#### BUSINESS-1301: E-Way Bill Generation
 **As a** business with goods movement >50K  
 **I want** to generate E-Way Bills  
 **So that** I comply with transportation rules
@@ -1418,7 +1418,7 @@
 
 ---
 
-#### VYAPAR-1302: E-Way Bill List & Management
+#### BUSINESS-1302: E-Way Bill List & Management
 **As a** business user  
 **I want** to view and manage E-Way Bills  
 **So that** I can track transportation compliance
@@ -1436,11 +1436,11 @@
 
 ---
 
-## EPIC 14: Bank Reconciliation (VYAPAR-E14)
+## EPIC 14: Bank Reconciliation (BUSINESS-E14)
 
 ### User Stories
 
-#### VYAPAR-1401: Bank Statement Import
+#### BUSINESS-1401: Bank Statement Import
 **As a** business user  
 **I want** to import bank statements  
 **So that** I can reconcile transactions automatically
@@ -1459,7 +1459,7 @@
 
 ---
 
-#### VYAPAR-1402: Automatic Reconciliation
+#### BUSINESS-1402: Automatic Reconciliation
 **As a** business user  
 **I want** transactions matched automatically  
 **So that** reconciliation is faster
@@ -1478,7 +1478,7 @@
 
 ---
 
-#### VYAPAR-1403: Bank Reconciliation Report
+#### BUSINESS-1403: Bank Reconciliation Report
 **As a** business user  
 **I want** to see reconciliation status  
 **So that** I know what's reconciled
@@ -1496,11 +1496,11 @@
 
 ---
 
-## EPIC 15: Multi-User & Role Management (VYAPAR-E15)
+## EPIC 15: Multi-User & Role Management (BUSINESS-E15)
 
 ### User Stories
 
-#### VYAPAR-1501: Invite Staff Members
+#### BUSINESS-1501: Invite Staff Members
 **As a** business owner  
 **I want** to invite staff to my business  
 **So that** they can help manage operations
@@ -1519,7 +1519,7 @@
 
 ---
 
-#### VYAPAR-1502: Role-Based Permissions
+#### BUSINESS-1502: Role-Based Permissions
 **As a** business owner  
 **I want** to control what staff can do  
 **So that** sensitive operations are protected
@@ -1538,7 +1538,7 @@
 
 ---
 
-#### VYAPAR-1503: Staff Management UI
+#### BUSINESS-1503: Staff Management UI
 **As a** business owner  
 **I want** to manage my staff  
 **So that** I can control access
@@ -1557,11 +1557,11 @@
 
 ---
 
-## EPIC 16: Subscription & Billing (VYAPAR-E16)
+## EPIC 16: Subscription & Billing (BUSINESS-E16)
 
 ### User Stories
 
-#### VYAPAR-1601: Subscription Plans
+#### BUSINESS-1601: Subscription Plans
 **As a** business owner  
 **I want** to choose a subscription plan  
 **So that** I can access features I need
@@ -1580,7 +1580,7 @@
 
 ---
 
-#### VYAPAR-1602: Payment Gateway Integration
+#### BUSINESS-1602: Payment Gateway Integration
 **As a** business owner  
 **I want** to pay for subscription  
 **So that** I can access premium features
@@ -1600,7 +1600,7 @@
 
 ---
 
-#### VYAPAR-1603: Subscription Management
+#### BUSINESS-1603: Subscription Management
 **As a** business owner  
 **I want** to manage my subscription  
 **So that** I can control my plan
@@ -1619,11 +1619,11 @@
 
 ---
 
-## EPIC 17: Advanced Reports (VYAPAR-E17)
+## EPIC 17: Advanced Reports (BUSINESS-E17)
 
 ### User Stories
 
-#### VYAPAR-1701: Stock Aging Report
+#### BUSINESS-1701: Stock Aging Report
 **As a** business user  
 **I want** to see stock aging  
 **So that** I can identify dead stock
@@ -1640,7 +1640,7 @@
 
 ---
 
-#### VYAPAR-1702: Debtor Aging Report
+#### BUSINESS-1702: Debtor Aging Report
 **As a** business user  
 **I want** to see debtor aging  
 **So that** I can follow up on overdue payments
@@ -1657,7 +1657,7 @@
 
 ---
 
-#### VYAPAR-1703: Creditor Aging Report
+#### BUSINESS-1703: Creditor Aging Report
 **As a** business user  
 **I want** to see creditor aging  
 **So that** I know what I owe
@@ -1674,7 +1674,7 @@
 
 ---
 
-#### VYAPAR-1704: Item-wise Sales Report
+#### BUSINESS-1704: Item-wise Sales Report
 **As a** business user  
 **I want** to see item-wise sales  
 **So that** I can identify best sellers
@@ -1692,11 +1692,11 @@
 
 ---
 
-## EPIC 18: Bulk Operations (VYAPAR-E18)
+## EPIC 18: Bulk Operations (BUSINESS-E18)
 
 ### User Stories
 
-#### VYAPAR-1801: Bulk Import Items
+#### BUSINESS-1801: Bulk Import Items
 **As a** business user  
 **I want** to import items from Excel  
 **So that** I can add many items quickly
@@ -1715,7 +1715,7 @@
 
 ---
 
-#### VYAPAR-1802: Bulk Import Parties
+#### BUSINESS-1802: Bulk Import Parties
 **As a** business user  
 **I want** to import parties from Excel  
 **So that** I can add many customers quickly
@@ -1734,7 +1734,7 @@
 
 ---
 
-#### VYAPAR-1803: Bulk Payment Recording
+#### BUSINESS-1803: Bulk Payment Recording
 **As a** business user  
 **I want** to record multiple payments at once  
 **So that** I can save time

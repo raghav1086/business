@@ -1,4 +1,4 @@
-# Vyapar App - Detailed Product Requirements Document (PRD)
+# Business App - Detailed Product Requirements Document (PRD)
 
 **Version:** 1.0  
 **Last Updated:** 2025-12-20  
@@ -48,7 +48,7 @@
 
 ## Introduction
 
-This PRD provides a comprehensive, granular breakdown of all features for the Vyapar App. Each module includes:
+This PRD provides a comprehensive, granular breakdown of all features for the Business App. Each module includes:
 - **Problem Statement**: Why this feature is needed
 - **User Stories**: High-level user requirements
 - **Tasks**: Major work items

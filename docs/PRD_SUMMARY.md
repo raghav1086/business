@@ -225,34 +225,34 @@ A comprehensive PRD document in the requested format with:
 The following epics and stories were added to `JIRA_EPICS_AND_STORIES.md`:
 
 ### Epic 13: E-Way Bill & Advanced GST
-- VYAPAR-1301: E-Way Bill Generation
-- VYAPAR-1302: E-Way Bill List & Management
+- BUSINESS-1301: E-Way Bill Generation
+- BUSINESS-1302: E-Way Bill List & Management
 
 ### Epic 14: Bank Reconciliation
-- VYAPAR-1401: Bank Statement Import
-- VYAPAR-1402: Automatic Reconciliation
-- VYAPAR-1403: Bank Reconciliation Report
+- BUSINESS-1401: Bank Statement Import
+- BUSINESS-1402: Automatic Reconciliation
+- BUSINESS-1403: Bank Reconciliation Report
 
 ### Epic 15: Multi-User & Role Management
-- VYAPAR-1501: Invite Staff Members
-- VYAPAR-1502: Role-Based Permissions
-- VYAPAR-1503: Staff Management UI
+- BUSINESS-1501: Invite Staff Members
+- BUSINESS-1502: Role-Based Permissions
+- BUSINESS-1503: Staff Management UI
 
 ### Epic 16: Subscription & Billing
-- VYAPAR-1601: Subscription Plans
-- VYAPAR-1602: Payment Gateway Integration
-- VYAPAR-1603: Subscription Management
+- BUSINESS-1601: Subscription Plans
+- BUSINESS-1602: Payment Gateway Integration
+- BUSINESS-1603: Subscription Management
 
 ### Epic 17: Advanced Reports
-- VYAPAR-1701: Stock Aging Report
-- VYAPAR-1702: Debtor Aging Report
-- VYAPAR-1703: Creditor Aging Report
-- VYAPAR-1704: Item-wise Sales Report
+- BUSINESS-1701: Stock Aging Report
+- BUSINESS-1702: Debtor Aging Report
+- BUSINESS-1703: Creditor Aging Report
+- BUSINESS-1704: Item-wise Sales Report
 
 ### Epic 18: Bulk Operations
-- VYAPAR-1801: Bulk Import Items
-- VYAPAR-1802: Bulk Import Parties
-- VYAPAR-1803: Bulk Payment Recording
+- BUSINESS-1801: Bulk Import Items
+- BUSINESS-1802: Bulk Import Parties
+- BUSINESS-1803: Bulk Payment Recording
 
 ## Key Improvements
 

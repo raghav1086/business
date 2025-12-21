@@ -1,13 +1,13 @@
-# Vyapar App - Technical Architecture
+# Business App - Technical Architecture
 
 ## 1. Overview
 
-This document outlines the production-ready architecture for the Vyapar App clone using NX Monorepo with React Native frontend and NestJS microservices backend.
+This document outlines the production-ready architecture for the Business App using NX Monorepo with React Native frontend and NestJS microservices backend.
 
 ## 2. Monorepo Structure (NX Workspace)
 
 ```
-vyapar-app/
+business-app/
 ├── apps/
 │   ├── mobile/                    # React Native Mobile App
 │   ├── web/                       # React Web App (Optional)
