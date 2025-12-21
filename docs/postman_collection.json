@@ -1,0 +1,580 @@
+{
+  "info": {
+    "name": "Business Management System API",
+    "description": "Complete API collection for Business Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "business-mgmt-api-v1",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url_auth",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "base_url_business",
+      "value": "http://localhost:3003",
+      "type": "string"
+    },
+    {
+      "key": "base_url_party",
+      "value": "http://localhost:3004",
+      "type": "string"
+    },
+    {
+      "key": "base_url_inventory",
+      "value": "http://localhost:3005",
+      "type": "string"
+    },
+    {
+      "key": "base_url_invoice",
+      "value": "http://localhost:3006",
+      "type": "string"
+    },
+    {
+      "key": "base_url_payment",
+      "value": "http://localhost:3007",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "business_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "party_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoice_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Send OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has otp_id\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('otp_id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"purpose\": \"login\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_auth}}/api/v1/auth/send-otp",
+              "host": ["{{base_url_auth}}"],
+              "path": ["api", "v1", "auth", "send-otp"]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.tokens && jsonData.tokens.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.tokens.access_token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", jsonData.tokens.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"otp_id\": \"your_otp_id_here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_auth}}/api/v1/auth/verify-otp",
+              "host": ["{{base_url_auth}}"],
+              "path": ["api", "v1", "auth", "verify-otp"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", jsonData.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_auth}}/api/v1/auth/refresh-token",
+              "host": ["{{base_url_auth}}"],
+              "path": ["api", "v1", "auth", "refresh-token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Business",
+      "item": [
+        {
+          "name": "Create Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set(\"business_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Trading Company\",\n  \"type\": \"retailer\",\n  \"gstin\": \"27AABCU9603R1ZX\",\n  \"pan\": \"AABCU9603R\",\n  \"phone\": \"9876543210\",\n  \"email\": \"contact@acme.com\",\n  \"address_line1\": \"123 Main Street\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pincode\": \"400001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_business}}/api/v1/businesses",
+              "host": ["{{base_url_business}}"],
+              "path": ["api", "v1", "businesses"]
+            }
+          }
+        },
+        {
+          "name": "List Businesses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_business}}/api/v1/businesses",
+              "host": ["{{base_url_business}}"],
+              "path": ["api", "v1", "businesses"]
+            }
+          }
+        },
+        {
+          "name": "Get Business",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_business}}/api/v1/businesses/{{business_id}}",
+              "host": ["{{base_url_business}}"],
+              "path": ["api", "v1", "businesses", "{{business_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Business",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Trading Company Ltd\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_business}}/api/v1/businesses/{{business_id}}",
+              "host": ["{{base_url_business}}"],
+              "path": ["api", "v1", "businesses", "{{business_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Party",
+      "item": [
+        {
+          "name": "Create Party",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set(\"party_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Suppliers\",\n  \"type\": \"supplier\",\n  \"phone\": \"9876543210\",\n  \"email\": \"abc@suppliers.com\",\n  \"gstin\": \"27AABCU9603R1ZX\",\n  \"billing_address_line1\": \"456 Market Road\",\n  \"billing_city\": \"Mumbai\",\n  \"billing_state\": \"Maharashtra\",\n  \"billing_pincode\": \"400002\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_party}}/api/v1/parties",
+              "host": ["{{base_url_party}}"],
+              "path": ["api", "v1", "parties"]
+            }
+          }
+        },
+        {
+          "name": "List Parties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_party}}/api/v1/parties?type=supplier",
+              "host": ["{{base_url_party}}"],
+              "path": ["api", "v1", "parties"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "supplier"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Party Ledger",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_party}}/api/v1/parties/{{party_id}}/ledger",
+              "host": ["{{base_url_party}}"],
+              "path": ["api", "v1", "parties", "{{party_id}}", "ledger"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Create Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set(\"item_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Product A\",\n  \"sku\": \"PROD-A-001\",\n  \"hsn_code\": \"1234\",\n  \"unit_of_measure\": \"pcs\",\n  \"sale_price\": 1000,\n  \"purchase_price\": 800,\n  \"current_stock\": 100,\n  \"low_stock_threshold\": 10,\n  \"track_stock\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_inventory}}/api/v1/items",
+              "host": ["{{base_url_inventory}}"],
+              "path": ["api", "v1", "items"]
+            }
+          }
+        },
+        {
+          "name": "List Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_inventory}}/api/v1/items",
+              "host": ["{{base_url_inventory}}"],
+              "path": ["api", "v1", "items"]
+            }
+          }
+        },
+        {
+          "name": "Adjust Stock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": \"{{item_id}}\",\n  \"adjustment_type\": \"increase\",\n  \"quantity\": 50,\n  \"reason\": \"Purchase\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_inventory}}/api/v1/stock/adjust",
+              "host": ["{{base_url_inventory}}"],
+              "path": ["api", "v1", "stock", "adjust"]
+            }
+          }
+        },
+        {
+          "name": "Get Low Stock Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_inventory}}/api/v1/items/low-stock",
+              "host": ["{{base_url_inventory}}"],
+              "path": ["api", "v1", "items", "low-stock"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set(\"invoice_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"invoice_type\": \"sale\",\n  \"invoice_date\": \"2025-12-22\",\n  \"due_date\": \"2026-01-22\",\n  \"is_interstate\": false,\n  \"items\": [\n    {\n      \"item_name\": \"Product A\",\n      \"quantity\": 10,\n      \"unit_price\": 1000,\n      \"tax_rate\": 18\n    }\n  ],\n  \"notes\": \"Thank you for your business\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_invoice}}/api/v1/invoices",
+              "host": ["{{base_url_invoice}}"],
+              "path": ["api", "v1", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_invoice}}/api/v1/invoices?page=1&limit=10",
+              "host": ["{{base_url_invoice}}"],
+              "path": ["api", "v1", "invoices"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_invoice}}/api/v1/invoices/{{invoice_id}}",
+              "host": ["{{base_url_invoice}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"party_id\": \"{{party_id}}\",\n  \"amount\": 11800,\n  \"payment_date\": \"2025-12-22\",\n  \"payment_mode\": \"upi\",\n  \"reference_number\": \"UPI123456789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url_payment}}/api/v1/payments",
+              "host": ["{{base_url_payment}}"],
+              "path": ["api", "v1", "payments"]
+            }
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_payment}}/api/v1/payments",
+              "host": ["{{base_url_payment}}"],
+              "path": ["api", "v1", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_payment}}/api/v1/payments/invoices/{{invoice_id}}",
+              "host": ["{{base_url_payment}}"],
+              "path": ["api", "v1", "payments", "invoices", "{{invoice_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
