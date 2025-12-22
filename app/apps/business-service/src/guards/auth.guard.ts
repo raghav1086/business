@@ -19,9 +19,9 @@ export class AuthGuard implements CanActivate {
     // For now, allow requests with mock user
     // In production, this will validate JWT token
     if (!request.user) {
-      // Mock user for development
+      // Mock user for development - use a valid UUID
       request.user = {
-        id: 'user-1', // Will be replaced with actual JWT payload
+        id: '00000000-0000-0000-0000-000000000001', // Valid UUID format
       };
     }
     

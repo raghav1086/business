@@ -49,7 +49,7 @@ export class ItemController {
     @Request() req: any,
     @Body() createDto: CreateItemDto
   ): Promise<ItemResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Valid UUID mock
     const item = await this.itemService.create(businessId, createDto);
     return this.toResponseDto(item);
   }
@@ -68,7 +68,7 @@ export class ItemController {
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string
   ): Promise<ItemResponseDto[]> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
 
     let items: Item[];
     if (search) {
@@ -88,7 +88,7 @@ export class ItemController {
     type: [LowStockItemDto],
   })
   async findLowStock(@Request() req: any): Promise<LowStockItemDto[]> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const items = await this.itemService.findLowStock(businessId);
     return items.map((i) => ({
       id: i.id,
@@ -111,7 +111,7 @@ export class ItemController {
     @Request() req: any,
     @Param('id') id: string
   ): Promise<ItemResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const item = await this.itemService.findById(businessId, id);
     return this.toResponseDto(item);
   }
@@ -129,7 +129,7 @@ export class ItemController {
     @Param('id') id: string,
     @Body() updateDto: UpdateItemDto
   ): Promise<ItemResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const item = await this.itemService.update(businessId, id, updateDto);
     return this.toResponseDto(item);
   }
@@ -140,7 +140,7 @@ export class ItemController {
   @ApiResponse({ status: 204, description: 'Item deleted successfully' })
   @ApiResponse({ status: 404, description: 'Item not found' })
   async remove(@Request() req: any, @Param('id') id: string): Promise<void> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     await this.itemService.delete(businessId, id);
   }
 

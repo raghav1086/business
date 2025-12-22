@@ -13,7 +13,8 @@
         "outputPath": "dist/apps/party-service",
         "main": "apps/party-service/src/main.ts",
         "tsConfig": "apps/party-service/tsconfig.app.json",
-        "assets": ["apps/party-service/src/assets"]
+        "assets": ["apps/party-service/src/assets"],
+        "webpackConfig": "apps/party-service/webpack.config.js"
       }
     },
     "serve": {

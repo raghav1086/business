@@ -13,7 +13,8 @@
         "outputPath": "dist/apps/inventory-service",
         "main": "apps/inventory-service/src/main.ts",
         "tsConfig": "apps/inventory-service/tsconfig.app.json",
-        "assets": ["apps/inventory-service/src/assets"]
+        "assets": ["apps/inventory-service/src/assets"],
+        "webpackConfig": "apps/inventory-service/webpack.config.js"
       }
     },
     "serve": {

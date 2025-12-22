@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BusinessController } from './controllers/business.controller';
+import { HealthController } from './controllers/health.controller';
 import { BusinessService } from './services/business.service';
 import { BusinessRepository } from './repositories/business.repository';
 import { Business } from './entities/business.entity';
@@ -29,7 +30,7 @@ import { AuthGuard } from './guards/auth.guard';
     }),
     TypeOrmModule.forFeature([Business]),
   ],
-  controllers: [BusinessController],
+  controllers: [BusinessController, HealthController],
   providers: [BusinessService, BusinessRepository, AuthGuard],
 })
 export class AppModule {}

@@ -13,7 +13,8 @@
         "outputPath": "dist/apps/payment-service",
         "main": "apps/payment-service/src/main.ts",
         "tsConfig": "apps/payment-service/tsconfig.app.json",
-        "assets": ["apps/payment-service/src/assets"]
+        "assets": ["apps/payment-service/src/assets"],
+        "webpackConfig": "apps/payment-service/webpack.config.js"
       }
     },
     "serve": {

@@ -6,6 +6,12 @@ node_modules/
 # Testing
 coverage/
 .nyc_output
+test-results/
+playwright-report/
+logs/
+!logs/.gitkeep
+!test-results/.gitkeep
+!playwright-report/.gitkeep
 
 # Production
 dist/

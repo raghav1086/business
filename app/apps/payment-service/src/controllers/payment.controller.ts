@@ -43,7 +43,7 @@ export class PaymentController {
     @Request() req: any,
     @Body() createDto: CreatePaymentDto
   ): Promise<PaymentResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const userId = req.user?.id || 'user-1'; // Mock for now
     const transaction = await this.paymentService.recordPayment(
       businessId,
@@ -74,7 +74,7 @@ export class PaymentController {
     page: number;
     limit: number;
   }> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const result = await this.paymentService.findByBusinessId(businessId, {
       partyId,
       invoiceId,
@@ -105,7 +105,7 @@ export class PaymentController {
     @Request() req: any,
     @Param('id') id: string
   ): Promise<PaymentResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const transaction = await this.paymentService.findById(businessId, id);
     return this.toResponseDto(transaction);
   }

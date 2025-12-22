@@ -1,0 +1,152 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        working-directory: ./app
+        run: npx playwright install --with-deps chromium
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Start services with Docker Compose
+        working-directory: ./app
+        run: |
+          docker-compose -f docker-compose.e2e.yml up -d --build
+          echo "Waiting for services to be healthy..."
+          
+          # Wait for services to be healthy (max 5 minutes)
+          timeout=300
+          elapsed=0
+          interval=10
+          
+          while [ $elapsed -lt $timeout ]; do
+            all_healthy=true
+            
+            for service in postgres redis auth-service business-service party-service inventory-service invoice-service payment-service; do
+              status=$(docker inspect --format='{{.State.Health.Status}}' "business-${service}-e2e" 2>/dev/null || echo "not_found")
+              
+              if [ "$status" != "healthy" ]; then
+                all_healthy=false
+                echo "  ⏳ Waiting for $service... (${elapsed}s elapsed)"
+                break
+              fi
+            done
+            
+            if [ "$all_healthy" = true ]; then
+              echo "✅ All services are healthy!"
+              break
+            fi
+            
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+          
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Services did not become healthy in time"
+            docker-compose -f docker-compose.e2e.yml logs
+            exit 1
+          fi
+      
+      - name: Run database migrations
+        working-directory: ./app
+        run: |
+          docker-compose -f docker-compose.e2e.yml exec -T auth-service npm run typeorm migration:run || true
+      
+      - name: Run Playwright E2E tests
+        working-directory: ./app
+        run: npx playwright test
+        env:
+          CI: true
+      
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: app/playwright-report/
+          retention-days: 30
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: app/playwright-report/results.json
+          retention-days: 30
+      
+      - name: Show service logs on failure
+        if: failure()
+        working-directory: ./app
+        run: |
+          echo "📋 Showing service logs..."
+          docker-compose -f docker-compose.e2e.yml logs --tail=100
+      
+      - name: Cleanup
+        if: always()
+        working-directory: ./app
+        run: docker-compose -f docker-compose.e2e.yml down -v
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultsPath = 'app/playwright-report/results.json';
+            
+            if (!fs.existsSync(resultsPath)) {
+              console.log('No results file found');
+              return;
+            }
+            
+            const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+            const passed = results.suites.reduce((sum, suite) => sum + suite.tests.filter(t => t.status === 'passed').length, 0);
+            const failed = results.suites.reduce((sum, suite) => sum + suite.tests.filter(t => t.status === 'failed').length, 0);
+            const total = passed + failed;
+            
+            const body = `## 🎭 E2E Test Results
+            
+            - **Total Tests**: ${total}
+            - **✅ Passed**: ${passed}
+            - **❌ Failed**: ${failed}
+            - **Success Rate**: ${((passed/total)*100).toFixed(1)}%
+            
+            [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

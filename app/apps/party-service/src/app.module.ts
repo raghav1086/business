@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PartyController } from './controllers/party.controller';
+import { HealthController } from './controllers/health.controller';
 import { PartyService } from './services/party.service';
 import { PartyLedgerService } from './services/party-ledger.service';
 import { PartyRepository } from './repositories/party.repository';
@@ -29,7 +30,7 @@ import { Party } from './entities/party.entity';
     }),
     TypeOrmModule.forFeature([Party]),
   ],
-  controllers: [PartyController],
+  controllers: [PartyController, HealthController],
   providers: [PartyService, PartyLedgerService, PartyRepository],
 })
 export class AppModule {}

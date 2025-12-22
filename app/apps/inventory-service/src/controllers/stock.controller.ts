@@ -42,7 +42,7 @@ export class StockController {
     item: any;
     adjustment: StockAdjustment;
   }> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const userId = req.user?.id;
     return this.stockService.adjustStock(businessId, adjustmentDto, userId);
   }

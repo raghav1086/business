@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { SessionController } from './controllers/session.controller';
+import { HealthController } from './controllers/health.controller';
 import { AuthService } from './services/auth.service';
 import { UserService } from './services/user.service';
 import { SessionService } from './services/session.service';
@@ -53,7 +54,7 @@ import { UserSession } from './entities/user-session.entity';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, UserController, SessionController],
+  controllers: [AuthController, UserController, SessionController, HealthController],
   providers: [
     AuthService,
     UserService,

@@ -13,7 +13,8 @@
         "outputPath": "dist/apps/invoice-service",
         "main": "apps/invoice-service/src/main.ts",
         "tsConfig": "apps/invoice-service/tsconfig.app.json",
-        "assets": ["apps/invoice-service/src/assets"]
+        "assets": ["apps/invoice-service/src/assets"],
+        "webpackConfig": "apps/invoice-service/webpack.config.js"
       }
     },
     "serve": {

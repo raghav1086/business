@@ -44,7 +44,7 @@ export class InvoiceController {
     @Request() req: any,
     @Body() createDto: CreateInvoiceDto
   ): Promise<InvoiceResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const userId = req.user?.id || 'user-1'; // Mock for now
     const invoice = await this.invoiceService.create(
       businessId,
@@ -77,7 +77,7 @@ export class InvoiceController {
     page: number;
     limit: number;
   }> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const result = await this.invoiceService.findByBusinessId(businessId, {
       partyId,
       invoiceType,
@@ -110,7 +110,7 @@ export class InvoiceController {
     @Request() req: any,
     @Param('id') id: string
   ): Promise<InvoiceResponseDto> {
-    const businessId = req.business_id || 'business-1'; // Mock for now
+    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
     const invoice = await this.invoiceService.findById(businessId, id);
     return this.toResponseDto(invoice);
   }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PaymentController } from './controllers/payment.controller';
+import { HealthController } from './controllers/health.controller';
 import { PaymentService } from './services/payment.service';
 import { TransactionRepository } from './repositories/transaction.repository';
 import { Transaction } from './entities/transaction.entity';
@@ -28,7 +29,7 @@ import { Transaction } from './entities/transaction.entity';
     }),
     TypeOrmModule.forFeature([Transaction]),
   ],
-  controllers: [PaymentController],
+  controllers: [PaymentController, HealthController],
   providers: [PaymentService, TransactionRepository],
 })
 export class AppModule {}

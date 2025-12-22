@@ -1,84 +1,159 @@
-# Business App - Development Workspace
+# Business Management System
 
-This is the NX monorepo workspace for the Business App project.
+> A comprehensive microservices-based business management platform for Indian SMEs
 
-## Structure
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+make install
+
+# Start everything with Docker (ONE COMMAND)
+make start
+
+# Run all tests (ONE COMMAND)
+make test-all
+
+# Check service health
+make health
+```
+
+## 📋 Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `make start` | Start all services with Docker |
+| `make stop` | Stop all services |
+| `make restart` | Restart all services |
+| `make logs` | View all service logs |
+| `make health` | Check health of all services |
+| `make test` | Run ALL tests (unit + integration + e2e) |
+| `make test-unit` | Run unit tests only |
+| `make test-integration` | Run integration tests only |
+| `make test-e2e` | Run Playwright E2E tests |
+| `make test-e2e-ui` | Run E2E tests with Playwright UI |
+| `make clean` | Clean up all Docker resources |
+| `make deploy` | Build and deploy to production |
+| `make help` | Show all available commands |
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        API Gateway                               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│ Auth Service  │   │Business Service│   │ Party Service │
+│    :3002      │   │    :3003      │   │    :3004      │
+└───────────────┘   └───────────────┘   └───────────────┘
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│Inventory Svc  │   │Invoice Service│   │Payment Service│
+│    :3005      │   │    :3006      │   │    :3007      │
+└───────────────┘   └───────────────┘   └───────────────┘
+        │                     │                     │
+        └─────────────────────┼─────────────────────┘
+                              │
+        ┌─────────────────────┴─────────────────────┐
+        │                                           │
+        ▼                                           ▼
+┌───────────────┐                         ┌───────────────┐
+│  PostgreSQL   │                         │     Redis     │
+│    :5432      │                         │    :6379      │
+└───────────────┘                         └───────────────┘
+```
+
+## 📁 Project Structure
 
 ```
 app/
-├── apps/
-│   ├── api-gateway/          # NestJS API Gateway
-│   ├── auth-service/          # Authentication Microservice
-│   ├── business-service/      # Business Management Service
-│   ├── inventory-service/     # Inventory Management Service
-│   ├── invoice-service/       # Billing & Invoicing Service
-│   ├── accounting-service/    # Accounting Service
-│   ├── gst-service/          # GST Compliance Service
-│   ├── payment-service/       # Payments Service
-│   ├── notification-service/ # Notifications Service
-│   └── sync-service/         # Offline Sync Service
+├── apps/                    # Microservices
+│   ├── auth-service/        # Authentication & Authorization
+│   ├── business-service/    # Business Management
+│   ├── party-service/       # Customer/Vendor Management
+│   ├── inventory-service/   # Inventory & Stock
+│   ├── invoice-service/     # Invoice Generation
+│   └── payment-service/     # Payment Processing
 ├── libs/
-│   └── shared/
-│       ├── dal/              # Data Access Layer
-│       ├── dto/               # DTOs and Interfaces
-│       ├── utils/             # Common Utilities
-│       ├── constants/         # Constants and Enums
-│       ├── types/             # TypeScript Types
-│       └── validation/        # Validation Schemas
-└── docs/                      # Documentation
+│   └── shared/              # Shared libraries
+├── e2e/                     # Playwright E2E tests
+├── scripts/                 # Utility scripts
+├── docker-compose.yml       # Docker orchestration
+├── Dockerfile               # Service container image
+├── Makefile                 # Single source of truth for commands
+└── playwright.config.ts     # E2E test configuration
 ```
 
-## Getting Started
+## 🧪 Testing Strategy
 
-### Prerequisites
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-- Docker & Docker Compose
-- PostgreSQL 15+
+### Test Pyramid
 
-### Setup
+```
+        ┌─────────────┐
+        │    E2E      │  ← Playwright (10 user personas)
+        │  (Slow)     │
+        ├─────────────┤
+        │ Integration │  ← Jest + Supertest
+        │  (Medium)   │
+        ├─────────────┤
+        │    Unit     │  ← Jest
+        │  (Fast)     │
+        └─────────────┘
+```
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### E2E Test Personas (10 Real Users)
 
-2. **Setup Database**
-   ```bash
-   docker-compose up -d
-   npm run db:migrate
-   npm run db:seed
-   ```
+1. 🏪 **Small Shop Owner** - Mumbai kirana store
+2. 📱 **Electronics Retailer** - Delhi mobile shop
+3. 🧵 **Textile Wholesaler** - Surat cloth merchant
+4. 🍽️ **Restaurant Owner** - Bangalore cafe
+5. 📲 **Mobile Store Chain** - Pune multi-location
+6. 💊 **Pharmacy Owner** - Chennai medical store
+7. 🚗 **Auto Parts Dealer** - Hyderabad spares
+8. 💎 **Jewelry Store Owner** - Jaipur ornaments
+9. 💻 **Computer Distributor** - Kolkata hardware
+10. 👗 **Fashion Boutique** - Ahmedabad clothing
 
-3. **Run Development**
-   ```bash
-   npm run dev
-   ```
+## 🔧 Development
 
-4. **Run Tests**
-   ```bash
-   npm test
-   ```
+```bash
+# Local development (without Docker containers for services)
+make dev
 
-## Development Approach
+# Stop local development
+make dev-stop
 
-- **TDD**: Test-Driven Development (Red → Green → Refactor)
-- **API-First**: Complete APIs before UI
-- **Business Service First**: Start with Business service
+# Reset databases
+make db-reset
+```
 
-## Services
+## 📊 Service Ports
 
-### Business Service (First Service)
-- Location: `apps/business-service/`
-- Database: PostgreSQL
-- Tests: `apps/business-service/src/**/*.spec.ts`
+| Service | Port | Health Endpoint |
+|---------|------|-----------------|
+| Auth | 3002 | http://localhost:3002/health |
+| Business | 3003 | http://localhost:3003/health |
+| Party | 3004 | http://localhost:3004/health |
+| Inventory | 3005 | http://localhost:3005/health |
+| Invoice | 3006 | http://localhost:3006/health |
+| Payment | 3007 | http://localhost:3007/health |
+| PostgreSQL | 5432 | - |
+| Redis | 6379 | - |
 
-## Documentation
+## 🇮🇳 India-Specific Features
 
-See `/docs` folder in project root for:
-- PRD
-- Database Schema
-- API Specifications
-- TDD Strategy
-- MVP Plan
+- GST Compliance (CGST, SGST, IGST)
+- Indian Accounting Standards
+- Multi-language support (Hindi, English)
+- UPI Payment Integration
+- E-Way Bill Generation
+- TDS/TCS Calculations
 
+## 📝 License
+
+MIT

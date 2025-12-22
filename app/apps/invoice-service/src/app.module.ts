@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InvoiceController } from './controllers/invoice.controller';
+import { HealthController } from './controllers/health.controller';
 import { InvoiceService } from './services/invoice.service';
 import { GstCalculationService } from './services/gst-calculation.service';
 import { InvoiceRepository } from './repositories/invoice.repository';
@@ -32,7 +33,7 @@ import { InvoiceSettings } from './entities/invoice-settings.entity';
     }),
     TypeOrmModule.forFeature([Invoice, InvoiceItem, InvoiceSettings]),
   ],
-  controllers: [InvoiceController],
+  controllers: [InvoiceController, HealthController],
   providers: [
     InvoiceService,
     InvoiceRepository,

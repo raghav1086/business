@@ -13,7 +13,8 @@
         "outputPath": "dist/apps/business-service",
         "main": "apps/business-service/src/main.ts",
         "tsConfig": "apps/business-service/tsconfig.app.json",
-        "assets": ["apps/business-service/src/assets"]
+        "assets": ["apps/business-service/src/assets"],
+        "webpackConfig": "apps/business-service/webpack.config.js"
       }
     },
     "serve": {

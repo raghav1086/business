@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ItemController } from './controllers/item.controller';
 import { StockController } from './controllers/stock.controller';
+import { HealthController } from './controllers/health.controller';
 import { ItemService } from './services/item.service';
 import { StockService } from './services/stock.service';
 import { ItemRepository } from './repositories/item.repository';
@@ -36,7 +37,7 @@ import { StockAdjustment } from './entities/stock-adjustment.entity';
     }),
     TypeOrmModule.forFeature([Item, Category, Unit, StockAdjustment]),
   ],
-  controllers: [ItemController, StockController],
+  controllers: [ItemController, StockController, HealthController],
   providers: [
     ItemService,
     StockService,
