@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +13,73 @@ import {
   CreditCard, 
   BarChart3,
   Building2,
-  LogOut
+  LogOut,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
+import { invoiceApi, paymentApi, partyApi, inventoryApi } from '@/lib/api-client';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, businessId, logout } = useAuthStore();
+
+  // Fetch dashboard data
+  const { data: invoices } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: async () => {
+      const response = await invoiceApi.get('/invoices');
+      return response.data;
+    },
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      const response = await paymentApi.get('/payments');
+      return response.data;
+    },
+  });
+
+  const { data: parties } = useQuery({
+    queryKey: ['parties'],
+    queryFn: async () => {
+      const response = await partyApi.get('/parties');
+      return response.data;
+    },
+  });
+
+  const { data: items } = useQuery({
+    queryKey: ['inventory-items'],
+    queryFn: async () => {
+      const response = await inventoryApi.get('/items');
+      return response.data;
+    },
+  });
+
+  // Calculate real statistics
+  const stats = {
+    totalSales: invoices?.filter((inv: any) => inv.invoice_type === 'sale')
+      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0) || 0,
+    totalPurchases: invoices?.filter((inv: any) => inv.invoice_type === 'purchase')
+      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0) || 0,
+    totalPaymentsReceived: payments?.filter((pay: any) => 
+      invoices?.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'sale'
+    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0) || 0,
+    totalPaymentsMade: payments?.filter((pay: any) => 
+      invoices?.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'purchase'
+    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0) || 0,
+    totalCustomers: parties?.filter((p: any) => p.party_type === 'customer').length || 0,
+    totalSuppliers: parties?.filter((p: any) => p.party_type === 'supplier').length || 0,
+    totalParties: parties?.length || 0,
+    lowStockItems: items?.filter((item: any) => 
+      Number(item.current_stock || 0) <= Number(item.min_stock_level || 0)
+    ).length || 0,
+    totalItems: items?.length || 0,
+    pendingInvoices: invoices?.filter((inv: any) => inv.status === 'pending').length || 0,
+    totalInvoices: invoices?.length || 0,
+  };
+
+  const outstandingReceivables = stats.totalSales - stats.totalPaymentsReceived;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -77,7 +139,7 @@ export default function DashboardPage() {
       title: 'Business',
       description: 'Manage business settings',
       icon: Building2,
-      href: '/business',
+      href: '/business/select',
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
     },
@@ -137,31 +199,105 @@ export default function DashboardPage() {
 
         {/* Stats Section */}
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Business Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Total Parties</CardDescription>
-                <CardTitle className="text-3xl">-</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardDescription>Total Sales</CardDescription>
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
+                <CardTitle className="text-3xl text-green-600">
+                  ₹{stats.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </CardTitle>
               </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">
+                  {invoices?.filter((inv: any) => inv.invoice_type === 'sale').length || 0} sale invoices
+                </p>
+              </CardContent>
             </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Outstanding</CardDescription>
+                  <CreditCard className="h-4 w-4 text-orange-600" />
+                </div>
+                <CardTitle className="text-3xl text-orange-600">
+                  ₹{outstandingReceivables.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">{stats.pendingInvoices} pending invoices</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Total Parties</CardDescription>
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+                <CardTitle className="text-3xl">{stats.totalParties}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">
+                  {stats.totalCustomers} customers, {stats.totalSuppliers} suppliers
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Low Stock Items</CardDescription>
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                </div>
+                <CardTitle className={`text-3xl ${stats.lowStockItems > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {stats.lowStockItems}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-xs ${stats.lowStockItems > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {stats.lowStockItems > 0 ? 'Needs attention' : 'All items in stock'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Additional Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Total Items</CardDescription>
-                <CardTitle className="text-3xl">-</CardTitle>
+                <CardTitle className="text-3xl">{stats.totalItems}</CardTitle>
               </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">In inventory</p>
+              </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>Pending Invoices</CardDescription>
-                <CardTitle className="text-3xl">-</CardTitle>
+                <CardDescription>Total Invoices</CardDescription>
+                <CardTitle className="text-3xl">{stats.totalInvoices}</CardTitle>
               </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">All transactions</p>
+              </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription>This Month Revenue</CardDescription>
-                <CardTitle className="text-3xl">₹ -</CardTitle>
+                <CardDescription>Payments Received</CardDescription>
+                <CardTitle className="text-3xl text-green-600">
+                  ₹{stats.totalPaymentsReceived.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </CardTitle>
               </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600">From customers</p>
+              </CardContent>
             </Card>
           </div>
         </div>
