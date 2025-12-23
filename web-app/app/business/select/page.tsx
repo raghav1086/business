@@ -17,33 +17,47 @@ import { Building2, Plus } from 'lucide-react';
 
 // Business form validation schema - aligned with backend CreateBusinessDto
 // REQUIRED: name only
-// ALL OTHER FIELDS ARE OPTIONAL (type, gstin, pan, phone, email, address)
+// ALL OTHER FIELDS ARE OPTIONAL - validate format only if value provided
 const businessSchema = z.object({
   name: z.string().min(2, 'Business name must be at least 2 characters').max(200, 'Name too long'),
-  type: z.string().optional().or(z.literal('')), // retailer, wholesaler, manufacturer, service
-  gstin: z.string()
-    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GSTIN format')
-    .optional()
-    .or(z.literal('')),
-  pan: z.string()
-    .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format')
-    .optional()
-    .or(z.literal('')),
-  email: z.string().email('Invalid email').optional().or(z.literal('')),
-  phone: z.string()
-    .regex(/^[6-9]\d{9}$/, 'Invalid phone number')
-    .optional()
-    .or(z.literal('')),
-  // All address fields are OPTIONAL per backend DTO
-  address_line1: z.string().optional().or(z.literal('')),
-  address_line2: z.string().optional().or(z.literal('')),
-  city: z.string().optional().or(z.literal('')),
-  state: z.string().optional().or(z.literal('')),
-  pincode: z.string()
-    .regex(/^\d{6}$/, 'Invalid pincode (6 digits)')
-    .optional()
-    .or(z.literal('')),
+  type: z.string().optional(), // retailer, wholesaler, manufacturer, service
+  gstin: z.string().optional().refine(
+    (val) => !val || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val),
+    'Invalid GSTIN format (15 characters required)'
+  ),
+  pan: z.string().optional().refine(
+    (val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val),
+    'Invalid PAN format (10 characters required)'
+  ),
+  email: z.string().optional().refine(
+    (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+    'Invalid email format'
+  ),
+  phone: z.string().optional().refine(
+    (val) => !val || /^[6-9]\d{9}$/.test(val),
+    'Invalid phone (10 digits starting with 6-9)'
+  ),
+  // Address fields - all optional
+  address_line1: z.string().optional(),
+  address_line2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional().refine(
+    (val) => !val || /^\d{6}$/.test(val),
+    'Invalid pincode (6 digits required)'
+  ),
 });
+
+// Helper to clean payload - removes empty strings and undefined values
+const cleanPayload = (data: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
 
 type BusinessFormValues = z.infer<typeof businessSchema>;
 
@@ -118,7 +132,10 @@ export default function BusinessSelectPage() {
   const onSubmit = async (data: BusinessFormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await businessApi.post('/businesses', data);
+      // Clean the payload - remove empty strings and undefined values
+      const payload = cleanPayload(data);
+      
+      const response = await businessApi.post('/businesses', payload);
       const newBusiness = response.data;
 
       toast.success('Business created successfully');

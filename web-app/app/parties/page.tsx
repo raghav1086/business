@@ -18,44 +18,60 @@ import { ArrowLeft, Plus, Search, Users } from 'lucide-react';
 
 // Party form validation schema - aligned with backend CreatePartyDto
 // REQUIRED: name, type only
-// ALL OTHER FIELDS ARE OPTIONAL
+// ALL OTHER FIELDS ARE OPTIONAL - validate format only if value provided
 const partySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(200, 'Name too long'),
   type: z.enum(['customer', 'supplier', 'both']),
-  gstin: z.string()
-    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GSTIN format')
-    .optional()
-    .or(z.literal('')),
-  pan: z.string()
-    .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format')
-    .optional()
-    .or(z.literal('')),
-  email: z.string().email('Invalid email').optional().or(z.literal('')),
-  phone: z.string()
-    .regex(/^[6-9]\d{9}$/, 'Invalid phone number')
-    .optional()
-    .or(z.literal('')),
-  // All address fields are OPTIONAL per backend DTO
-  billing_address_line1: z.string().optional().or(z.literal('')),
-  billing_address_line2: z.string().optional().or(z.literal('')),
-  billing_city: z.string().optional().or(z.literal('')),
-  billing_state: z.string().optional().or(z.literal('')),
-  billing_pincode: z.string()
-    .regex(/^\d{6}$/, 'Invalid pincode (6 digits required)')
-    .optional()
-    .or(z.literal('')),
-  shipping_address_line1: z.string().optional().or(z.literal('')),
-  shipping_address_line2: z.string().optional().or(z.literal('')),
-  shipping_city: z.string().optional().or(z.literal('')),
-  shipping_state: z.string().optional().or(z.literal('')),
-  shipping_pincode: z.string()
-    .regex(/^\d{6}$/, 'Invalid pincode (6 digits required)')
-    .optional()
-    .or(z.literal('')),
-  // Financial fields are OPTIONAL
-  credit_limit: z.string().optional().or(z.literal('')),
-  credit_days: z.string().optional().or(z.literal('')),
+  // Optional fields - only validate format if non-empty
+  gstin: z.string().optional().refine(
+    (val) => !val || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val),
+    'Invalid GSTIN format (15 characters required)'
+  ),
+  pan: z.string().optional().refine(
+    (val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val),
+    'Invalid PAN format (10 characters required)'
+  ),
+  email: z.string().optional().refine(
+    (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+    'Invalid email format'
+  ),
+  phone: z.string().optional().refine(
+    (val) => !val || /^[6-9]\d{9}$/.test(val),
+    'Invalid phone (10 digits starting with 6-9)'
+  ),
+  // Address fields - all optional
+  billing_address_line1: z.string().optional(),
+  billing_address_line2: z.string().optional(),
+  billing_city: z.string().optional(),
+  billing_state: z.string().optional(),
+  billing_pincode: z.string().optional().refine(
+    (val) => !val || /^\d{6}$/.test(val),
+    'Invalid pincode (6 digits required)'
+  ),
+  shipping_address_line1: z.string().optional(),
+  shipping_address_line2: z.string().optional(),
+  shipping_city: z.string().optional(),
+  shipping_state: z.string().optional(),
+  shipping_pincode: z.string().optional().refine(
+    (val) => !val || /^\d{6}$/.test(val),
+    'Invalid pincode (6 digits required)'
+  ),
+  // Financial fields - optional
+  credit_limit: z.string().optional(),
+  credit_days: z.string().optional(),
 });
+
+// Helper to clean payload - removes empty strings and undefined values
+const cleanPayload = (data: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    // Only include non-empty values
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
 
 type PartyFormValues = z.infer<typeof partySchema>;
 
@@ -125,12 +141,30 @@ export default function PartiesPage() {
   const onSubmit = async (data: PartyFormValues) => {
     setIsSubmitting(true);
     try {
-      // Convert credit_limit and credit_days to numbers
-      const payload = {
-        ...data,
+      // Build payload with only required and non-empty optional fields
+      const rawPayload = {
+        name: data.name,
+        type: data.type,
+        gstin: data.gstin,
+        pan: data.pan,
+        email: data.email,
+        phone: data.phone,
+        billing_address_line1: data.billing_address_line1,
+        billing_address_line2: data.billing_address_line2,
+        billing_city: data.billing_city,
+        billing_state: data.billing_state,
+        billing_pincode: data.billing_pincode,
+        shipping_address_line1: data.shipping_address_line1,
+        shipping_address_line2: data.shipping_address_line2,
+        shipping_city: data.shipping_city,
+        shipping_state: data.shipping_state,
+        shipping_pincode: data.shipping_pincode,
         credit_limit: data.credit_limit ? parseFloat(data.credit_limit) : undefined,
         credit_days: data.credit_days ? parseInt(data.credit_days) : undefined,
       };
+      
+      // Remove empty strings and undefined values
+      const payload = cleanPayload(rawPayload);
 
       await partyApi.post('/parties', payload);
       toast.success('Party created successfully');

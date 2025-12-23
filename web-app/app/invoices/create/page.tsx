@@ -24,18 +24,29 @@ const invoiceSchema = z.object({
   invoice_type: z.enum(['sale', 'purchase', 'quotation', 'proforma']),
   party_id: z.string().min(1, 'Please select a party'),
   invoice_date: z.string().min(1, 'Invoice date is required'),
-  due_date: z.string().optional().or(z.literal('')), // Optional per backend
+  due_date: z.string().optional(),
   items: z.array(z.object({
-    item_id: z.string().optional(), // Optional - can create invoice with manual items
-    item_name: z.string().min(2, 'Item name is required'), // Required per backend
+    item_id: z.string().optional(),
+    item_name: z.string().min(2, 'Item name is required'),
     quantity: z.string().min(1, 'Quantity is required'),
-    unit_price: z.string().min(1, 'Price is required'), // Required per backend (renamed from rate)
+    unit_price: z.string().min(1, 'Price is required'),
     discount_percent: z.string().optional(),
     tax_rate: z.string().optional(),
   })).min(1, 'Add at least one item'),
-  notes: z.string().optional().or(z.literal('')),
-  terms: z.string().optional().or(z.literal('')),
+  notes: z.string().optional(),
+  terms: z.string().optional(),
 });
+
+// Helper to clean payload - removes empty strings and undefined values
+const cleanPayload = (data: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
 
@@ -165,28 +176,31 @@ export default function CreateInvoicePage() {
   const onSubmit = async (data: InvoiceFormValues) => {
     setIsSubmitting(true);
     try {
-      const selectedParty = partiesList.find(p => p.id === data.party_id);
-      const isInterState = businessState && selectedParty?.billing_state 
-        ? selectedParty.billing_state !== businessState 
-        : false;
-      
-      const payload = {
+      // Build payload with ONLY backend-expected fields
+      // NOTE: is_inter_state is NOT supported by backend - removed
+      const rawPayload = {
         invoice_type: data.invoice_type,
         party_id: data.party_id,
         invoice_date: data.invoice_date,
         due_date: data.due_date || undefined,
-        is_inter_state: isInterState,
-        items: data.items.map(item => ({
-          item_id: item.item_id || undefined,
-          item_name: item.item_name,
-          quantity: parseFloat(item.quantity),
-          unit_price: parseFloat(item.unit_price),
-          discount_percent: item.discount_percent ? parseFloat(item.discount_percent) : undefined,
-          tax_rate: item.tax_rate ? parseFloat(item.tax_rate) : undefined,
-        })),
+        items: data.items.map(item => {
+          const itemPayload: Record<string, any> = {
+            item_name: item.item_name,
+            quantity: parseFloat(item.quantity),
+            unit_price: parseFloat(item.unit_price),
+          };
+          // Only add optional fields if they have values
+          if (item.item_id) itemPayload.item_id = item.item_id;
+          if (item.discount_percent) itemPayload.discount_percent = parseFloat(item.discount_percent);
+          if (item.tax_rate) itemPayload.tax_rate = parseFloat(item.tax_rate);
+          return itemPayload;
+        }),
         notes: data.notes || undefined,
         terms: data.terms || undefined,
       };
+
+      // Clean the payload
+      const payload = cleanPayload(rawPayload);
 
       await invoiceApi.post('/invoices', payload);
       toast.success('Invoice created successfully');

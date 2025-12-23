@@ -21,16 +21,30 @@ import { ArrowLeft, Plus, Search, Package, AlertTriangle } from 'lucide-react';
 // ALL OTHER FIELDS ARE OPTIONAL
 const itemSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(200, 'Name too long'),
-  description: z.string().optional().or(z.literal('')),
-  category: z.string().optional().or(z.literal('')),
-  hsn_code: z.string().optional().or(z.literal('')),
-  unit: z.string().optional().or(z.literal('')), // Optional per backend
-  selling_price: z.string().min(1, 'Selling price is required'), // REQUIRED - renamed from sale_price
-  purchase_price: z.string().optional().or(z.literal('')),
-  tax_rate: z.string().optional().or(z.literal('')), // Optional per backend
-  opening_stock: z.string().optional().or(z.literal('')),
-  min_stock_level: z.string().optional().or(z.literal('')),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  hsn_code: z.string().optional().refine(
+    (val) => !val || (val.length >= 4 && val.length <= 8),
+    'HSN code must be 4-8 characters'
+  ),
+  unit: z.string().optional(),
+  selling_price: z.string().min(1, 'Selling price is required'),
+  purchase_price: z.string().optional(),
+  tax_rate: z.string().optional(),
+  opening_stock: z.string().optional(),
+  min_stock_level: z.string().optional(),
 });
+
+// Helper to clean payload - removes empty strings and undefined values
+const cleanPayload = (data: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
 
 type ItemFormValues = z.infer<typeof itemSchema>;
 
@@ -100,17 +114,20 @@ export default function InventoryPage() {
   const onSubmit = async (data: ItemFormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = {
-        ...data,
+      // Build payload with only backend-expected fields
+      const rawPayload = {
+        name: data.name,
+        description: data.description,
+        hsn_code: data.hsn_code,
         selling_price: parseFloat(data.selling_price),
         purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : undefined,
         tax_rate: data.tax_rate ? parseFloat(data.tax_rate) : undefined,
         current_stock: data.opening_stock ? parseFloat(data.opening_stock) : undefined,
         low_stock_threshold: data.min_stock_level ? parseFloat(data.min_stock_level) : undefined,
       };
-      // Remove frontend-only fields
-      delete (payload as any).opening_stock;
-      delete (payload as any).min_stock_level;
+      
+      // Remove empty strings and undefined values
+      const payload = cleanPayload(rawPayload);
 
       await inventoryApi.post('/items', payload);
       toast.success('Item created successfully');

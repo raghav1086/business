@@ -17,43 +17,74 @@ import { toast } from 'sonner';
 import { ArrowLeft, Plus, Search, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 
-// Payment form validation schema
+// Payment form validation schema - aligned with backend CreatePaymentDto
+// REQUIRED: party_id, transaction_type, transaction_date, amount, payment_mode
+// OPTIONAL: invoice_id, reference_number, bank_name, cheque_number, cheque_date, notes
 const paymentSchema = z.object({
-  invoice_id: z.string().min(1, 'Please select an invoice'),
+  party_id: z.string().min(1, 'Please select a party'),
+  invoice_id: z.string().optional(), // Optional per backend
+  transaction_type: z.enum(['payment_in', 'payment_out']),
+  transaction_date: z.string().min(1, 'Transaction date is required'),
   amount: z.string().min(1, 'Amount is required').refine(
     (val) => parseFloat(val) > 0,
     'Amount must be greater than 0'
   ),
-  payment_mode: z.enum(['cash', 'upi', 'card', 'bank_transfer', 'cheque']),
-  payment_date: z.string().min(1, 'Payment date is required'),
+  payment_mode: z.enum(['cash', 'bank', 'upi', 'cheque', 'credit', 'card']),
   reference_number: z.string().optional(),
+  bank_name: z.string().optional(),
+  cheque_number: z.string().optional(),
+  cheque_date: z.string().optional(),
   notes: z.string().optional(),
 });
+
+// Helper to clean payload - removes empty strings and undefined values
+const cleanPayload = (data: Record<string, any>): Record<string, any> => {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 interface Payment {
   id: string;
-  invoice: {
+  party_id?: string;
+  party?: {
+    name: string;
+  };
+  invoice_id?: string;
+  invoice?: {
     invoice_number: string;
-    party: {
+    party?: {
       name: string;
     };
   };
+  transaction_type?: string;
   amount: number;
   payment_mode: string;
-  payment_date: string;
+  transaction_date: string;
   reference_number?: string;
 }
 
 interface Invoice {
   id: string;
   invoice_number: string;
-  party: {
+  party_id?: string;
+  party?: {
     name: string;
   };
-  total_amount: number;
-  paid_amount: number;
+  total_amount?: number;
+  paid_amount?: number;
+}
+
+interface Party {
+  id: string;
+  name: string;
+  type: string;
 }
 
 export default function PaymentsPage() {
@@ -61,6 +92,7 @@ export default function PaymentsPage() {
   const { isAuthenticated, businessId } = useAuthStore();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -69,16 +101,22 @@ export default function PaymentsPage() {
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
+      party_id: '',
       invoice_id: '',
+      transaction_type: 'payment_in',
+      transaction_date: new Date().toISOString().split('T')[0],
       amount: '',
       payment_mode: 'cash',
-      payment_date: new Date().toISOString().split('T')[0],
       reference_number: '',
+      bank_name: '',
+      cheque_number: '',
+      cheque_date: '',
       notes: '',
     },
   });
 
-  const selectedInvoiceId = form.watch('invoice_id');
+  const selectedPartyId = form.watch('party_id');
+  const selectedPaymentMode = form.watch('payment_mode');
 
   useEffect(() => {
     if (!isAuthenticated || !businessId) {
@@ -90,16 +128,19 @@ export default function PaymentsPage() {
 
   const fetchData = async () => {
     try {
-      const [paymentsRes, invoicesRes] = await Promise.all([
+      const [paymentsRes, invoicesRes, partiesRes] = await Promise.all([
         paymentApi.get('/payments'),
         invoiceApi.get('/invoices'),
+        partyApi.get('/parties'),
       ]);
       
       const paymentsData = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data?.data || []);
       const invoicesData = Array.isArray(invoicesRes.data) ? invoicesRes.data : (invoicesRes.data?.data || []);
+      const partiesData = Array.isArray(partiesRes.data) ? partiesRes.data : (partiesRes.data?.data || []);
       
       setPayments(paymentsData);
       setInvoices(invoicesData);
+      setParties(partiesData);
     } catch (error: any) {
       toast.error('Failed to load data', {
         description: error.response?.data?.message || 'Please try again',
@@ -112,14 +153,23 @@ export default function PaymentsPage() {
   const onSubmit = async (data: PaymentFormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = {
-        invoice_id: data.invoice_id,
+      // Build payload with ONLY backend-expected fields
+      const rawPayload = {
+        party_id: data.party_id,
+        invoice_id: data.invoice_id || undefined,
+        transaction_type: data.transaction_type,
+        transaction_date: data.transaction_date,
         amount: parseFloat(data.amount),
         payment_mode: data.payment_mode,
-        payment_date: data.payment_date,
         reference_number: data.reference_number || undefined,
+        bank_name: data.bank_name || undefined,
+        cheque_number: data.cheque_number || undefined,
+        cheque_date: data.cheque_date || undefined,
         notes: data.notes || undefined,
       };
+
+      // Clean the payload - remove empty/undefined values
+      const payload = cleanPayload(rawPayload);
 
       await paymentApi.post('/payments', payload);
       toast.success('Payment recorded successfully');
@@ -137,13 +187,19 @@ export default function PaymentsPage() {
 
   const invoicesList = Array.isArray(invoices) ? invoices : [];
   const paymentsList = Array.isArray(payments) ? payments : [];
+  const partiesList = Array.isArray(parties) ? parties : [];
 
-  const selectedInvoice = invoicesList.find(inv => inv.id === selectedInvoiceId);
-  const pendingInvoices = invoicesList.filter(inv => (inv.paid_amount || 0) < (inv.total_amount || 0));
+  // Filter invoices for selected party
+  const partyInvoices = selectedPartyId 
+    ? invoicesList.filter(inv => inv.party_id === selectedPartyId)
+    : invoicesList;
+  const pendingInvoices = partyInvoices.filter(inv => (inv.paid_amount || 0) < (inv.total_amount || 0));
 
   const filteredPayments = paymentsList.filter((payment) => {
-    return payment.invoice?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.invoice?.party?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const partyName = payment.party?.name || payment.invoice?.party?.name || '';
+    const invoiceNumber = payment.invoice?.invoice_number || '';
+    return partyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -186,25 +242,72 @@ export default function PaymentsPage() {
                   Record Payment
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Record Payment</DialogTitle>
                   <DialogDescription>
-                    Enter payment details for an invoice
+                    Enter payment details
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="invoice_id"
+                      name="transaction_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Invoice *</FormLabel>
+                          <FormLabel>Transaction Type *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select invoice" />
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="payment_in">Payment In (Received)</SelectItem>
+                              <SelectItem value="payment_out">Payment Out (Made)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="party_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Party *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select party" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {partiesList.map((party) => (
+                                <SelectItem key={party.id} value={party.id}>
+                                  {party.name} ({party.type})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="invoice_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Invoice (Optional)</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Link to invoice (optional)" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -212,7 +315,7 @@ export default function PaymentsPage() {
                                 const pending = Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0);
                                 return (
                                   <SelectItem key={invoice.id} value={invoice.id}>
-                                    {invoice.invoice_number} - {invoice.party?.name || 'Unknown'} (₹{pending.toFixed(2)})
+                                    {invoice.invoice_number} (₹{pending.toFixed(2)} pending)
                                   </SelectItem>
                                 );
                               })}
@@ -222,20 +325,6 @@ export default function PaymentsPage() {
                         </FormItem>
                       )}
                     />
-
-                    {selectedInvoice && (
-                      <div className="p-3 bg-blue-50 rounded-md space-y-1">
-                        <p className="text-sm text-blue-900">
-                          <span className="font-medium">Total:</span> ₹{Number(selectedInvoice.total_amount || 0).toFixed(2)}
-                        </p>
-                        <p className="text-sm text-blue-900">
-                          <span className="font-medium">Paid:</span> ₹{Number(selectedInvoice.paid_amount || 0).toFixed(2)}
-                        </p>
-                        <p className="text-sm font-semibold text-blue-900">
-                          <span className="font-medium">Pending:</span> ₹{(Number(selectedInvoice.total_amount || 0) - Number(selectedInvoice.paid_amount || 0)).toFixed(2)}
-                        </p>
-                      </div>
-                    )}
 
                     <FormField
                       control={form.control}
@@ -267,8 +356,9 @@ export default function PaymentsPage() {
                               <SelectItem value="cash">Cash</SelectItem>
                               <SelectItem value="upi">UPI</SelectItem>
                               <SelectItem value="card">Card</SelectItem>
-                              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                              <SelectItem value="bank">Bank Transfer</SelectItem>
                               <SelectItem value="cheque">Cheque</SelectItem>
+                              <SelectItem value="credit">Credit</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -278,10 +368,10 @@ export default function PaymentsPage() {
 
                     <FormField
                       control={form.control}
-                      name="payment_date"
+                      name="transaction_date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Payment Date *</FormLabel>
+                          <FormLabel>Transaction Date *</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} />
                           </FormControl>
@@ -297,12 +387,60 @@ export default function PaymentsPage() {
                         <FormItem>
                           <FormLabel>Reference Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="Transaction ID, Cheque No., etc." {...field} />
+                            <Input placeholder="Transaction ID, etc." {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
+                    {/* Show bank/cheque fields when relevant */}
+                    {(selectedPaymentMode === 'bank' || selectedPaymentMode === 'cheque') && (
+                      <FormField
+                        control={form.control}
+                        name="bank_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bank Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Bank name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {selectedPaymentMode === 'cheque' && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="cheque_number"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cheque Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Cheque number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="cheque_date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cheque Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
 
                     <FormField
                       control={form.control}
@@ -371,44 +509,48 @@ export default function PaymentsPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {filteredPayments.map((payment) => (
-              <Card key={payment.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-green-600" />
-                        {payment.invoice?.invoice_number || 'Unknown'}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {payment.invoice?.party?.name || 'Unknown'}
-                      </CardDescription>
+            {filteredPayments.map((payment) => {
+              const isPaymentIn = payment.transaction_type === 'payment_in';
+              return (
+                <Card key={payment.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <CreditCard className={`h-5 w-5 ${isPaymentIn ? 'text-green-600' : 'text-red-600'}`} />
+                          {payment.party?.name || payment.invoice?.party?.name || 'Unknown Party'}
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          {isPaymentIn ? 'Payment Received' : 'Payment Made'}
+                          {payment.invoice?.invoice_number && ` • ${payment.invoice.invoice_number}`}
+                        </CardDescription>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-2xl font-bold ${isPaymentIn ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPaymentIn ? '+' : '-'}₹{Number(payment.amount || 0).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {(payment.payment_mode || 'unknown').toUpperCase().replace('_', ' ')}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-green-600">
-                        ₹{Number(payment.amount || 0).toFixed(2)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {(payment.payment_mode || 'unknown').toUpperCase().replace('_', ' ')}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-gray-600">
-                      <span className="font-medium">Date:</span>{' '}
-                      {payment.payment_date ? format(new Date(payment.payment_date), 'dd MMM yyyy') : 'N/A'}
-                    </p>
-                    {payment.reference_number && (
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1 text-sm">
                       <p className="text-gray-600">
-                        <span className="font-medium">Reference:</span> {payment.reference_number}
+                        <span className="font-medium">Date:</span>{' '}
+                        {payment.transaction_date ? format(new Date(payment.transaction_date), 'dd MMM yyyy') : 'N/A'}
                       </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      {payment.reference_number && (
+                        <p className="text-gray-600">
+                          <span className="font-medium">Reference:</span> {payment.reference_number}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>
