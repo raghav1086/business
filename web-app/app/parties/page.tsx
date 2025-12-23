@@ -16,9 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Search, Users } from 'lucide-react';
 
-// Party form validation schema
+// Party form validation schema - aligned with backend CreatePartyDto
+// REQUIRED: name, type only
+// ALL OTHER FIELDS ARE OPTIONAL
 const partySchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(200, 'Name too long'),
   type: z.enum(['customer', 'supplier', 'both']),
   gstin: z.string()
     .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GSTIN format')
@@ -33,18 +35,26 @@ const partySchema = z.object({
     .regex(/^[6-9]\d{9}$/, 'Invalid phone number')
     .optional()
     .or(z.literal('')),
-  billing_address_line1: z.string().min(5, 'Billing address is required'),
-  billing_address_line2: z.string().optional(),
-  billing_city: z.string().min(2, 'City is required'),
-  billing_state: z.string().min(2, 'State is required'),
-  billing_pincode: z.string().regex(/^\d{6}$/, 'Invalid pincode'),
-  shipping_address_line1: z.string().optional(),
-  shipping_address_line2: z.string().optional(),
-  shipping_city: z.string().optional(),
-  shipping_state: z.string().optional(),
-  shipping_pincode: z.string().optional(),
-  credit_limit: z.string().optional(),
-  credit_days: z.string().optional(),
+  // All address fields are OPTIONAL per backend DTO
+  billing_address_line1: z.string().optional().or(z.literal('')),
+  billing_address_line2: z.string().optional().or(z.literal('')),
+  billing_city: z.string().optional().or(z.literal('')),
+  billing_state: z.string().optional().or(z.literal('')),
+  billing_pincode: z.string()
+    .regex(/^\d{6}$/, 'Invalid pincode (6 digits required)')
+    .optional()
+    .or(z.literal('')),
+  shipping_address_line1: z.string().optional().or(z.literal('')),
+  shipping_address_line2: z.string().optional().or(z.literal('')),
+  shipping_city: z.string().optional().or(z.literal('')),
+  shipping_state: z.string().optional().or(z.literal('')),
+  shipping_pincode: z.string()
+    .regex(/^\d{6}$/, 'Invalid pincode (6 digits required)')
+    .optional()
+    .or(z.literal('')),
+  // Financial fields are OPTIONAL
+  credit_limit: z.string().optional().or(z.literal('')),
+  credit_days: z.string().optional().or(z.literal('')),
 });
 
 type PartyFormValues = z.infer<typeof partySchema>;
@@ -303,7 +313,7 @@ export default function PartiesPage() {
                           name="billing_address_line1"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Address Line 1 *</FormLabel>
+                              <FormLabel>Address Line 1</FormLabel>
                               <FormControl>
                                 <Input placeholder="Street address" {...field} />
                               </FormControl>
@@ -332,7 +342,7 @@ export default function PartiesPage() {
                             name="billing_city"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>City *</FormLabel>
+                                <FormLabel>City</FormLabel>
                                 <FormControl>
                                   <Input placeholder="City" {...field} />
                                 </FormControl>
@@ -346,7 +356,7 @@ export default function PartiesPage() {
                             name="billing_state"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>State *</FormLabel>
+                                <FormLabel>State</FormLabel>
                                 <FormControl>
                                   <Input placeholder="State" {...field} />
                                 </FormControl>
@@ -360,7 +370,7 @@ export default function PartiesPage() {
                             name="billing_pincode"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Pincode *</FormLabel>
+                                <FormLabel>Pincode</FormLabel>
                                 <FormControl>
                                   <Input placeholder="400001" {...field} maxLength={6} />
                                 </FormControl>

@@ -15,9 +15,12 @@ import { businessApi } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/auth-store';
 import { Building2, Plus } from 'lucide-react';
 
-// Business form validation schema
+// Business form validation schema - aligned with backend CreateBusinessDto
+// REQUIRED: name only
+// ALL OTHER FIELDS ARE OPTIONAL (type, gstin, pan, phone, email, address)
 const businessSchema = z.object({
-  name: z.string().min(2, 'Business name must be at least 2 characters'),
+  name: z.string().min(2, 'Business name must be at least 2 characters').max(200, 'Name too long'),
+  type: z.string().optional().or(z.literal('')), // retailer, wholesaler, manufacturer, service
   gstin: z.string()
     .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GSTIN format')
     .optional()
@@ -31,11 +34,15 @@ const businessSchema = z.object({
     .regex(/^[6-9]\d{9}$/, 'Invalid phone number')
     .optional()
     .or(z.literal('')),
-  address_line1: z.string().min(5, 'Address is required'),
-  address_line2: z.string().optional(),
-  city: z.string().min(2, 'City is required'),
-  state: z.string().min(2, 'State is required'),
-  pincode: z.string().regex(/^\d{6}$/, 'Invalid pincode'),
+  // All address fields are OPTIONAL per backend DTO
+  address_line1: z.string().optional().or(z.literal('')),
+  address_line2: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
+  pincode: z.string()
+    .regex(/^\d{6}$/, 'Invalid pincode (6 digits)')
+    .optional()
+    .or(z.literal('')),
 });
 
 type BusinessFormValues = z.infer<typeof businessSchema>;
@@ -61,6 +68,7 @@ export default function BusinessSelectPage() {
     resolver: zodResolver(businessSchema),
     defaultValues: {
       name: '',
+      type: '',
       gstin: '',
       pan: '',
       email: '',
@@ -261,7 +269,7 @@ export default function BusinessSelectPage() {
                         name="address_line1"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Address Line 1 *</FormLabel>
+                            <FormLabel>Address Line 1</FormLabel>
                             <FormControl>
                               <Input placeholder="123 Main Street" {...field} />
                             </FormControl>
@@ -275,7 +283,7 @@ export default function BusinessSelectPage() {
                         name="address_line2"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Address Line 2 (Optional)</FormLabel>
+                            <FormLabel>Address Line 2</FormLabel>
                             <FormControl>
                               <Input placeholder="Near City Mall" {...field} />
                             </FormControl>
@@ -290,7 +298,7 @@ export default function BusinessSelectPage() {
                           name="city"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>City *</FormLabel>
+                              <FormLabel>City</FormLabel>
                               <FormControl>
                                 <Input placeholder="Mumbai" {...field} />
                               </FormControl>
@@ -304,7 +312,7 @@ export default function BusinessSelectPage() {
                           name="state"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>State *</FormLabel>
+                              <FormLabel>State</FormLabel>
                               <FormControl>
                                 <Input placeholder="Maharashtra" {...field} />
                               </FormControl>
@@ -318,7 +326,7 @@ export default function BusinessSelectPage() {
                           name="pincode"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Pincode *</FormLabel>
+                              <FormLabel>Pincode</FormLabel>
                               <FormControl>
                                 <Input placeholder="400001" {...field} maxLength={6} />
                               </FormControl>

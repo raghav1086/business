@@ -15,19 +15,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Trash2, Calculator } from 'lucide-react';
 
-// Invoice form validation schema
+// Invoice form validation schema - aligned with backend CreateInvoiceDto
+// REQUIRED: party_id, invoice_type, invoice_date, items array
+// OPTIONAL: due_date, notes, terms
+// Item REQUIRED: item_name, quantity, unit_price
+// Item OPTIONAL: item_id, discount_percent, tax_rate
 const invoiceSchema = z.object({
-  invoice_type: z.enum(['sale', 'purchase']),
+  invoice_type: z.enum(['sale', 'purchase', 'quotation', 'proforma']),
   party_id: z.string().min(1, 'Please select a party'),
   invoice_date: z.string().min(1, 'Invoice date is required'),
-  due_date: z.string().min(1, 'Due date is required'),
+  due_date: z.string().optional().or(z.literal('')), // Optional per backend
   items: z.array(z.object({
-    item_id: z.string().min(1, 'Please select an item'),
+    item_id: z.string().optional(), // Optional - can create invoice with manual items
+    item_name: z.string().min(2, 'Item name is required'), // Required per backend
     quantity: z.string().min(1, 'Quantity is required'),
-    rate: z.string().min(1, 'Rate is required'),
-    discount: z.string().optional(),
+    unit_price: z.string().min(1, 'Price is required'), // Required per backend (renamed from rate)
+    discount_percent: z.string().optional(),
+    tax_rate: z.string().optional(),
   })).min(1, 'Add at least one item'),
-  notes: z.string().optional(),
+  notes: z.string().optional().or(z.literal('')),
+  terms: z.string().optional().or(z.literal('')),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -36,16 +43,16 @@ interface Party {
   id: string;
   name: string;
   type: string;
-  billing_state: string;
+  billing_state?: string;
 }
 
 interface Item {
   id: string;
   name: string;
-  sale_price: number;
+  selling_price: number;
   purchase_price?: number;
-  tax_rate: number;
-  unit: string;
+  tax_rate?: number;
+  unit?: string;
 }
 
 export default function CreateInvoicePage() {
@@ -64,8 +71,9 @@ export default function CreateInvoicePage() {
       party_id: '',
       invoice_date: new Date().toISOString().split('T')[0],
       due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [{ item_id: '', quantity: '', rate: '', discount: '0' }],
+      items: [{ item_id: '', item_name: '', quantity: '', unit_price: '', discount_percent: '0', tax_rate: '18' }],
       notes: '',
+      terms: '',
     },
   });
 
@@ -116,16 +124,15 @@ export default function CreateInvoicePage() {
     
     itemsWatch.forEach((item, index) => {
       const quantity = parseFloat(item.quantity || '0');
-      const rate = parseFloat(item.rate || '0');
-      const discount = parseFloat(item.discount || '0');
+      const unit_price = parseFloat(item.unit_price || '0');
+      const discount_percent = parseFloat(item.discount_percent || '0');
       
-      const itemSubtotal = quantity * rate;
-      const discountAmount = (itemSubtotal * discount) / 100;
+      const itemSubtotal = quantity * unit_price;
+      const discountAmount = (itemSubtotal * discount_percent) / 100;
       const taxableAmount = itemSubtotal - discountAmount;
       
       // Get tax rate for this item
-      const selectedItem = itemsList.find(i => i.id === item.item_id);
-      const taxRate = selectedItem?.tax_rate || 0;
+      const taxRate = parseFloat(item.tax_rate || '0');
       const tax = (taxableAmount * taxRate) / 100;
       
       subtotal += taxableAmount;
@@ -145,11 +152,13 @@ export default function CreateInvoicePage() {
   const handleItemChange = (index: number, itemId: string) => {
     const selectedItem = itemsList.find(i => i.id === itemId);
     if (selectedItem) {
-      const rate = invoiceType === 'sale' 
-        ? selectedItem.sale_price 
-        : (selectedItem.purchase_price || selectedItem.sale_price);
+      const price = invoiceType === 'sale' 
+        ? selectedItem.selling_price 
+        : (selectedItem.purchase_price || selectedItem.selling_price);
       
-      form.setValue(`items.${index}.rate`, String(rate || 0));
+      form.setValue(`items.${index}.unit_price`, String(price || 0));
+      form.setValue(`items.${index}.item_name`, selectedItem.name);
+      form.setValue(`items.${index}.tax_rate`, String(selectedItem.tax_rate || 18));
     }
   };
 
@@ -157,21 +166,26 @@ export default function CreateInvoicePage() {
     setIsSubmitting(true);
     try {
       const selectedParty = partiesList.find(p => p.id === data.party_id);
-      const isInterState = selectedParty?.billing_state !== businessState;
+      const isInterState = businessState && selectedParty?.billing_state 
+        ? selectedParty.billing_state !== businessState 
+        : false;
       
       const payload = {
         invoice_type: data.invoice_type,
         party_id: data.party_id,
         invoice_date: data.invoice_date,
-        due_date: data.due_date,
+        due_date: data.due_date || undefined,
         is_inter_state: isInterState,
         items: data.items.map(item => ({
-          item_id: item.item_id,
+          item_id: item.item_id || undefined,
+          item_name: item.item_name,
           quantity: parseFloat(item.quantity),
-          rate: parseFloat(item.rate),
-          discount: parseFloat(item.discount || '0'),
+          unit_price: parseFloat(item.unit_price),
+          discount_percent: item.discount_percent ? parseFloat(item.discount_percent) : undefined,
+          tax_rate: item.tax_rate ? parseFloat(item.tax_rate) : undefined,
         })),
         notes: data.notes || undefined,
+        terms: data.terms || undefined,
       };
 
       await invoiceApi.post('/invoices', payload);
@@ -345,7 +359,7 @@ export default function CreateInvoicePage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ item_id: '', quantity: '', rate: '', discount: '0' })}
+                    onClick={() => append({ item_id: '', item_name: '', quantity: '', unit_price: '', discount_percent: '0', tax_rate: '18' })}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Item
@@ -385,13 +399,13 @@ export default function CreateInvoicePage() {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select item" />
+                                  <SelectValue placeholder="Select item or type name below" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 {itemsList.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.name} - ₹{invoiceType === 'sale' ? Number(item.sale_price || 0) : Number(item.purchase_price || item.sale_price || 0)}
+                                    {item.name} - ₹{invoiceType === 'sale' ? Number(item.selling_price || 0) : Number(item.purchase_price || item.selling_price || 0)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -403,10 +417,26 @@ export default function CreateInvoicePage() {
 
                       <FormField
                         control={form.control}
+                        name={`items.${index}.item_name`}
+                        render={({ field }) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel>Item Name *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter item name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-3">
+                      <FormField
+                        control={form.control}
                         name={`items.${index}.quantity`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Qty</FormLabel>
+                            <FormLabel>Qty *</FormLabel>
                             <FormControl>
                               <Input type="number" step="0.01" placeholder="1" {...field} />
                             </FormControl>
@@ -417,10 +447,10 @@ export default function CreateInvoicePage() {
 
                       <FormField
                         control={form.control}
-                        name={`items.${index}.rate`}
+                        name={`items.${index}.unit_price`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Rate (₹)</FormLabel>
+                            <FormLabel>Price (₹) *</FormLabel>
                             <FormControl>
                               <Input type="number" step="0.01" placeholder="0.00" {...field} />
                             </FormControl>
@@ -428,21 +458,46 @@ export default function CreateInvoicePage() {
                           </FormItem>
                         )}
                       />
-                    </div>
 
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.discount`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Discount (%)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.discount_percent`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Discount %</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.tax_rate`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>GST %</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value || '18'}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="GST" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="0">0%</SelectItem>
+                                <SelectItem value="5">5%</SelectItem>
+                                <SelectItem value="12">12%</SelectItem>
+                                <SelectItem value="18">18%</SelectItem>
+                                <SelectItem value="28">28%</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 ))}
               </CardContent>

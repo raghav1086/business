@@ -16,18 +16,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Search, Package, AlertTriangle } from 'lucide-react';
 
-// Item form validation schema
+// Item form validation schema - aligned with backend CreateItemDto
+// REQUIRED: name, selling_price only
+// ALL OTHER FIELDS ARE OPTIONAL
 const itemSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  hsn_code: z.string().optional(),
-  unit: z.enum(['pcs', 'kg', 'ltr', 'mtr', 'box', 'dozen']),
-  sale_price: z.string().min(1, 'Sale price is required'),
-  purchase_price: z.string().optional(),
-  tax_rate: z.string(),
-  opening_stock: z.string().optional(),
-  min_stock_level: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(200, 'Name too long'),
+  description: z.string().optional().or(z.literal('')),
+  category: z.string().optional().or(z.literal('')),
+  hsn_code: z.string().optional().or(z.literal('')),
+  unit: z.string().optional().or(z.literal('')), // Optional per backend
+  selling_price: z.string().min(1, 'Selling price is required'), // REQUIRED - renamed from sale_price
+  purchase_price: z.string().optional().or(z.literal('')),
+  tax_rate: z.string().optional().or(z.literal('')), // Optional per backend
+  opening_stock: z.string().optional().or(z.literal('')),
+  min_stock_level: z.string().optional().or(z.literal('')),
 });
 
 type ItemFormValues = z.infer<typeof itemSchema>;
@@ -38,12 +40,12 @@ interface Item {
   description?: string;
   category?: string;
   hsn_code?: string;
-  unit: string;
-  sale_price: number;
+  unit?: string;
+  selling_price: number;
   purchase_price?: number;
-  tax_rate: number;
-  current_stock: number;
-  min_stock_level?: number;
+  tax_rate?: number;
+  current_stock?: number;
+  low_stock_threshold?: number;
 }
 
 export default function InventoryPage() {
@@ -65,7 +67,7 @@ export default function InventoryPage() {
       category: '',
       hsn_code: '',
       unit: 'pcs',
-      sale_price: '',
+      selling_price: '',
       purchase_price: '',
       tax_rate: '18',
       opening_stock: '0',
@@ -100,12 +102,15 @@ export default function InventoryPage() {
     try {
       const payload = {
         ...data,
-        sale_price: parseFloat(data.sale_price),
+        selling_price: parseFloat(data.selling_price),
         purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : undefined,
-        tax_rate: parseFloat(data.tax_rate),
-        opening_stock: data.opening_stock ? parseFloat(data.opening_stock) : undefined,
-        min_stock_level: data.min_stock_level ? parseFloat(data.min_stock_level) : undefined,
+        tax_rate: data.tax_rate ? parseFloat(data.tax_rate) : undefined,
+        current_stock: data.opening_stock ? parseFloat(data.opening_stock) : undefined,
+        low_stock_threshold: data.min_stock_level ? parseFloat(data.min_stock_level) : undefined,
       };
+      // Remove frontend-only fields
+      delete (payload as any).opening_stock;
+      delete (payload as any).min_stock_level;
 
       await inventoryApi.post('/items', payload);
       toast.success('Item created successfully');
@@ -130,7 +135,7 @@ export default function InventoryPage() {
       item.hsn_code?.includes(searchQuery);
     
     const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
-    const matchesLowStock = !showLowStock || (item.min_stock_level && item.current_stock <= item.min_stock_level);
+    const matchesLowStock = !showLowStock || (item.low_stock_threshold && (item.current_stock || 0) <= item.low_stock_threshold);
     
     return matchesSearch && matchesCategory && matchesLowStock;
   });
@@ -254,7 +259,7 @@ export default function InventoryPage() {
                           name="unit"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Unit *</FormLabel>
+                              <FormLabel>Unit</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -280,7 +285,7 @@ export default function InventoryPage() {
                           name="tax_rate"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>GST Rate (%) *</FormLabel>
+                              <FormLabel>GST Rate (%)</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -304,10 +309,10 @@ export default function InventoryPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name="sale_price"
+                          name="selling_price"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Sale Price (₹) *</FormLabel>
+                              <FormLabel>Selling Price (₹) *</FormLabel>
                               <FormControl>
                                 <Input type="number" step="0.01" placeholder="1000.00" {...field} />
                               </FormControl>
@@ -436,7 +441,7 @@ export default function InventoryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.map((item) => {
-              const isLowStock = item.min_stock_level && (item.current_stock || 0) <= item.min_stock_level;
+              const isLowStock = item.low_stock_threshold && (item.current_stock || 0) <= item.low_stock_threshold;
               return (
                 <Card key={item.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -467,7 +472,7 @@ export default function InventoryPage() {
                     </p>
                     <div className="pt-2 border-t">
                       <p className="text-lg font-semibold text-green-600">
-                        ₹{Number(item.sale_price || 0).toFixed(2)}
+                        ₹{Number(item.selling_price || 0).toFixed(2)}
                       </p>
                       {item.purchase_price && (
                           <p className="text-sm text-gray-500">
@@ -480,9 +485,9 @@ export default function InventoryPage() {
                         <p className={`font-medium ${isLowStock ? 'text-orange-600' : 'text-blue-600'}`}>
                           Stock: {item.current_stock || 0} {item.unit || ''}
                         </p>
-                        {item.min_stock_level && (
+                        {item.low_stock_threshold && (
                           <p className="text-xs text-gray-500">
-                            Min level: {item.min_stock_level} {item.unit || ''}
+                            Min level: {item.low_stock_threshold} {item.unit || ''}
                           </p>
                         )}
                       </div>
