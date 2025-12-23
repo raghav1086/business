@@ -128,17 +128,63 @@ test-e2e-ui: ## Run Playwright E2E tests with UI mode
 	@sleep 30
 	npx playwright test --ui
 
-test-all: ## Run ALL tests (unit + integration + e2e)
+test-360: ## Run comprehensive 360-degree test suite
+	@echo "$(BLUE)🎯 Running 360-degree test suite...$(NC)"
+	@make start
+	@echo "$(YELLOW)⏳ Waiting for services to be ready...$(NC)"
+	@sleep 30
+	@make health
+	npm run test:360
+	@echo "$(GREEN)✅ 360-degree tests complete$(NC)"
+
+test-360-ui: ## Run 360-degree tests with UI mode
+	@echo "$(BLUE)🎯 Running 360-degree tests with UI...$(NC)"
+	@make start
+	@sleep 30
+	npm run test:360:ui
+
+test-360-edge: ## Run edge case tests only
+	@echo "$(BLUE)🎯 Running edge case tests...$(NC)"
+	@make start
+	@sleep 20
+	npm run test:360:edge
+	@echo "$(GREEN)✅ Edge case tests complete$(NC)"
+
+test-360-security: ## Run security vulnerability tests
+	@echo "$(BLUE)🔒 Running security tests...$(NC)"
+	@make start
+	@sleep 20
+	npm run test:360:security
+	@echo "$(GREEN)✅ Security tests complete$(NC)"
+
+test-360-perf: ## Run performance and stress tests
+	@echo "$(BLUE)⚡ Running performance tests...$(NC)"
+	@make start
+	@sleep 20
+	npm run test:360:perf
+	@echo "$(GREEN)✅ Performance tests complete$(NC)"
+
+test-360-concurrency: ## Run concurrency and race condition tests
+	@echo "$(BLUE)🔀 Running concurrency tests...$(NC)"
+	@make start
+	@sleep 20
+	npm run test:360:concurrency
+	@echo "$(GREEN)✅ Concurrency tests complete$(NC)"
+
+test-all: ## Run ALL tests (unit + integration + e2e + 360)
 	@echo "$(BLUE)🧪 Running ALL tests...$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Step 1/3: Unit Tests$(NC)"
+	@echo "$(YELLOW)Step 1/4: Unit Tests$(NC)"
 	@make test-unit
 	@echo ""
-	@echo "$(YELLOW)Step 2/3: Integration Tests$(NC)"
+	@echo "$(YELLOW)Step 2/4: Integration Tests$(NC)"
 	@make test-integration
 	@echo ""
-	@echo "$(YELLOW)Step 3/3: E2E Tests$(NC)"
+	@echo "$(YELLOW)Step 3/4: E2E Tests$(NC)"
 	@make test-e2e
+	@echo ""
+	@echo "$(YELLOW)Step 4/4: 360-Degree Tests$(NC)"
+	@make test-360
 	@echo ""
 	@echo "$(GREEN)════════════════════════════════════════$(NC)"
 	@echo "$(GREEN)✅ ALL TESTS COMPLETED SUCCESSFULLY$(NC)"
@@ -199,4 +245,5 @@ t: test ## Alias for test
 tu: test-unit ## Alias for test-unit
 ti: test-integration ## Alias for test-integration
 te: test-e2e ## Alias for test-e2e
+t360: test-360 ## Alias for test-360
 h: health ## Alias for health
