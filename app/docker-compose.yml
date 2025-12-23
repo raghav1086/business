@@ -71,8 +71,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3002
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - AUTH_DB_NAME=auth_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - JWT_SECRET=super-secret-jwt-key-for-development
     ports:
       - "3002:3002"
@@ -99,8 +104,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3003
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/business_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - BUSINESS_DB_NAME=business_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AUTH_SERVICE_URL=http://auth-service:3002
     ports:
       - "3003:3003"
@@ -129,8 +139,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3004
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/party_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - PARTY_DB_NAME=party_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AUTH_SERVICE_URL=http://auth-service:3002
     ports:
       - "3004:3004"
@@ -159,8 +174,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3005
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/inventory_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - INVENTORY_DB_NAME=inventory_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AUTH_SERVICE_URL=http://auth-service:3002
     ports:
       - "3005:3005"
@@ -189,8 +209,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3006
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/invoice_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - INVOICE_DB_NAME=invoice_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AUTH_SERVICE_URL=http://auth-service:3002
     ports:
       - "3006:3006"
@@ -219,8 +244,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3007
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/payment_db
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - PAYMENT_DB_NAME=payment_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AUTH_SERVICE_URL=http://auth-service:3002
     ports:
       - "3007:3007"

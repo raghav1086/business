@@ -37,6 +37,84 @@ export const VALID_GST_RATES = [0, 5, 12, 18, 28];
 export const VALID_CESS_RATES = [0, 1, 3, 5, 12, 15, 20, 25];
 
 // =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Wait for services to be ready
+ */
+export async function waitForServices(maxRetries: number = 30, delayMs: number = 1000): Promise<boolean> {
+  const services = [
+    { name: 'Auth', url: `${API.auth}/../../health` },
+    { name: 'Business', url: `${API.business}/../../health` },
+    { name: 'Party', url: `${API.party}/../../health` },
+    { name: 'Inventory', url: `${API.inventory}/../../health` },
+    { name: 'Invoice', url: `${API.invoice}/../../health` },
+    { name: 'Payment', url: `${API.payment}/../../health` },
+  ];
+
+  for (let i = 0; i < maxRetries; i++) {
+    let allHealthy = true;
+    
+    for (const service of services) {
+      try {
+        const response = await fetch(service.url, { signal: AbortSignal.timeout(2000) });
+        if (!response.ok) {
+          allHealthy = false;
+          break;
+        }
+      } catch {
+        allHealthy = false;
+        break;
+      }
+    }
+    
+    if (allHealthy) {
+      console.log(`✅ All services ready after ${i + 1} attempts`);
+      return true;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  
+  console.warn('⚠️ Some services may not be ready');
+  return false;
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelayMs: number = 500
+): Promise<T> {
+  let lastError: any;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (i < maxRetries - 1) {
+        const delay = initialDelayMs * Math.pow(2, i);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Random delay to avoid race conditions
+ */
+export async function randomDelay(minMs: number = 100, maxMs: number = 500): Promise<void> {
+  const delay = Math.random() * (maxMs - minMs) + minMs;
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
+// =============================================================================
 // DATA FACTORIES
 // =============================================================================
 
@@ -119,13 +197,13 @@ export function generateBoundaryAmounts(): Array<{ value: number; description: s
     { value: 0.01, description: 'Minimum valid amount', expected: 'valid' },
     { value: -1, description: 'Negative amount', expected: 'invalid' },
     { value: -0.01, description: 'Small negative amount', expected: 'invalid' },
-    { value: 0.001, description: 'Amount with 3 decimals', expected: 'invalid' },
+    { value: 0.001, description: 'Amount with 3 decimals (0.001)', expected: 'invalid' },
     { value: 999999999.99, description: 'Large valid amount', expected: 'valid' },
     { value: 10000000000, description: 'Very large amount (10B)', expected: 'invalid' },
     { value: Number.MAX_SAFE_INTEGER, description: 'MAX_SAFE_INTEGER', expected: 'invalid' },
     { value: Infinity, description: 'Infinity', expected: 'invalid' },
     { value: NaN, description: 'NaN', expected: 'invalid' },
-    { value: 1.999, description: 'Amount with 3 decimals', expected: 'invalid' },
+    { value: 1.999, description: 'Amount with 3 decimals (1.999)', expected: 'invalid' },
     { value: 100.50, description: 'Normal valid amount', expected: 'valid' },
   ];
 }

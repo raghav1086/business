@@ -21,7 +21,7 @@ import { Party } from './entities/party.entity';
         port: configService.get('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('PARTY_DB_NAME', 'business_db'),
+        database: configService.get('PARTY_DB_NAME', 'party_db'),
         entities: [Party],
         synchronize: configService.get('NODE_ENV') !== 'production',
         logging: configService.get('NODE_ENV') === 'development',

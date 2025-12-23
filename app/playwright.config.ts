@@ -4,11 +4,14 @@ import { defineConfig } from '@playwright/test';
  * Playwright Configuration for API E2E Tests
  * 
  * Run all tests: npx playwright test
+ * Run E2E only: npx playwright test e2e/
+ * Run 360 tests: npx playwright test tests/
  * Run with UI: npx playwright test --ui
  * View report: npx playwright show-report
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './',
+  testMatch: ['**/{e2e,tests}/**/*.spec.ts'],
   timeout: 60 * 1000,
   expect: {
     timeout: 10 * 1000,

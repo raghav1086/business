@@ -28,7 +28,7 @@ import { StockAdjustment } from './entities/stock-adjustment.entity';
         port: configService.get('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('INVENTORY_DB_NAME', 'business_db'),
+        database: configService.get('INVENTORY_DB_NAME', 'inventory_db'),
         entities: [Item, Category, Unit, StockAdjustment],
         synchronize: configService.get('NODE_ENV') !== 'production',
         logging: configService.get('NODE_ENV') === 'development',

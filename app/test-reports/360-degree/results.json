@@ -1,0 +1,181 @@
+{
+  "config": {
+    "configFile": "/Users/ashishnimrot/Project/business/app/playwright.360.config.ts",
+    "rootDir": "/Users/ashishnimrot/Project/business/app/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "test-reports/360-degree",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-reports/360-degree/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "edge-cases",
+        "name": "edge-cases",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/edge-cases\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "concurrency",
+        "name": "concurrency",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/concurrency\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "business-rules",
+        "name": "business-rules",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/business-rules\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "integrity",
+        "name": "integrity",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/integrity\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "security",
+        "name": "security",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/security\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "performance",
+        "name": "performance",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/performance\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "integration",
+        "name": "integration",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/integration\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/ashishnimrot/Project/business/app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "resilience",
+        "name": "resilience",
+        "testDir": "/Users/ashishnimrot/Project/business/app/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/resilience\\/.*\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: duplicate test title \"Amount & Quantity Validation Edge Cases › Boundary Amount Tests › Amount: Amount with 3 decimals\", first declared in edge-cases/amount-quantity-validation.spec.ts:424",
+      "location": {
+        "file": "/Users/ashishnimrot/Project/business/app/tests/edge-cases/amount-quantity-validation.spec.ts",
+        "line": 424,
+        "column": 11
+      },
+      "snippet": "\u001b[90m   at \u001b[39medge-cases/amount-quantity-validation.spec.ts:424\n\n\u001b[0m \u001b[90m 422 |\u001b[39m     \n \u001b[90m 423 |\u001b[39m     \u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m { value\u001b[33m,\u001b[39m description\u001b[33m,\u001b[39m expected } \u001b[36mof\u001b[39m boundaryAmounts) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 424 |\u001b[39m       test(\u001b[32m`Amount: ${description}`\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m     |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 425 |\u001b[39m         test\u001b[33m.\u001b[39mskip(\u001b[33m!\u001b[39mclient\u001b[33m.\u001b[39mgetAuthToken() \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpartyId\u001b[33m,\u001b[39m \u001b[32m'Missing dependencies'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 426 |\u001b[39m         test\u001b[33m.\u001b[39mskip(\u001b[33mNumber\u001b[39m\u001b[33m.\u001b[39misNaN(value) \u001b[33m||\u001b[39m \u001b[33m!\u001b[39m\u001b[33mNumber\u001b[39m\u001b[33m.\u001b[39misFinite(value)\u001b[33m,\u001b[39m \u001b[32m'Non-numeric value'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 427 |\u001b[39m         \u001b[0m"
+    }
+  ],
+  "stats": {
+    "startTime": "2025-12-23T06:17:03.519Z",
+    "duration": 258.46599999999995,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
