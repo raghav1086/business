@@ -93,8 +93,11 @@ export default function CreateInvoicePage() {
         inventoryApi.get('/items'),
       ]);
       
-      setParties(partiesRes.data);
-      setItems(itemsRes.data);
+      const partiesData = Array.isArray(partiesRes.data) ? partiesRes.data : (partiesRes.data?.data || []);
+      const itemsData = Array.isArray(itemsRes.data) ? itemsRes.data : (itemsRes.data?.data || []);
+      
+      setParties(partiesData);
+      setItems(itemsData);
       
       // Get business state (you might need to fetch this from business API)
       setBusinessState('Karnataka'); // Default, should be fetched from business settings
@@ -121,7 +124,7 @@ export default function CreateInvoicePage() {
       const taxableAmount = itemSubtotal - discountAmount;
       
       // Get tax rate for this item
-      const selectedItem = items.find(i => i.id === item.item_id);
+      const selectedItem = itemsList.find(i => i.id === item.item_id);
       const taxRate = selectedItem?.tax_rate || 0;
       const tax = (taxableAmount * taxRate) / 100;
       
@@ -136,21 +139,24 @@ export default function CreateInvoicePage() {
     };
   };
 
+  const partiesList = Array.isArray(parties) ? parties : [];
+  const itemsList = Array.isArray(items) ? items : [];
+
   const handleItemChange = (index: number, itemId: string) => {
-    const selectedItem = items.find(i => i.id === itemId);
+    const selectedItem = itemsList.find(i => i.id === itemId);
     if (selectedItem) {
       const rate = invoiceType === 'sale' 
         ? selectedItem.sale_price 
         : (selectedItem.purchase_price || selectedItem.sale_price);
       
-      form.setValue(`items.${index}.rate`, rate.toString());
+      form.setValue(`items.${index}.rate`, String(rate || 0));
     }
   };
 
   const onSubmit = async (data: InvoiceFormValues) => {
     setIsSubmitting(true);
     try {
-      const selectedParty = parties.find(p => p.id === data.party_id);
+      const selectedParty = partiesList.find(p => p.id === data.party_id);
       const isInterState = selectedParty?.billing_state !== businessState;
       
       const payload = {
@@ -192,10 +198,10 @@ export default function CreateInvoicePage() {
   }
 
   const totals = calculateTotals();
-  const selectedParty = parties.find(p => p.id === partyId);
+  const selectedParty = partiesList.find(p => p.id === partyId);
   const isInterState = selectedParty?.billing_state !== businessState;
 
-  const filteredParties = parties.filter(party => 
+  const filteredParties = partiesList.filter(party => 
     invoiceType === 'sale' 
       ? party.type === 'customer' || party.type === 'both'
       : party.type === 'supplier' || party.type === 'both'
@@ -383,9 +389,9 @@ export default function CreateInvoicePage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {items.map((item) => (
+                                {itemsList.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.name} - ₹{invoiceType === 'sale' ? item.sale_price : (item.purchase_price || item.sale_price)}
+                                    {item.name} - ₹{invoiceType === 'sale' ? Number(item.sale_price || 0) : Number(item.purchase_price || item.sale_price || 0)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

@@ -46,7 +46,7 @@ export default function ReportsPage() {
     queryKey: ['invoices'],
     queryFn: async () => {
       const response = await invoiceApi.get('/invoices');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : (response.data?.data || []);
     },
   });
 
@@ -54,7 +54,7 @@ export default function ReportsPage() {
     queryKey: ['payments'],
     queryFn: async () => {
       const response = await paymentApi.get('/payments');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : (response.data?.data || []);
     },
   });
 
@@ -62,7 +62,7 @@ export default function ReportsPage() {
     queryKey: ['parties'],
     queryFn: async () => {
       const response = await partyApi.get('/parties');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : (response.data?.data || []);
     },
   });
 
@@ -70,28 +70,33 @@ export default function ReportsPage() {
     queryKey: ['inventory-items'],
     queryFn: async () => {
       const response = await inventoryApi.get('/items');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : (response.data?.data || []);
     },
   });
 
-  // Calculate statistics
+  // Calculate statistics with safe array checks
+  const invoicesList = Array.isArray(invoices) ? invoices : [];
+  const paymentsList = Array.isArray(payments) ? payments : [];
+  const partiesList = Array.isArray(parties) ? parties : [];
+  const itemsList = Array.isArray(items) ? items : [];
+
   const stats = {
-    totalSales: invoices?.filter((inv: any) => inv.invoice_type === 'sale')
-      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0) || 0,
-    totalPurchases: invoices?.filter((inv: any) => inv.invoice_type === 'purchase')
-      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0) || 0,
-    totalPaymentsReceived: payments?.filter((pay: any) => 
-      invoices?.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'sale'
-    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0) || 0,
-    totalPaymentsMade: payments?.filter((pay: any) => 
-      invoices?.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'purchase'
-    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0) || 0,
-    totalCustomers: parties?.filter((p: any) => p.party_type === 'customer').length || 0,
-    totalSuppliers: parties?.filter((p: any) => p.party_type === 'supplier').length || 0,
-    lowStockItems: items?.filter((item: any) => 
+    totalSales: invoicesList.filter((inv: any) => inv.invoice_type === 'sale')
+      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0),
+    totalPurchases: invoicesList.filter((inv: any) => inv.invoice_type === 'purchase')
+      .reduce((sum: number, inv: any) => sum + Number(inv.total_amount || 0), 0),
+    totalPaymentsReceived: paymentsList.filter((pay: any) => 
+      invoicesList.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'sale'
+    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0),
+    totalPaymentsMade: paymentsList.filter((pay: any) => 
+      invoicesList.find((inv: any) => inv.id === pay.invoice_id)?.invoice_type === 'purchase'
+    ).reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0),
+    totalCustomers: partiesList.filter((p: any) => p.party_type === 'customer').length,
+    totalSuppliers: partiesList.filter((p: any) => p.party_type === 'supplier').length,
+    lowStockItems: itemsList.filter((item: any) => 
       Number(item.current_stock || 0) <= Number(item.min_stock_level || 0)
-    ).length || 0,
-    totalItems: items?.length || 0,
+    ).length,
+    totalItems: itemsList.length,
   };
 
   const outstandingReceivables = stats.totalSales - stats.totalPaymentsReceived;

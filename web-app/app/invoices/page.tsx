@@ -45,7 +45,8 @@ export default function InvoicesPage() {
   const fetchInvoices = async () => {
     try {
       const response = await invoiceApi.get('/invoices');
-      setInvoices(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setInvoices(data);
     } catch (error: any) {
       toast.error('Failed to load invoices', {
         description: error.response?.data?.message || 'Please try again',
@@ -55,9 +56,11 @@ export default function InvoicesPage() {
     }
   };
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    const matchesSearch = invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.party.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const invoicesList = Array.isArray(invoices) ? invoices : [];
+
+  const filteredInvoices = invoicesList.filter((invoice) => {
+    const matchesSearch = invoice.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.party?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesType = filterType === 'all' || invoice.invoice_type === filterType;
     const matchesStatus = filterStatus === 'all' || invoice.status === filterStatus;
@@ -158,14 +161,14 @@ export default function InvoicesPage() {
             <CardContent>
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">
-                {invoices.length === 0 ? 'No invoices yet' : 'No matching invoices'}
+                {invoicesList.length === 0 ? 'No invoices yet' : 'No matching invoices'}
               </h2>
               <p className="text-gray-600 mb-6">
-                {invoices.length === 0
+                {invoicesList.length === 0
                   ? 'Create your first invoice to get started'
                   : 'Try adjusting your search or filters'}
               </p>
-              {invoices.length === 0 && (
+              {invoicesList.length === 0 && (
                 <Button onClick={() => router.push('/invoices/create')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Invoice
@@ -185,12 +188,12 @@ export default function InvoicesPage() {
                         {invoice.invoice_number}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {invoice.party.name}
+                        {invoice.party?.name || 'Unknown'}
                       </CardDescription>
                     </div>
                     <div className="text-right">
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(invoice.status)}`}>
-                        {invoice.status.toUpperCase()}
+                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(invoice.status || '')}`}>
+                        {(invoice.status || 'unknown').toUpperCase()}
                       </span>
                       <p className="text-xs text-gray-500 mt-1">
                         {invoice.invoice_type === 'sale' ? 'SALE' : 'PURCHASE'}
@@ -212,7 +215,7 @@ export default function InvoicesPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-purple-600">
-                        ₹{invoice.total_amount.toFixed(2)}
+                        ₹{Number(invoice.total_amount || 0).toFixed(2)}
                       </p>
                     </div>
                   </div>

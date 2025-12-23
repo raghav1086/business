@@ -84,7 +84,8 @@ export default function InventoryPage() {
   const fetchItems = async () => {
     try {
       const response = await inventoryApi.get('/items');
-      setItems(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setItems(data);
     } catch (error: any) {
       toast.error('Failed to load items', {
         description: error.response?.data?.message || 'Please try again',
@@ -120,10 +121,11 @@ export default function InventoryPage() {
     }
   };
 
-  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
+  const itemsList = Array.isArray(items) ? items : [];
+  const categories = Array.from(new Set(itemsList.map(item => item.category).filter(Boolean)));
 
-  const filteredItems = items.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredItems = itemsList.filter((item) => {
+    const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.hsn_code?.includes(searchQuery);
     
@@ -422,10 +424,10 @@ export default function InventoryPage() {
             <CardContent>
               <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">
-                {items.length === 0 ? 'No items yet' : 'No matching items'}
+                {itemsList.length === 0 ? 'No items yet' : 'No matching items'}
               </h2>
               <p className="text-gray-600 mb-6">
-                {items.length === 0
+                {itemsList.length === 0
                   ? 'Add your first item to get started'
                   : 'Try adjusting your search or filter'}
               </p>
@@ -434,7 +436,7 @@ export default function InventoryPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.map((item) => {
-              const isLowStock = item.min_stock_level && item.current_stock <= item.min_stock_level;
+              const isLowStock = item.min_stock_level && (item.current_stock || 0) <= item.min_stock_level;
               return (
                 <Card key={item.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -457,30 +459,30 @@ export default function InventoryPage() {
                       )}
                       {item.hsn_code && (
                         <p className="text-gray-600">
-                          <span className="font-medium">HSN:</span> {item.hsn_code}
-                        </p>
-                      )}
-                      <p className="text-gray-600">
-                        <span className="font-medium">Unit:</span> {item.unit.toUpperCase()}
+                        <span className="font-medium">HSN:</span> {item.hsn_code}
                       </p>
-                      <div className="pt-2 border-t">
-                        <p className="text-lg font-semibold text-green-600">
-                          ₹{item.sale_price.toFixed(2)}
-                        </p>
-                        {item.purchase_price && (
+                    )}
+                    <p className="text-gray-600">
+                      <span className="font-medium">Unit:</span> {item.unit?.toUpperCase() || 'N/A'}
+                    </p>
+                    <div className="pt-2 border-t">
+                      <p className="text-lg font-semibold text-green-600">
+                        ₹{Number(item.sale_price || 0).toFixed(2)}
+                      </p>
+                      {item.purchase_price && (
                           <p className="text-sm text-gray-500">
-                            Cost: ₹{item.purchase_price.toFixed(2)}
+                            Cost: ₹{Number(item.purchase_price || 0).toFixed(2)}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500">GST: {item.tax_rate}%</p>
+                        <p className="text-xs text-gray-500">GST: {item.tax_rate || 0}%</p>
                       </div>
                       <div className="pt-2 border-t">
                         <p className={`font-medium ${isLowStock ? 'text-orange-600' : 'text-blue-600'}`}>
-                          Stock: {item.current_stock} {item.unit}
+                          Stock: {item.current_stock || 0} {item.unit || ''}
                         </p>
                         {item.min_stock_level && (
                           <p className="text-xs text-gray-500">
-                            Min level: {item.min_stock_level} {item.unit}
+                            Min level: {item.min_stock_level} {item.unit || ''}
                           </p>
                         )}
                       </div>

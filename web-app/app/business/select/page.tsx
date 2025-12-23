@@ -90,7 +90,8 @@ export default function BusinessSelectPage() {
   const fetchBusinesses = async () => {
     try {
       const response = await businessApi.get('/businesses');
-      setBusinesses(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setBusinesses(data);
     } catch (error: any) {
       toast.error('Failed to load businesses', {
         description: error.response?.data?.message || 'Please try again',
@@ -157,7 +158,9 @@ export default function BusinessSelectPage() {
           </Button>
         </div>
 
-        {businesses.length === 0 ? (
+        {(() => {
+          const businessesList = Array.isArray(businesses) ? businesses : [];
+          return businessesList.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -347,7 +350,7 @@ export default function BusinessSelectPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {businesses.map((business) => (
+              {(Array.isArray(businesses) ? businesses : []).map((business) => (
                 <Card
                   key={business.id}
                   className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -359,7 +362,7 @@ export default function BusinessSelectPage() {
                       {business.name}
                     </CardTitle>
                     <CardDescription>
-                      {business.city}, {business.state}
+                      {business.city || ''}{business.city && business.state ? ', ' : ''}{business.state || ''}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -559,7 +562,8 @@ export default function BusinessSelectPage() {
               </DialogContent>
             </Dialog>
           </>
-        )}
+        );
+        })()}
       </div>
     </div>
   );

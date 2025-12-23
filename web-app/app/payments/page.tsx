@@ -95,8 +95,11 @@ export default function PaymentsPage() {
         invoiceApi.get('/invoices'),
       ]);
       
-      setPayments(paymentsRes.data);
-      setInvoices(invoicesRes.data);
+      const paymentsData = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data?.data || []);
+      const invoicesData = Array.isArray(invoicesRes.data) ? invoicesRes.data : (invoicesRes.data?.data || []);
+      
+      setPayments(paymentsData);
+      setInvoices(invoicesData);
     } catch (error: any) {
       toast.error('Failed to load data', {
         description: error.response?.data?.message || 'Please try again',
@@ -132,12 +135,15 @@ export default function PaymentsPage() {
     }
   };
 
-  const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
-  const pendingInvoices = invoices.filter(inv => inv.paid_amount < inv.total_amount);
+  const invoicesList = Array.isArray(invoices) ? invoices : [];
+  const paymentsList = Array.isArray(payments) ? payments : [];
 
-  const filteredPayments = payments.filter((payment) => {
-    return payment.invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.invoice.party.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const selectedInvoice = invoicesList.find(inv => inv.id === selectedInvoiceId);
+  const pendingInvoices = invoicesList.filter(inv => (inv.paid_amount || 0) < (inv.total_amount || 0));
+
+  const filteredPayments = paymentsList.filter((payment) => {
+    return payment.invoice?.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.invoice?.party?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -203,10 +209,10 @@ export default function PaymentsPage() {
                             </FormControl>
                             <SelectContent>
                               {pendingInvoices.map((invoice) => {
-                                const pending = invoice.total_amount - invoice.paid_amount;
+                                const pending = Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0);
                                 return (
                                   <SelectItem key={invoice.id} value={invoice.id}>
-                                    {invoice.invoice_number} - {invoice.party.name} (₹{pending.toFixed(2)})
+                                    {invoice.invoice_number} - {invoice.party?.name || 'Unknown'} (₹{pending.toFixed(2)})
                                   </SelectItem>
                                 );
                               })}
@@ -220,13 +226,13 @@ export default function PaymentsPage() {
                     {selectedInvoice && (
                       <div className="p-3 bg-blue-50 rounded-md space-y-1">
                         <p className="text-sm text-blue-900">
-                          <span className="font-medium">Total:</span> ₹{selectedInvoice.total_amount.toFixed(2)}
+                          <span className="font-medium">Total:</span> ₹{Number(selectedInvoice.total_amount || 0).toFixed(2)}
                         </p>
                         <p className="text-sm text-blue-900">
-                          <span className="font-medium">Paid:</span> ₹{selectedInvoice.paid_amount.toFixed(2)}
+                          <span className="font-medium">Paid:</span> ₹{Number(selectedInvoice.paid_amount || 0).toFixed(2)}
                         </p>
                         <p className="text-sm font-semibold text-blue-900">
-                          <span className="font-medium">Pending:</span> ₹{(selectedInvoice.total_amount - selectedInvoice.paid_amount).toFixed(2)}
+                          <span className="font-medium">Pending:</span> ₹{(Number(selectedInvoice.total_amount || 0) - Number(selectedInvoice.paid_amount || 0)).toFixed(2)}
                         </p>
                       </div>
                     )}
@@ -354,10 +360,10 @@ export default function PaymentsPage() {
             <CardContent>
               <CreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">
-                {payments.length === 0 ? 'No payments yet' : 'No matching payments'}
+                {paymentsList.length === 0 ? 'No payments yet' : 'No matching payments'}
               </h2>
               <p className="text-gray-600 mb-6">
-                {payments.length === 0
+                {paymentsList.length === 0
                   ? 'Record your first payment to get started'
                   : 'Try adjusting your search'}
               </p>
@@ -372,18 +378,18 @@ export default function PaymentsPage() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <CreditCard className="h-5 w-5 text-green-600" />
-                        {payment.invoice.invoice_number}
+                        {payment.invoice?.invoice_number || 'Unknown'}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {payment.invoice.party.name}
+                        {payment.invoice?.party?.name || 'Unknown'}
                       </CardDescription>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-green-600">
-                        ₹{payment.amount.toFixed(2)}
+                        ₹{Number(payment.amount || 0).toFixed(2)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {payment.payment_mode.toUpperCase().replace('_', ' ')}
+                        {(payment.payment_mode || 'unknown').toUpperCase().replace('_', ' ')}
                       </p>
                     </div>
                   </div>
@@ -392,7 +398,7 @@ export default function PaymentsPage() {
                   <div className="space-y-1 text-sm">
                     <p className="text-gray-600">
                       <span className="font-medium">Date:</span>{' '}
-                      {format(new Date(payment.payment_date), 'dd MMM yyyy')}
+                      {payment.payment_date ? format(new Date(payment.payment_date), 'dd MMM yyyy') : 'N/A'}
                     </p>
                     {payment.reference_number && (
                       <p className="text-gray-600">

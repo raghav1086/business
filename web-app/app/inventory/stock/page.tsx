@@ -66,7 +66,8 @@ export default function StockAdjustmentPage() {
   const fetchItems = async () => {
     try {
       const response = await inventoryApi.get('/items');
-      setItems(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setItems(data);
     } catch (error: any) {
       toast.error('Failed to load items', {
         description: error.response?.data?.message || 'Please try again',
@@ -100,8 +101,10 @@ export default function StockAdjustmentPage() {
     }
   };
 
+  const itemsList = Array.isArray(items) ? items : [];
+
   const handleItemChange = (itemId: string) => {
-    const item = items.find(i => i.id === itemId);
+    const item = itemsList.find(i => i.id === itemId);
     setSelectedItem(item || null);
   };
 
@@ -172,9 +175,9 @@ export default function StockAdjustmentPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {items.map((item) => (
+                              {itemsList.map((item) => (
                                 <SelectItem key={item.id} value={item.id}>
-                                  {item.name} (Current: {item.current_stock} {item.unit})
+                                  {item.name} (Current: {item.current_stock || 0} {item.unit || ''})
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -288,7 +291,7 @@ export default function StockAdjustmentPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
+          {itemsList.map((item) => (
             <Card key={item.id}>
               <CardHeader>
                 <CardTitle>{item.name}</CardTitle>
@@ -296,7 +299,7 @@ export default function StockAdjustmentPage() {
               <CardContent>
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-blue-600">
-                    {item.current_stock} {item.unit}
+                    {item.current_stock || 0} {item.unit || ''}
                   </p>
                   <p className="text-sm text-gray-600">Current Stock</p>
                 </div>
@@ -305,7 +308,7 @@ export default function StockAdjustmentPage() {
           ))}
         </div>
 
-        {items.length === 0 && (
+        {itemsList.length === 0 && (
           <Card className="text-center py-12">
             <CardContent>
               <p className="text-gray-600">No items found. Add items first to adjust stock.</p>

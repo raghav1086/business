@@ -101,7 +101,8 @@ export default function PartiesPage() {
   const fetchParties = async () => {
     try {
       const response = await partyApi.get('/parties');
-      setParties(response.data);
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setParties(data);
     } catch (error: any) {
       toast.error('Failed to load parties', {
         description: error.response?.data?.message || 'Please try again',
@@ -135,8 +136,10 @@ export default function PartiesPage() {
     }
   };
 
-  const filteredParties = parties.filter((party) => {
-    const matchesSearch = party.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const partiesList = Array.isArray(parties) ? parties : [];
+
+  const filteredParties = partiesList.filter((party) => {
+    const matchesSearch = party.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       party.phone?.includes(searchQuery) ||
       party.email?.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -455,10 +458,10 @@ export default function PartiesPage() {
             <CardContent>
               <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">
-                {parties.length === 0 ? 'No parties yet' : 'No matching parties'}
+                {partiesList.length === 0 ? 'No parties yet' : 'No matching parties'}
               </h2>
               <p className="text-gray-600 mb-6">
-                {parties.length === 0
+                {partiesList.length === 0
                   ? 'Create your first party to get started'
                   : 'Try adjusting your search or filter'}
               </p>
@@ -476,11 +479,11 @@ export default function PartiesPage() {
                       party.type === 'supplier' ? 'bg-green-100 text-green-800' :
                       'bg-purple-100 text-purple-800'
                     }`}>
-                      {party.type.toUpperCase()}
+                      {(party.type || 'unknown').toUpperCase()}
                     </span>
                   </CardTitle>
                   <CardDescription>
-                    {party.billing_city}, {party.billing_state}
+                    {party.billing_city || ''}{party.billing_city && party.billing_state ? ', ' : ''}{party.billing_state || ''}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -495,8 +498,8 @@ export default function PartiesPage() {
                   )}
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-sm font-medium">
-                      Balance: <span className={party.balance >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        ₹ {party.balance.toFixed(2)}
+                      Balance: <span className={(party.balance || 0) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        ₹ {Number(party.balance || 0).toFixed(2)}
                       </span>
                     </p>
                   </div>
