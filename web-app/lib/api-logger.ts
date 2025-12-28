@@ -223,8 +223,8 @@ export function attachLogger(client: AxiosInstance, serviceName: string): void {
       requestTimestamps.set(requestId, Date.now());
       
       // Attach request ID to config for response matching
-      (config as any).__requestId = requestId;
-      (config as any).__serviceName = serviceName;
+      (config as unknown as { __requestId?: string; __serviceName?: string }).__requestId = requestId;
+      (config as unknown as { __requestId?: string; __serviceName?: string }).__serviceName = serviceName;
       
       const entry: LogEntry = {
         id: requestId,
@@ -249,7 +249,7 @@ export function attachLogger(client: AxiosInstance, serviceName: string): void {
   // Response interceptor
   client.interceptors.response.use(
     (response: AxiosResponse) => {
-      const requestId = (response.config as any).__requestId;
+      const requestId = (response.config as unknown as { __requestId?: string })?.__requestId;
       const startTime = requestTimestamps.get(requestId);
       const duration = startTime ? Date.now() - startTime : 0;
       
@@ -273,7 +273,7 @@ export function attachLogger(client: AxiosInstance, serviceName: string): void {
       return response;
     },
     (error: AxiosError) => {
-      const requestId = (error.config as any)?.__requestId;
+      const requestId = (error.config as unknown as { __requestId?: string })?.__requestId;
       const startTime = requestTimestamps.get(requestId);
       const duration = startTime ? Date.now() - startTime : 0;
       

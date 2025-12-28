@@ -36,7 +36,7 @@ export function TouchTarget({
 }: {
   children: React.ReactNode;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: React.ElementType;
 }) {
   return (
     <Component

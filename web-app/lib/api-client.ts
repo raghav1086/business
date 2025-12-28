@@ -176,7 +176,7 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
 
       // Handle 400 - Business ID required (redirect to business selection)
       if (error.response?.status === 400) {
-        const errorMessage = (error.response?.data as any)?.message || '';
+        const errorMessage = (error.response?.data as Record<string, unknown>)?.message as string || '';
         if (errorMessage.includes('Business ID is required')) {
           console.warn('[API Client] Business ID is required, redirecting to business selection');
           if (typeof window !== 'undefined') {

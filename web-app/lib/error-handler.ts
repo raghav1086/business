@@ -231,7 +231,7 @@ function parseAxiosError(error: AxiosError, timestamp: string): ApiErrorResponse
       retryAfter: status === 429 ? extractRetryAfter(error) : undefined,
       originalError: error,
       timestamp,
-      requestId: (error.config as Record<string, unknown>)?.__requestId as string,
+      requestId: (error.config as unknown as Record<string, unknown>)?.__requestId as string,
     };
   }
 
