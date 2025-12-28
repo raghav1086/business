@@ -38,7 +38,8 @@ import { AuthGuard } from './guards/auth.guard';
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('INVOICE_DB_NAME', 'invoice_db'),
         entities: [Invoice, InvoiceItem, InvoiceSettings],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: configService.get('NODE_ENV') !== 'production' || 
+                     configService.get('ENABLE_SYNC') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

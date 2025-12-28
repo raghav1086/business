@@ -34,7 +34,8 @@ import { AuthGuard } from './guards/auth.guard';
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('PAYMENT_DB_NAME', 'payment_db'),
         entities: [Transaction],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: configService.get('NODE_ENV') !== 'production' || 
+                     configService.get('ENABLE_SYNC') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

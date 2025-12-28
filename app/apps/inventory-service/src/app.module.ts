@@ -42,7 +42,8 @@ import { AuthGuard } from './guards/auth.guard';
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('INVENTORY_DB_NAME', 'inventory_db'),
         entities: [Item, Category, Unit, StockAdjustment],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: configService.get('NODE_ENV') !== 'production' || 
+                     configService.get('ENABLE_SYNC') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],

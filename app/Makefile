@@ -222,6 +222,32 @@ deploy-staging: ## Deploy to staging environment
 	@echo "$(GREEN)✅ Staging deployment complete$(NC)"
 
 # =============================================================================
+# AWS DEPLOYMENT (FULLY AUTOMATED)
+# =============================================================================
+deploy-aws: ## Deploy entire app to AWS with single command (fully automated)
+	@echo "$(BLUE)🚀 Automated AWS Deployment$(NC)"
+	@echo "$(YELLOW)This will automatically:$(NC)"
+	@echo "  • Setup IAM user (if needed)"
+	@echo "  • Create key pair (if needed)"
+	@echo "  • Launch EC2 instance"
+	@echo "  • Clone repository from GitHub"
+	@echo "  • Deploy all services"
+	@echo "  • Configure Nginx"
+	@echo ""
+	@read -p "AWS Region (default: ap-south-1): " REGION; \
+	REGION=$${REGION:-ap-south-1}; \
+	read -p "Key Pair Name (default: business-app-key): " KEY_NAME; \
+	KEY_NAME=$${KEY_NAME:-business-app-key}; \
+	read -p "Instance Type (default: t3.small): " INSTANCE_TYPE; \
+	INSTANCE_TYPE=$${INSTANCE_TYPE:-t3.small}; \
+	echo ""; \
+	bash scripts/deploy-aws-auto.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE
+
+deploy-aws-quick: ## Quick deploy with all defaults (no prompts)
+	@echo "$(BLUE)🚀 Quick Deploy to AWS (all defaults)$(NC)"
+	@bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.small
+
+# =============================================================================
 # DATABASE
 # =============================================================================
 db-reset: ## Reset all databases

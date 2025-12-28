@@ -37,7 +37,8 @@ import { UserSession } from './entities/user-session.entity';
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('AUTH_DB_NAME', 'auth_db'),
         entities: [User, OtpRequest, RefreshToken, UserSession],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: configService.get('NODE_ENV') !== 'production' || 
+                     configService.get('ENABLE_SYNC') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
