@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, IndianRupee, CreditCard, Calendar, FileText, User } from 'lucide-react';
@@ -48,7 +48,7 @@ const cleanPayload = (data: Record<string, any>): Record<string, any> => {
   return cleaned;
 };
 
-export default function NewPaymentPage() {
+function NewPaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -467,5 +467,25 @@ export default function NewPaymentPage() {
 
       <BottomNav />
     </AppLayout>
+  );
+}
+
+export default function NewPaymentPage() {
+  return (
+    <Suspense fallback={
+      <AppLayout>
+        <PageHeader
+          title="Record Payment"
+          description="Record a new payment transaction"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </AppLayout>
+    }>
+      <NewPaymentPageContent />
+    </Suspense>
   );
 }
