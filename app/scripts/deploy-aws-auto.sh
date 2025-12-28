@@ -4,7 +4,7 @@ set -e
 # Configuration
 REGION=${1:-ap-south-1}
 KEY_NAME=${2:-business-app-key}
-INSTANCE_TYPE=${3:-t3.small}
+INSTANCE_TYPE=${3:-t3.medium}
 GIT_REPO="https://github.com/ashishnimrot/business.git"
 
 # AWS Profile support (can be set via environment variable or passed as 4th argument)
@@ -252,12 +252,8 @@ JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
 # Create production environment file
 echo "⚙️  Creating environment configuration..."
 cd /opt/business-app/app
-sudo -u ec2-user cat > .env.production <<ENV_EOF
-DB_PASSWORD=${DB_PASSWORD}
-JWT_SECRET=${JWT_SECRET}
-JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-ENABLE_SYNC=true
-ENV_EOF
+# Use printf to avoid issues with special characters in passwords
+sudo -u ec2-user bash -c "printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nJWT_REFRESH_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n' \"${DB_PASSWORD}\" \"${JWT_SECRET}\" \"${JWT_REFRESH_SECRET}\" > .env.production"
 
 # Also create .env file (docker-compose reads .env by default)
 sudo -u ec2-user cp .env.production .env
@@ -293,9 +289,11 @@ fi
 # Install Docker Buildx if needed (for both root and ec2-user)
 echo "🔧 Installing Docker Buildx..."
 BUILDX_VERSION="v0.17.0"
-mkdir -p ~/.docker/cli-plugins
+
+# Create directories with proper permissions
 sudo mkdir -p /root/.docker/cli-plugins
 sudo mkdir -p /home/ec2-user/.docker/cli-plugins
+sudo chown -R ec2-user:ec2-user /home/ec2-user/.docker
 
 # Download buildx
 curl -L "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" -o /tmp/docker-buildx 2>/dev/null || {
@@ -328,10 +326,8 @@ fi
 # Build with environment variables loaded using heredoc to avoid escaping issues
 sudo -u ec2-user bash <<'BUILD_EOF'
 cd /opt/business-app/app
-# Load environment variables
-set -a
-source .env.production
-set +a
+# Load environment variables safely (export them)
+export $(grep -v '^#' .env.production | xargs)
 # Build images
 docker-compose -f docker-compose.prod.yml build --no-cache
 BUILD_EOF
@@ -343,9 +339,8 @@ if [ $BUILD_EXIT_CODE -ne 0 ]; then
     sleep 10
     sudo -u ec2-user bash <<'BUILD_EOF'
 cd /opt/business-app/app
-set -a
-source .env.production
-set +a
+# Load environment variables safely
+export $(grep -v '^#' .env.production | xargs)
 docker-compose -f docker-compose.prod.yml build
 BUILD_EOF
 fi
@@ -354,9 +349,8 @@ fi
 echo "🚀 Starting services..."
 sudo -u ec2-user bash <<'START_EOF'
 cd /opt/business-app/app
-set -a
-source .env.production
-set +a
+# Load environment variables safely
+export $(grep -v '^#' .env.production | xargs)
 docker-compose -f docker-compose.prod.yml up -d
 START_EOF
 
@@ -530,7 +524,10 @@ fi
 
 # Step 8: Launch EC2 Instance
 echo "🚀 Step 8/8: Launching EC2 instance..."
-INSTANCE_ID=$($AWS_CMD ec2 run-instances \
+
+# Try to launch instance (temporarily disable exit on error to capture output)
+set +e
+LAUNCH_OUTPUT=$($AWS_CMD ec2 run-instances \
     --region $REGION \
     --image-id $AMI_ID \
     --instance-type $INSTANCE_TYPE \
@@ -540,10 +537,76 @@ INSTANCE_ID=$($AWS_CMD ec2 run-instances \
     --user-data "$USER_DATA_ENCODED" \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=business-app-beta},{Key=Environment,Value=beta}]" \
     --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
-    --query 'Instances[0].InstanceId' --output text)
+    --query 'Instances[0].InstanceId' --output text 2>&1)
+LAUNCH_EXIT_CODE=$?
+set -e
+
+# Check if error is about Free Tier or any other error
+if [ $LAUNCH_EXIT_CODE -ne 0 ] || echo "$LAUNCH_OUTPUT" | grep -qi "free-tier\|Free Tier\|not eligible for Free Tier\|error\|Error"; then
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "⚠️  FREE TIER RESTRICTION DETECTED"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Your AWS account is using Free Tier benefits."
+    echo "Free Tier only allows: t2.micro or t3.micro"
+    echo ""
+    echo "You requested: $INSTANCE_TYPE"
+    echo ""
+    echo "Error: $LAUNCH_OUTPUT"
+    echo ""
+    echo "📋 Solutions:"
+    echo ""
+    echo "Option 1: Use t3.micro (Free Tier eligible, but very limited)"
+    echo "   ⚠️  Warning: Only 1 GB RAM - may cause OOM errors"
+    echo "   Run:"
+    echo "   AWS_PROFILE=business-app bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.micro"
+    echo ""
+    echo "Option 2: Accept charges and use t3.medium/t3.large (Recommended)"
+    echo "   Your account will be charged for the instance"
+    echo "   Free Tier restrictions only apply if you want FREE usage"
+    echo "   If you're okay paying, you may need to:"
+    echo "   - Contact AWS Support to enable paid instances"
+    echo "   - Or wait for Free Tier period to end"
+    echo ""
+    echo "Option 3: Wait for Free Tier to expire (12 months from account creation)"
+    echo ""
+    echo "Option 4: Use a different AWS account without Free Tier"
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════"
+    exit 1
+fi
+
+# Extract instance ID (should be in the output)
+INSTANCE_ID="$LAUNCH_OUTPUT"
+
+# Validate instance ID format
+if [[ ! "$INSTANCE_ID" =~ ^i-[0-9a-f]{17}$ ]]; then
+    echo ""
+    echo "❌ Failed to launch EC2 instance"
+    echo "   Error: $LAUNCH_OUTPUT"
+    echo ""
+    
+    # Provide helpful error messages
+    if echo "$LAUNCH_OUTPUT" | grep -qi "free-tier\|Free Tier"; then
+        echo "   ⚠️  Free Tier Restriction Detected"
+        echo "   Free Tier only allows: t2.micro or t3.micro"
+        echo ""
+        echo "   Solutions:"
+        echo "   1. Use t3.micro (Free Tier):"
+        echo "      AWS_PROFILE=business-app bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.micro"
+        echo ""
+        echo "   2. Accept charges for t3.medium (contact AWS Support if needed)"
+    else
+        echo "   Check the error message above for details."
+    fi
+    exit 1
+fi
 
 if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
     echo "❌ Failed to launch EC2 instance"
+    echo "   No instance ID returned"
+    echo "   Output: $LAUNCH_OUTPUT"
     exit 1
 fi
 

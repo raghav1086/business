@@ -238,8 +238,8 @@ deploy-aws: ## Deploy entire app to AWS with single command (fully automated)
 	REGION=$${REGION:-ap-south-1}; \
 	read -p "Key Pair Name (default: business-app-key): " KEY_NAME; \
 	KEY_NAME=$${KEY_NAME:-business-app-key}; \
-	read -p "Instance Type (default: t3.small): " INSTANCE_TYPE; \
-	INSTANCE_TYPE=$${INSTANCE_TYPE:-t3.small}; \
+	read -p "Instance Type (default: t3.medium): " INSTANCE_TYPE; \
+	INSTANCE_TYPE=$${INSTANCE_TYPE:-t3.medium}; \
 	read -p "AWS Profile (optional, press Enter for default): " AWS_PROFILE; \
 	AWS_PROFILE=$${AWS_PROFILE:-}; \
 	echo ""; \
@@ -252,9 +252,9 @@ deploy-aws-quick: ## Quick deploy with all defaults (no prompts)
 	@echo "$(BLUE)🚀 Quick Deploy to AWS (all defaults)$(NC)"
 	@if [ -n "$$AWS_PROFILE" ]; then \
 		export AWS_PROFILE=$$AWS_PROFILE; \
-		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.small $$AWS_PROFILE; \
+		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE; \
 	else \
-		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.small; \
+		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.medium; \
 	fi
 
 # =============================================================================

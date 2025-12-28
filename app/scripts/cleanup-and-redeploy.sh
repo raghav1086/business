@@ -1,17 +1,21 @@
 #!/bin/bash
-# Cleanup and redeploy script
-# Terminates the current instance and redeploys with fixed script
+# Cleanup old instance and redeploy with new configuration
 
 set -e
 
 AWS_PROFILE=${AWS_PROFILE:-business-app}
 REGION=${REGION:-ap-south-1}
+KEY_NAME=${KEY_NAME:-business-app-key}
+NEW_INSTANCE_TYPE=${NEW_INSTANCE_TYPE:-t3.medium}
 
-echo "🧹 Cleaning up and redeploying..."
-echo "==================================="
+echo "🧹 Cleanup and Redeploy Script"
+echo "================================"
+echo "AWS Profile: $AWS_PROFILE"
+echo "Region: $REGION"
+echo "New Instance Type: $NEW_INSTANCE_TYPE"
 echo ""
 
-# Find and terminate current instance
+# Step 1: Find current instance
 echo "1. Finding current instance..."
 INSTANCE_ID=$(aws --profile $AWS_PROFILE ec2 describe-instances \
   --region $REGION \
@@ -19,7 +23,10 @@ INSTANCE_ID=$(aws --profile $AWS_PROFILE ec2 describe-instances \
   --query 'Reservations[0].Instances[0].InstanceId' \
   --output text 2>/dev/null || echo "None")
 
-if [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ]; then
+if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+    echo "   ℹ️  No existing instance found"
+    SKIP_TERMINATION=true
+else
     STATE=$(aws --profile $AWS_PROFILE ec2 describe-instances \
       --region $REGION \
       --instance-ids $INSTANCE_ID \
@@ -28,27 +35,47 @@ if [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ]; then
     
     echo "   Found instance: $INSTANCE_ID (State: $STATE)"
     
-    if [ "$STATE" != "terminated" ] && [ "$STATE" != "shutting-down" ]; then
-        echo "2. Terminating instance..."
-        aws --profile $AWS_PROFILE ec2 terminate-instances \
-          --region $REGION \
-          --instance-ids $INSTANCE_ID > /dev/null
-        
-        echo "   Waiting for termination..."
-        aws --profile $AWS_PROFILE ec2 wait instance-terminated \
-          --region $REGION \
-          --instance-ids $INSTANCE_ID
-        
-        echo "   ✅ Instance terminated"
+    if [ "$STATE" = "terminated" ] || [ "$STATE" = "shutting-down" ]; then
+        echo "   ℹ️  Instance already terminated or terminating"
+        SKIP_TERMINATION=true
     else
-        echo "   Instance already terminated or terminating"
+        SKIP_TERMINATION=false
     fi
-else
-    echo "   No instance found to terminate"
 fi
 
+# Step 2: Terminate old instance
+if [ "$SKIP_TERMINATION" = false ]; then
+    echo ""
+    echo "2. Terminating old instance..."
+    aws --profile $AWS_PROFILE ec2 terminate-instances \
+      --region $REGION \
+      --instance-ids $INSTANCE_ID > /dev/null
+    
+    echo "   Waiting for termination (this may take 1-2 minutes)..."
+    aws --profile $AWS_PROFILE ec2 wait instance-terminated \
+      --region $REGION \
+      --instance-ids $INSTANCE_ID
+    
+    echo "   ✅ Instance terminated"
+    
+    # Wait a bit more to ensure cleanup
+    echo "   Waiting for cleanup..."
+    sleep 10
+else
+    echo ""
+    echo "2. Skipping termination (no instance to terminate)"
+fi
+
+# Step 3: Deploy new instance
 echo ""
-echo "3. Ready to redeploy!"
-echo "   Run: cd app && AWS_PROFILE=$AWS_PROFILE make deploy-aws-quick"
+echo "3. Deploying new instance with $NEW_INSTANCE_TYPE..."
+echo "=================================================="
 echo ""
 
+# Call the deployment script
+cd "$(dirname "$0")/.."
+export AWS_PROFILE
+bash scripts/deploy-aws-auto.sh $REGION $KEY_NAME $NEW_INSTANCE_TYPE $AWS_PROFILE
+
+echo ""
+echo "✅ Cleanup and redeploy complete!"

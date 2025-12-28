@@ -12,8 +12,11 @@ COPY package*.json ./
 COPY nx.json ./
 COPY tsconfig*.json ./
 
-# Install dependencies
-RUN npm ci --legacy-peer-deps
+# Install dependencies with retry logic for network issues
+RUN for i in 1 2 3 4 5; do \
+    npm ci --legacy-peer-deps && break || \
+    (echo "Attempt $i failed, retrying in 10 seconds..." && sleep 10); \
+    done
 
 # Copy source code
 COPY apps ./apps
@@ -34,9 +37,12 @@ WORKDIR /app
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
-# Copy package files and install production dependencies
+# Copy package files and install production dependencies with retry logic
 COPY package*.json ./
-RUN npm ci --only=production --legacy-peer-deps
+RUN for i in 1 2 3 4 5; do \
+    npm ci --only=production --legacy-peer-deps && break || \
+    (echo "Attempt $i failed, retrying in 10 seconds..." && sleep 10); \
+    done
 
 # Copy built application
 COPY --from=builder /app/dist/apps/${SERVICE_NAME} ./dist
