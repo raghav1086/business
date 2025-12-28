@@ -8,9 +8,9 @@ echo ""
 
 cd /opt/business-app/app
 
-# Ensure .env files exist
-if [ ! -f .env.production ]; then
-    echo "⚠️  .env.production not found, creating..."
+# Ensure .env files exist and are properly formatted
+if [ ! -f .env.production ] || ! grep -q "^DB_PASSWORD=" .env.production 2>/dev/null; then
+    echo "⚠️  .env.production not found or invalid, creating..."
     DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
     JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
     JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
@@ -18,12 +18,37 @@ if [ ! -f .env.production ]; then
     printf "DB_PASSWORD=%s\nJWT_SECRET=%s\nJWT_REFRESH_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n" \
       "$DB_PASSWORD" "$JWT_SECRET" "$JWT_REFRESH_SECRET" > .env.production
     cp .env.production .env
+    echo "✅ Created new .env.production"
+else
+    echo "✅ Using existing .env.production"
+    # Validate and fix format if needed
+    if grep -q "^[^=]*$" .env.production | grep -v "^#" | grep -v "^$"; then
+        echo "⚠️  Found malformed lines in .env.production, fixing..."
+        # Extract valid key=value pairs only
+        grep "^[A-Z_]*=" .env.production > .env.production.tmp
+        mv .env.production.tmp .env.production
+    fi
 fi
 
-# Load environment variables safely
-set -a
-source <(grep -v '^#' .env.production | sed 's/^/export /')
-set +a
+# Load environment variables safely - use a simple approach that docker-compose can also use
+# Read each line and export if it's a valid KEY=VALUE format
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines and comments
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    # Only process lines with KEY=VALUE format
+    if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+        # Extract key and value
+        key="${line%%=*}"
+        value="${line#*=}"
+        # Remove leading/trailing whitespace
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        # Remove quotes if present
+        value=$(echo "$value" | sed "s/^['\"]//; s/['\"]\$//")
+        # Export the variable
+        export "$key=$value"
+    fi
+done < .env.production
 
 # Stop any running containers
 echo "🛑 Stopping existing containers..."

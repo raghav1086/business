@@ -326,12 +326,17 @@ fi
 # Build with environment variables loaded using heredoc to avoid escaping issues
 sudo -u ec2-user bash <<'BUILD_EOF'
 cd /opt/business-app/app
-# Load environment variables safely (line by line to handle special characters)
-while IFS='=' read -r key value; do
-    [[ -z "$key" || "$key" =~ ^# ]] && continue
-    value=\$(echo "\$value" | sed 's/^["'\'']//; s/["'\'']$//')
-    export "\$key=\$value"
-done < .env.production
+# Load environment variables safely using awk
+eval \$(awk -F'=' '{ 
+    if (NF >= 2 && \$1 !~ /^[[:space:]]*#/ && \$1 !~ /^[[:space:]]*\$/) {
+        key=\$1
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", key)
+        value=substr(\$0, index(\$0, "=")+1)
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", value)
+        gsub(/^["'\'']|["'\'']\$/, "", value)
+        printf "export %s=\\"%s\\"\\n", key, value
+    }
+}' .env.production)
 # Build images
 docker-compose -f docker-compose.prod.yml build --no-cache
 BUILD_EOF
@@ -343,12 +348,17 @@ if [ $BUILD_EXIT_CODE -ne 0 ]; then
     sleep 10
     sudo -u ec2-user bash <<'BUILD_EOF'
 cd /opt/business-app/app
-# Load environment variables safely (line by line to handle special characters)
-while IFS='=' read -r key value; do
-    [[ -z "$key" || "$key" =~ ^# ]] && continue
-    value=\$(echo "\$value" | sed 's/^["'\'']//; s/["'\'']$//')
-    export "\$key=\$value"
-done < .env.production
+# Load environment variables safely using awk
+eval \$(awk -F'=' '{ 
+    if (NF >= 2 && \$1 !~ /^[[:space:]]*#/ && \$1 !~ /^[[:space:]]*\$/) {
+        key=\$1
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", key)
+        value=substr(\$0, index(\$0, "=")+1)
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", value)
+        gsub(/^["'\'']|["'\'']\$/, "", value)
+        printf "export %s=\\"%s\\"\\n", key, value
+    }
+}' .env.production)
 docker-compose -f docker-compose.prod.yml build
 BUILD_EOF
 fi
@@ -357,12 +367,17 @@ fi
 echo "🚀 Starting services..."
 sudo -u ec2-user bash <<'START_EOF'
 cd /opt/business-app/app
-# Load environment variables safely (line by line to handle special characters)
-while IFS='=' read -r key value; do
-    [[ -z "$key" || "$key" =~ ^# ]] && continue
-    value=\$(echo "\$value" | sed 's/^["'\'']//; s/["'\'']$//')
-    export "\$key=\$value"
-done < .env.production
+# Load environment variables safely using awk
+eval \$(awk -F'=' '{ 
+    if (NF >= 2 && \$1 !~ /^[[:space:]]*#/ && \$1 !~ /^[[:space:]]*\$/) {
+        key=\$1
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", key)
+        value=substr(\$0, index(\$0, "=")+1)
+        gsub(/^[[:space:]]+|[[:space:]]+\$/, "", value)
+        gsub(/^["'\'']|["'\'']\$/, "", value)
+        printf "export %s=\\"%s\\"\\n", key, value
+    }
+}' .env.production)
 docker-compose -f docker-compose.prod.yml up -d
 START_EOF
 

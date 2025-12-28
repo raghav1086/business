@@ -72,15 +72,17 @@ echo ""
 echo "4. Rebuilding and starting services..."
 cd /opt/business-app/app
 
-# Load environment variables safely (line by line to handle special characters)
-while IFS='=' read -r key value; do
-    # Skip empty lines and comments
-    [[ -z "$key" || "$key" =~ ^# ]] && continue
-    # Remove any quotes from value
-    value=$(echo "$value" | sed 's/^["'\'']//; s/["'\'']$//')
-    # Export the variable
-    export "$key=$value"
-done < .env.production
+# Load environment variables safely using awk to handle all edge cases
+eval $(awk -F'=' '{ 
+    if (NF >= 2 && $1 !~ /^[[:space:]]*#/ && $1 !~ /^[[:space:]]*$/) {
+        key=$1
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+        value=substr($0, index($0, "=")+1)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+        gsub(/^["'\'']|["'\'']$/, "", value)
+        printf "export %s=\"%s\"\n", key, value
+    }
+}' .env.production)
 
 # Stop any running containers
 docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
