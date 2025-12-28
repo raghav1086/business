@@ -78,7 +78,10 @@ export class PartyController {
     @Query('type') type?: string,
     @Query('search') search?: string
   ): Promise<PartyResponseDto[]> {
-    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
 
     let parties: Party[];
     if (search) {
@@ -106,7 +109,10 @@ export class PartyController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const party = await this.partyService.findById(businessId, id);
     return this.toResponseDto(party);
   }
@@ -125,7 +131,10 @@ export class PartyController {
     @Param('id') id: string,
     @Body() updateDto: UpdatePartyDto
   ): Promise<PartyResponseDto> {
-    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const party = await this.partyService.update(businessId, id, updateDto);
     return this.toResponseDto(party);
   }
@@ -136,7 +145,10 @@ export class PartyController {
   @ApiResponse({ status: 204, description: 'Party deleted successfully' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   async remove(@Request() req: any, @Param('id') id: string): Promise<void> {
-    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     await this.partyService.delete(businessId, id);
   }
 
@@ -156,7 +168,10 @@ export class PartyController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string
   ): Promise<PartyLedgerResponseDto> {
-    const businessId = req.business_id || '00000000-0000-0000-0000-000000000001'; // Mock for now
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     return this.partyLedgerService.getPartyLedger(businessId, id, start, end);

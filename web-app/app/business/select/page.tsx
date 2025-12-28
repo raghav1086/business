@@ -72,7 +72,7 @@ interface Business {
 
 export default function BusinessSelectPage() {
   const router = useRouter();
-  const { isAuthenticated, setBusinessId, logout } = useAuthStore();
+  const { isAuthenticated, setBusinessId, setBusiness, logout } = useAuthStore();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +125,13 @@ export default function BusinessSelectPage() {
   }, [isAuthenticated, router, fetchBusinesses]);
 
   const handleSelectBusiness = (businessId: string) => {
-    setBusinessId(businessId);
+    // Find the business to get its name
+    const business = businesses.find(b => b.id === businessId);
+    if (business) {
+      setBusiness(businessId, business.name);
+    } else {
+      setBusinessId(businessId);
+    }
     toast.success('Business selected');
     router.push('/dashboard');
   };
@@ -144,7 +150,7 @@ export default function BusinessSelectPage() {
       form.reset();
       
       // Select the new business
-      setBusinessId(newBusiness.id);
+      setBusiness(newBusiness.id, newBusiness.name || 'New Business');
       router.push('/dashboard');
     } catch (error: any) {
       toast.error('Failed to create business', {

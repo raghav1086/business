@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/auth-store";
-import { tokenStorage } from "@/lib/api-client";
+import { tokenStorage, businessApi } from "@/lib/api-client";
 import { Building2, Receipt, Settings as SettingsIcon, Bell, Shield, Database, Save, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { businessId, user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { businessId, businessName, user, setBusiness } = useAuthStore();
   const token = tokenStorage.getAccessToken();
   const [saved, setSaved] = useState(false);
+
+  // Redirect if business not selected
+  useEffect(() => {
+    if (!businessId) {
+      router.push('/business/select');
+    }
+  }, [businessId, router]);
 
   // Business settings state
   const [businessSettings, setBusinessSettings] = useState({
@@ -33,7 +42,6 @@ export default function SettingsPage() {
     pincode: "",
     phone: "",
     email: "",
-    website: "",
   });
 
   // Invoice settings state
@@ -68,18 +76,21 @@ export default function SettingsPage() {
   const { data: business, isLoading } = useQuery({
     queryKey: ["business", businessId],
     queryFn: async () => {
-      // Mock data - replace with actual API call
+      if (!businessId) throw new Error('Business ID is required');
+      const response = await businessApi.get(`/businesses/${businessId}`);
+      const businessData = response.data?.data || response.data;
+      
+      // Map backend fields to frontend state
       return {
-        name: "ABC Traders",
-        gst_number: "27AABCT1234A1Z5",
-        pan_number: "AABCT1234A",
-        address: "123 Market Street",
-        city: "Mumbai",
-        state: "Maharashtra",
-        pincode: "400001",
-        phone: "+91 98765 43210",
-        email: "info@abctraders.com",
-        website: "www.abctraders.com",
+        name: businessData.name || "",
+        gst_number: businessData.gstin || "",
+        pan_number: businessData.pan || "",
+        address: businessData.address_line1 || "",
+        city: businessData.city || "",
+        state: businessData.state || "",
+        pincode: businessData.pincode || "",
+        phone: businessData.phone || "",
+        email: businessData.email || "",
       };
     },
     enabled: !!businessId,
@@ -91,43 +102,134 @@ export default function SettingsPage() {
     }
   }, [business]);
 
+  // Load invoice settings from localStorage (temporary until backend endpoint exists)
+  useEffect(() => {
+    if (businessId && typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`invoice_settings_${businessId}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setInvoiceSettings(parsed);
+        } catch (e) {
+          console.warn('Failed to parse invoice settings from localStorage', e);
+        }
+      }
+    }
+  }, [businessId]);
+
+  // Load notification settings from localStorage (temporary until backend endpoint exists)
+  useEffect(() => {
+    if (businessId && typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`notification_settings_${businessId}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setNotificationSettings(parsed);
+        } catch (e) {
+          console.warn('Failed to parse notification settings from localStorage', e);
+        }
+      }
+    }
+  }, [businessId]);
+
   // Save business settings
   const saveBusinessMutation = useMutation({
     mutationFn: async (data: typeof businessSettings) => {
-      const response = await fetch(`/api/businesses/${businessId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
+      if (!businessId) throw new Error('Business ID is required');
+      
+      // Map frontend fields to backend format
+      const payload = {
+        name: data.name,
+        gstin: data.gst_number || undefined,
+        pan: data.pan_number || undefined,
+        address_line1: data.address || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
+        pincode: data.pincode || undefined,
+        phone: data.phone || undefined,
+        email: data.email || undefined,
+      };
+      
+      // Remove undefined values
+      Object.keys(payload).forEach(key => {
+        if (payload[key as keyof typeof payload] === undefined) {
+          delete payload[key as keyof typeof payload];
+        }
       });
-      if (!response.ok) throw new Error("Failed to update business settings");
-      return response.json();
+      
+      const response = await businessApi.patch(`/businesses/${businessId}`, payload);
+      
+      // Update business name in auth store if name changed
+      if (data.name && data.name !== businessName) {
+        setBusiness(businessId, data.name);
+      }
+      
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate and refetch business query to update UI
+      queryClient.invalidateQueries({ queryKey: ["business", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      
+      // Update local state with response data
+      const updatedBusiness = {
+        name: data.name || data.data?.name || "",
+        gst_number: data.gstin || data.data?.gstin || "",
+        pan_number: data.pan || data.data?.pan || "",
+        address: data.address_line1 || data.data?.address_line1 || "",
+        city: data.city || data.data?.city || "",
+        state: data.state || data.data?.state || "",
+        pincode: data.pincode || data.data?.pincode || "",
+        phone: data.phone || data.data?.phone || "",
+        email: data.email || data.data?.email || "",
+      };
+      setBusinessSettings(updatedBusiness);
+      
       setSaved(true);
+      toast.success('Business settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to save business settings', {
+        description: error.response?.data?.message || error.message,
+      });
     },
   });
 
   // Save invoice settings
+  // Note: Invoice settings endpoint doesn't exist yet, storing in localStorage for now
+  // TODO: Create invoice settings API endpoint in invoice-service
   const saveInvoiceMutation = useMutation({
     mutationFn: async (data: typeof invoiceSettings) => {
-      const response = await fetch(`/api/businesses/${businessId}/settings/invoice`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to update invoice settings");
-      return response.json();
+      if (!businessId) throw new Error('Business ID is required');
+      
+      // Store in localStorage as temporary solution until backend endpoint is created
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`invoice_settings_${businessId}`, JSON.stringify(data));
+      }
+      
+      // TODO: Replace with actual API call when endpoint is available
+      // const response = await invoiceApi.patch(`/settings/${businessId}`, {
+      //   invoice_prefix: data.prefix,
+      //   invoice_next_number: data.next_number,
+      //   default_terms: data.terms_and_conditions,
+      //   default_notes: data.notes,
+      //   default_due_days: data.due_days,
+      // });
+      // return response.data;
+      
+      return { success: true, data };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoice-settings", businessId] });
       setSaved(true);
+      toast.success('Invoice settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to save invoice settings', {
+        description: error.message,
+      });
     },
   });
 
@@ -139,43 +241,65 @@ export default function SettingsPage() {
     saveInvoiceMutation.mutate(invoiceSettings);
   };
 
-  // Save GST settings
+  // Save GST settings - stored in business entity
   const saveGstMutation = useMutation({
     mutationFn: async (data: typeof gstSettings) => {
-      const response = await fetch(`/api/businesses/${businessId}/settings/gst`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to update GST settings");
-      return response.json();
+      if (!businessId) throw new Error('Business ID is required');
+      
+      // Map frontend GST settings to business entity fields
+      const payload: any = {
+        gst_type: data.gst_enabled ? 'regular' : 'unregistered',
+      };
+      
+      // Only include composition_rate if GST is enabled and it's a composition scheme
+      // For now, we'll store default tax rates in a note or extend business entity
+      // Since composition_rate exists in business entity, we can use it
+      
+      const response = await businessApi.patch(`/businesses/${businessId}`, payload);
+      return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
       setSaved(true);
+      toast.success('GST settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to save GST settings', {
+        description: error.response?.data?.message || error.message,
+      });
     },
   });
 
   // Save notification settings
+  // Note: Notification settings endpoint doesn't exist yet, storing in localStorage for now
+  // TODO: Create notification settings API endpoint or add to business entity
   const saveNotificationMutation = useMutation({
     mutationFn: async (data: typeof notificationSettings) => {
-      const response = await fetch(`/api/businesses/${businessId}/settings/notifications`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to update notification settings");
-      return response.json();
+      if (!businessId) throw new Error('Business ID is required');
+      
+      // Store in localStorage as temporary solution until backend endpoint is created
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`notification_settings_${businessId}`, JSON.stringify(data));
+      }
+      
+      // TODO: Replace with actual API call when endpoint is available
+      // const response = await businessApi.patch(`/businesses/${businessId}/settings/notifications`, data);
+      // return response.data;
+      
+      return { success: true, data };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notification-settings", businessId] });
       setSaved(true);
+      toast.success('Notification settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to save notification settings', {
+        description: error.message,
+      });
     },
   });
 
@@ -205,7 +329,7 @@ export default function SettingsPage() {
     <AppLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Settings"
+          title={businessName ? `${businessName} - Settings` : "Settings"}
           description="Manage your business settings and preferences"
         />
 
@@ -300,17 +424,6 @@ export default function SettingsPage() {
                         setBusinessSettings({ ...businessSettings, email: e.target.value })
                       }
                       placeholder="info@yourbusiness.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
-                    <Input
-                      id="website"
-                      value={businessSettings.website}
-                      onChange={(e) =>
-                        setBusinessSettings({ ...businessSettings, website: e.target.value })
-                      }
-                      placeholder="www.yourbusiness.com"
                     />
                   </div>
                 </div>

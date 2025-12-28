@@ -21,16 +21,49 @@ export class OtpService {
 
   /**
    * Generate a 6-digit OTP
-   * In development/test mode, use fixed OTP 129012 for testing
+   * 
+   * Fake OTP mode (ENABLE_FAKE_OTP=true): Uses last 6 digits of phone number
+   * Example: 9175760649 -> 5760649 -> 760649
+   * 
+   * Development/test mode: Uses fixed OTP 129012 for testing
+   * Production mode: Generates random 6-digit OTP
    */
-  generateOtp(): string {
+  generateOtp(phone?: string): string {
+    // Fake OTP mode for beta users (can be used in production)
+    const useFakeOtp = process.env.ENABLE_FAKE_OTP === 'true';
+    if (useFakeOtp && phone) {
+      return this.generateFakeOtp(phone);
+    }
+
     // Use fixed OTP for development/testing
     if (process.env.NODE_ENV !== 'production') {
       return '129012';
     }
+    
+    // Production - real OTP
     const min = 100000;
     const max = 999999;
     return Math.floor(Math.random() * (max - min + 1) + min).toString();
+  }
+
+  /**
+   * Generate fake OTP from phone number
+   * Uses last 6 digits of the phone number
+   * Example: 9175760649 -> 5760649 -> 760649
+   */
+  private generateFakeOtp(phone: string): string {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    if (digits.length < 6) {
+      // Fallback: pad with zeros if phone is too short
+      return digits.padStart(6, '0');
+    }
+    
+    // Take last 6 digits
+    const lastSix = digits.substring(digits.length - 6);
+    
+    return lastSix;
   }
 
   /**
@@ -55,8 +88,8 @@ export class OtpService {
     phone: string,
     purpose: string
   ): Promise<{ otpRequest: OtpRequest; otp: string }> {
-    // Generate OTP
-    const otp = this.generateOtp();
+    // Generate OTP (pass phone for fake OTP generation)
+    const otp = this.generateOtp(phone);
     const otpHash = await this.hashOtp(otp);
 
     // Calculate expiry

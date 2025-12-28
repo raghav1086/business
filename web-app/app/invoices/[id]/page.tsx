@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -25,28 +26,36 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CardSkeleton, ListItemSkeleton } from '@/components/ui/skeleton';
 import { invoiceApi, partyApi, paymentApi } from '@/lib/api-client';
 import { generateInvoicePDF } from '@/lib/export-utils';
-
 import { validateUrlUUID, validateQueryUUID } from '@/lib/validation';
+import { useAuthStore } from '@/lib/auth-store';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { businessId } = useAuthStore();
   const invoiceId = validateUrlUUID(params.id, 'Invoice ID');
+
+  // Redirect if business not selected
+  useEffect(() => {
+    if (!businessId) {
+      router.push('/business/select');
+    }
+  }, [businessId, router]);
 
   // Fetch invoice details
   const { data: invoice, isLoading } = useQuery({
-    queryKey: ['invoice', invoiceId],
+    queryKey: ['invoice', invoiceId, businessId],
     queryFn: async () => {
       if (!invoiceId) throw new Error('Invalid invoice ID');
       const response = await invoiceApi.get(`/invoices/${invoiceId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!invoiceId,
+    enabled: !!invoiceId && !!businessId,
   });
 
   // Fetch party details
   const { data: party } = useQuery({
-    queryKey: ['party', invoice?.party_id],
+    queryKey: ['party', invoice?.party_id, businessId],
     queryFn: async () => {
       if (!invoice?.party_id) return null;
       const validatedPartyId = validateQueryUUID(invoice.party_id);
@@ -54,18 +63,18 @@ export default function InvoiceDetailPage() {
       const response = await partyApi.get(`/parties/${validatedPartyId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!invoice?.party_id,
+    enabled: !!invoice?.party_id && !!businessId,
   });
 
   // Fetch payments for this invoice
   const { data: payments } = useQuery({
-    queryKey: ['invoice-payments', invoiceId],
+    queryKey: ['invoice-payments', invoiceId, businessId],
     queryFn: async () => {
       if (!invoiceId) return [];
       const response = await paymentApi.get(`/payments?invoiceId=${invoiceId}`);
       return Array.isArray(response.data) ? response.data : (response.data?.payments || response.data?.data || []);
     },
-    enabled: !!invoiceId,
+    enabled: !!invoiceId && !!businessId,
   });
 
   const paymentsList = Array.isArray(payments) ? payments : [];

@@ -89,8 +89,10 @@ export class PaymentController {
     }
     // invoiceId="new" is handled in service, so we don't validate it here
 
-    // Extract business_id from header (x-business-id) or fallback to mock
-    const businessId = req.headers['x-business-id'] || req.business_id || '00000000-0000-0000-0000-000000000001';
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const result = await this.paymentService.findByBusinessId(businessId, {
       partyId,
       invoiceId,
@@ -125,8 +127,10 @@ export class PaymentController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    // Extract business_id from header (x-business-id) or fallback to mock
-    const businessId = req.headers['x-business-id'] || req.business_id || '00000000-0000-0000-0000-000000000001';
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const transaction = await this.paymentService.findById(businessId, id);
     return this.toResponseDto(transaction);
   }

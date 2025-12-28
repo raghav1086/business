@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -21,26 +22,35 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { paymentApi, partyApi, invoiceApi } from '@/lib/api-client';
 import { validateUrlUUID, validateQueryUUID } from '@/lib/validation';
+import { useAuthStore } from '@/lib/auth-store';
 
 export default function PaymentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { businessId } = useAuthStore();
   const paymentId = validateUrlUUID(params.id, 'Payment ID');
+
+  // Redirect if business not selected
+  useEffect(() => {
+    if (!businessId) {
+      router.push('/business/select');
+    }
+  }, [businessId, router]);
 
   // Fetch payment details
   const { data: payment, isLoading } = useQuery({
-    queryKey: ['payment', paymentId],
+    queryKey: ['payment', paymentId, businessId],
     queryFn: async () => {
       if (!paymentId) throw new Error('Invalid payment ID');
       const response = await paymentApi.get(`/payments/${paymentId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!paymentId,
+    enabled: !!paymentId && !!businessId,
   });
 
   // Fetch party details if payment has party_id
   const { data: party } = useQuery({
-    queryKey: ['party', payment?.party_id],
+    queryKey: ['party', payment?.party_id, businessId],
     queryFn: async () => {
       if (!payment?.party_id) return null;
       const validatedPartyId = validateQueryUUID(payment.party_id);
@@ -48,12 +58,12 @@ export default function PaymentDetailPage() {
       const response = await partyApi.get(`/parties/${validatedPartyId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!payment?.party_id,
+    enabled: !!payment?.party_id && !!businessId,
   });
 
   // Fetch invoice details if payment has invoice_id
   const { data: invoice } = useQuery({
-    queryKey: ['invoice', payment?.invoice_id],
+    queryKey: ['invoice', payment?.invoice_id, businessId],
     queryFn: async () => {
       if (!payment?.invoice_id) return null;
       const validatedInvoiceId = validateQueryUUID(payment.invoice_id);
@@ -61,7 +71,7 @@ export default function PaymentDetailPage() {
       const response = await invoiceApi.get(`/invoices/${validatedInvoiceId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!payment?.invoice_id,
+    enabled: !!payment?.invoice_id && !!businessId,
   });
 
   if (isLoading) {

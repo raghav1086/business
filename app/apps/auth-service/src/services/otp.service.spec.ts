@@ -43,6 +43,47 @@ describe('OtpService', () => {
       // Very unlikely to be the same
       expect(otp1).not.toBe(otp2);
     });
+
+    describe('fake OTP mode', () => {
+      beforeEach(() => {
+        process.env.ENABLE_FAKE_OTP = 'true';
+      });
+
+      afterEach(() => {
+        delete process.env.ENABLE_FAKE_OTP;
+      });
+
+      it('should generate fake OTP from last 6 digits of phone', () => {
+        const phone = '9175760649';
+        const otp = service.generateOtp(phone);
+
+        expect(otp).toBe('760649');
+        expect(otp).toHaveLength(6);
+      });
+
+      it('should handle phone numbers with non-digit characters', () => {
+        const phone = '+91-75760-649';
+        const otp = service.generateOtp(phone);
+
+        expect(otp).toBe('760649');
+      });
+
+      it('should pad short phone numbers with zeros', () => {
+        const phone = '1234';
+        const otp = service.generateOtp(phone);
+
+        expect(otp).toBe('001234');
+        expect(otp).toHaveLength(6);
+      });
+
+      it('should use last 6 digits for long phone numbers', () => {
+        const phone = '123456789012345';
+        const otp = service.generateOtp(phone);
+
+        expect(otp).toBe('123456');
+        expect(otp).toHaveLength(6);
+      });
+    });
   });
 
   describe('hashOtp', () => {

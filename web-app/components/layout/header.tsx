@@ -28,7 +28,7 @@ interface HeaderProps {
 export function Header({ className }: HeaderProps) {
   const [showCommandMenu, setShowCommandMenu] = React.useState(false);
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { logout, businessName } = useAuthStore();
   const { notifications, unreadCount, isLoading } = useNotifications();
 
   const handleLogout = () => {
@@ -60,8 +60,13 @@ export function Header({ className }: HeaderProps) {
         {/* Mobile Menu */}
         <MobileSidebar />
 
-        {/* Search */}
-        <div className="flex-1">
+        {/* Business Name & Search */}
+        <div className="flex-1 flex items-center gap-4">
+          {businessName && (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border">
+              <span className="text-sm font-medium text-foreground">{businessName}</span>
+            </div>
+          )}
           <Button
             variant="outline"
             className="relative h-9 w-full max-w-sm justify-start text-sm text-muted-foreground"

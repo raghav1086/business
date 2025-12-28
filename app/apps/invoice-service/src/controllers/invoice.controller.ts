@@ -109,7 +109,10 @@ export class InvoiceController {
       validateOptionalUUID(partyId, 'partyId');
     }
 
-    const businessId = req.headers['x-business-id'] || req.business_id || '00000000-0000-0000-0000-000000000001';
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const result = await this.invoiceService.findByBusinessId(businessId, {
       partyId,
       invoiceType,
@@ -146,7 +149,10 @@ export class InvoiceController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    const businessId = req.headers['x-business-id'] || req.business_id || '00000000-0000-0000-0000-000000000001';
+    const businessId = req.headers['x-business-id'] || req.business_id;
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required');
+    }
     const invoice = await this.invoiceService.findById(businessId, id);
     return this.toResponseDto(invoice);
   }

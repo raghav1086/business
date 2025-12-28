@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -25,44 +26,53 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CardSkeleton, ListItemSkeleton } from '@/components/ui/skeleton';
 import { partyApi, invoiceApi, paymentApi } from '@/lib/api-client';
 import { validateUrlUUID } from '@/lib/validation';
+import { useAuthStore } from '@/lib/auth-store';
 
 export default function PartyDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { businessId } = useAuthStore();
   const partyId = validateUrlUUID(params.id, 'Party ID');
+
+  // Redirect if business not selected
+  useEffect(() => {
+    if (!businessId) {
+      router.push('/business/select');
+    }
+  }, [businessId, router]);
 
   // Fetch party details
   const { data: party, isLoading: partyLoading } = useQuery({
-    queryKey: ['party', partyId],
+    queryKey: ['party', partyId, businessId],
     queryFn: async () => {
       if (!partyId) throw new Error('Invalid party ID');
       const response = await partyApi.get(`/parties/${partyId}`);
       return response.data?.data || response.data;
     },
-    enabled: !!partyId,
+    enabled: !!partyId && !!businessId,
   });
 
   // Fetch party's invoices
   const { data: invoices } = useQuery({
-    queryKey: ['party-invoices', partyId],
+    queryKey: ['party-invoices', partyId, businessId],
     queryFn: async () => {
       if (!partyId) return [];
       const response = await invoiceApi.get(`/invoices?partyId=${partyId}`);
       // Backend returns { invoices: [...], total, page, limit }
       return response.data?.invoices || (Array.isArray(response.data) ? response.data : (response.data?.data || []));
     },
-    enabled: !!partyId,
+    enabled: !!partyId && !!businessId,
   });
 
   // Fetch party's payments
   const { data: payments } = useQuery({
-    queryKey: ['party-payments', partyId],
+    queryKey: ['party-payments', partyId, businessId],
     queryFn: async () => {
       if (!partyId) return [];
       const response = await paymentApi.get(`/payments?partyId=${partyId}`);
       return Array.isArray(response.data) ? response.data : (response.data?.payments || response.data?.data || []);
     },
-    enabled: !!partyId,
+    enabled: !!partyId && !!businessId,
   });
 
   const invoicesList = Array.isArray(invoices) ? invoices : [];

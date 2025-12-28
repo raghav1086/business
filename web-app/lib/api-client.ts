@@ -32,6 +32,7 @@ const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_ID_KEY = 'user_id';
 const BUSINESS_ID_KEY = 'business_id';
+const BUSINESS_NAME_KEY = 'business_name';
 
 // Token management
 export const tokenStorage = {
@@ -79,12 +80,24 @@ export const tokenStorage = {
       localStorage.setItem(BUSINESS_ID_KEY, businessId);
     }
   },
+  getBusinessName: () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(BUSINESS_NAME_KEY);
+    }
+    return null;
+  },
+  setBusinessName: (businessName: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BUSINESS_NAME_KEY, businessName);
+    }
+  },
   clearAll: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem(BUSINESS_ID_KEY);
+      localStorage.removeItem(BUSINESS_NAME_KEY);
     }
   },
 };
@@ -119,6 +132,15 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
       const businessId = tokenStorage.getBusinessId();
       if (businessId) {
         config.headers['x-business-id'] = businessId;
+      } else {
+        // Warn if business_id is required but missing (except for /businesses endpoint)
+        const url = config.url || '';
+        const needsBusinessId = !url.includes('/businesses') && 
+                                !url.includes('/auth/') &&
+                                !url.includes('/health');
+        if (needsBusinessId && typeof window !== 'undefined') {
+          console.warn(`[API Client] Business ID missing for request: ${config.method?.toUpperCase()} ${url}`);
+        }
       }
 
       // Add request timestamp for tracking
@@ -151,6 +173,21 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
 
       // Track the error
       errorHandler.handleError(error, endpoint);
+
+      // Handle 400 - Business ID required (redirect to business selection)
+      if (error.response?.status === 400) {
+        const errorMessage = (error.response?.data as any)?.message || '';
+        if (errorMessage.includes('Business ID is required')) {
+          console.warn('[API Client] Business ID is required, redirecting to business selection');
+          if (typeof window !== 'undefined') {
+            // Only redirect if not already on business selection page
+            if (!window.location.pathname.includes('/business/select')) {
+              window.location.href = '/business/select';
+            }
+          }
+          return Promise.reject(error);
+        }
+      }
 
       // Handle 401 - Token refresh
       if (error.response?.status === 401 && !originalRequest._retry) {

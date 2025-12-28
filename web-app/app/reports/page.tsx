@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import {
@@ -24,6 +25,7 @@ import { AppLayout, BottomNav } from '@/components/layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { invoiceApi, paymentApi, partyApi, inventoryApi } from '@/lib/api-client';
 import { generateDashboardReportPDF, exportInvoicesToExcel } from '@/lib/export-utils';
+import { useAuthStore } from '@/lib/auth-store';
 
 type DateRange = {
   from: string;
