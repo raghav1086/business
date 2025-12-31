@@ -222,39 +222,44 @@ deploy-staging: ## Deploy to staging environment
 	@echo "$(GREEN)✅ Staging deployment complete$(NC)"
 
 # =============================================================================
-# AWS DEPLOYMENT (FULLY AUTOMATED)
+# AWS DEPLOYMENT (FULLY AUTOMATED - SINGLE COMMAND)
 # =============================================================================
-deploy-aws: ## Deploy entire app to AWS with single command (fully automated)
-	@echo "$(BLUE)🚀 Automated AWS Deployment$(NC)"
-	@echo "$(YELLOW)This will automatically:$(NC)"
-	@echo "  • Setup IAM user (if needed)"
-	@echo "  • Create key pair (if needed)"
-	@echo "  • Launch EC2 instance"
-	@echo "  • Clone repository from GitHub"
-	@echo "  • Deploy all services"
-	@echo "  • Configure Nginx"
+deploy-aws: ## Deploy entire app to AWS with single command (fully automated, end-to-end)
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║     UNIFIED AWS DEPLOYMENT - SINGLE COMMAND                      ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@read -p "AWS Region (default: ap-south-1): " REGION; \
+	@echo "$(YELLOW)This will automatically:$(NC)"
+	@echo "  ✅ Setup IAM user (if needed)"
+	@echo "  ✅ Create key pair (if needed)"
+	@echo "  ✅ Launch EC2 instance"
+	@echo "  ✅ Clone repository from GitHub"
+	@echo "  ✅ Build and deploy all services"
+	@echo "  ✅ Configure Nginx with all routes"
+	@echo "  ✅ Setup automatic backups"
+	@echo "  ✅ Verify deployment"
+	@echo ""
+	@read -p "$(YELLOW)AWS Region (default: ap-south-1): $(NC)" REGION; \
 	REGION=$${REGION:-ap-south-1}; \
-	read -p "Key Pair Name (default: business-app-key): " KEY_NAME; \
+	read -p "$(YELLOW)Key Pair Name (default: business-app-key): $(NC)" KEY_NAME; \
 	KEY_NAME=$${KEY_NAME:-business-app-key}; \
-	read -p "Instance Type (default: t3.medium): " INSTANCE_TYPE; \
+	read -p "$(YELLOW)Instance Type (default: t3.medium): $(NC)" INSTANCE_TYPE; \
 	INSTANCE_TYPE=$${INSTANCE_TYPE:-t3.medium}; \
-	read -p "AWS Profile (optional, press Enter for default): " AWS_PROFILE; \
+	read -p "$(YELLOW)AWS Profile (optional, press Enter for default): $(NC)" AWS_PROFILE; \
 	AWS_PROFILE=$${AWS_PROFILE:-}; \
 	echo ""; \
 	if [ -n "$$AWS_PROFILE" ]; then \
 		export AWS_PROFILE=$$AWS_PROFILE; \
 	fi; \
-	bash scripts/deploy-aws-auto.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE $$AWS_PROFILE
+	bash scripts/deploy-aws-unified.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE $$AWS_PROFILE
 
 deploy-aws-quick: ## Quick deploy with all defaults (no prompts)
 	@echo "$(BLUE)🚀 Quick Deploy to AWS (all defaults)$(NC)"
 	@if [ -n "$$AWS_PROFILE" ]; then \
 		export AWS_PROFILE=$$AWS_PROFILE; \
-		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE; \
+		bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE; \
 	else \
-		bash scripts/deploy-aws-auto.sh ap-south-1 business-app-key t3.medium; \
+		bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium; \
 	fi
 
 # =============================================================================
