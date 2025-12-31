@@ -256,11 +256,11 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_AUTH_API_URL=/api/v1/auth
-      - NEXT_PUBLIC_BUSINESS_API_URL=/api/v1/business
-      - NEXT_PUBLIC_PARTY_API_URL=/api/v1/party
-      - NEXT_PUBLIC_INVENTORY_API_URL=/api/v1/inventory
-      - NEXT_PUBLIC_INVOICE_API_URL=/api/v1/invoice
-      - NEXT_PUBLIC_PAYMENT_API_URL=/api/v1/payment
+      - NEXT_PUBLIC_BUSINESS_API_URL=/api/v1
+      - NEXT_PUBLIC_PARTY_API_URL=/api/v1
+      - NEXT_PUBLIC_INVENTORY_API_URL=/api/v1
+      - NEXT_PUBLIC_INVOICE_API_URL=/api/v1
+      - NEXT_PUBLIC_PAYMENT_API_URL=/api/v1
     ports:
       - "3000:3000"
     depends_on:

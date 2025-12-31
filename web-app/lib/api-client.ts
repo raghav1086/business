@@ -18,13 +18,16 @@ const API_CONFIG = {
 };
 
 // API Base URLs - Use relative URLs for production (via Nginx proxy)
+// Frontend calls like: partyApi.get('/parties') 
+// So baseURL should be '/api/v1' and endpoint is '/parties'
+// Final URL: '/api/v1/parties' which matches @Controller('api/v1/parties')
 export const API_URLS = {
-  auth: process.env.NEXT_PUBLIC_AUTH_API_URL || '/api/v1/auth',
-  business: process.env.NEXT_PUBLIC_BUSINESS_API_URL || '/api/v1/business',
-  party: process.env.NEXT_PUBLIC_PARTY_API_URL || '/api/v1/party',
-  inventory: process.env.NEXT_PUBLIC_INVENTORY_API_URL || '/api/v1/inventory',
-  invoice: process.env.NEXT_PUBLIC_INVOICE_API_URL || '/api/v1/invoice',
-  payment: process.env.NEXT_PUBLIC_PAYMENT_API_URL || '/api/v1/payment',
+  auth: process.env.NEXT_PUBLIC_AUTH_API_URL || '/api/v1',
+  business: process.env.NEXT_PUBLIC_BUSINESS_API_URL || '/api/v1',
+  party: process.env.NEXT_PUBLIC_PARTY_API_URL || '/api/v1',
+  inventory: process.env.NEXT_PUBLIC_INVENTORY_API_URL || '/api/v1',
+  invoice: process.env.NEXT_PUBLIC_INVOICE_API_URL || '/api/v1',
+  payment: process.env.NEXT_PUBLIC_PAYMENT_API_URL || '/api/v1',
 };
 
 // Token storage keys
@@ -197,7 +200,7 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
           const refreshToken = tokenStorage.getRefreshToken();
           if (refreshToken) {
             const response = await axios.post(
-              `${API_URLS.auth}/auth/refresh-token`,
+              `${API_URLS.auth}/refresh-token`,
               { refresh_token: refreshToken },
               { timeout: 10000 }
             );
