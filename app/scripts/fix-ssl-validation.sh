@@ -1,7 +1,6 @@
 #!/bin/bash
-# Setup Domain on EC2 Instance
-# Updates Nginx configuration to recognize the domain name
-# Usage: bash scripts/setup-domain-ec2.sh
+# Fix SSL validation issue by ensuring Let's Encrypt can access validation files
+# This script updates Nginx to allow Let's Encrypt validation
 
 set -e
 
@@ -9,32 +8,25 @@ DOMAIN="samriddhi.buzz"
 DOMAIN_WWW="www.samriddhi.buzz"
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║     DOMAIN SETUP FOR EC2 INSTANCE                              ║"
-echo "║     Domain: $DOMAIN                                            ║"
+echo "║     FIX SSL VALIDATION - Allow Let's Encrypt Access            ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Check if running as root or with sudo
 if [ "$EUID" -ne 0 ]; then 
-    echo "⚠️  This script needs sudo privileges"
+    echo "❌ This script needs sudo privileges"
     echo "   Run: sudo bash $0"
     exit 1
 fi
 
-# Step 1: Backup current Nginx config
-echo "📋 Step 1/5: Backing up current Nginx configuration..."
-if [ -f /etc/nginx/conf.d/business-app.conf ]; then
-    cp /etc/nginx/conf.d/business-app.conf /etc/nginx/conf.d/business-app.conf.backup.$(date +%Y%m%d_%H%M%S)
-    echo "✅ Backup created"
-else
-    echo "⚠️  No existing config found, will create new one"
-fi
+# Backup current config
+echo "📋 Backing up current Nginx configuration..."
+cp /etc/nginx/conf.d/business-app.conf /etc/nginx/conf.d/business-app.conf.backup.$(date +%Y%m%d_%H%M%S)
+echo "✅ Backup created"
 echo ""
 
-# Step 2: Update Nginx configuration
-echo "🔧 Step 2/5: Updating Nginx configuration for domain: $DOMAIN..."
+# Update Nginx config to allow Let's Encrypt validation
+echo "🔧 Updating Nginx configuration for SSL validation..."
 
-# Create/update Nginx config
 cat > /etc/nginx/conf.d/business-app.conf <<'NGINX_EOF'
 upstream auth_service { server localhost:3002; }
 upstream business_service { server localhost:3003; }
@@ -49,7 +41,7 @@ server {
     server_name samriddhi.buzz www.samriddhi.buzz;
     
     # CRITICAL: Allow Let's Encrypt validation
-    # This MUST come BEFORE location / to prevent redirects
+    # This must come BEFORE the location / block
     location /.well-known/acme-challenge/ {
         root /var/www/html;
         try_files $uri =404;
@@ -160,22 +152,27 @@ server {
 }
 NGINX_EOF
 
-echo "✅ Nginx configuration updated"
+# Create directory for Let's Encrypt validation
+echo "📁 Creating directory for Let's Encrypt validation..."
+mkdir -p /var/www/html/.well-known/acme-challenge
+chown -R nginx:nginx /var/www/html
+chmod -R 755 /var/www/html
+echo "✅ Directory created"
 echo ""
 
-# Step 4: Test Nginx configuration
-echo "🧪 Step 4/6: Testing Nginx configuration..."
+# Test Nginx configuration
+echo "🧪 Testing Nginx configuration..."
 if nginx -t; then
     echo "✅ Nginx configuration is valid"
 else
     echo "❌ Nginx configuration test failed!"
-    echo "   Check the error above"
+    nginx -t
     exit 1
 fi
 echo ""
 
-# Step 5: Restart Nginx
-echo "🔄 Step 5/6: Restarting Nginx..."
+# Restart Nginx
+echo "🔄 Restarting Nginx..."
 systemctl restart nginx
 sleep 2
 
@@ -188,90 +185,33 @@ else
 fi
 echo ""
 
-# Step 6: Verify setup
-echo "🔍 Step 6/6: Verifying domain setup..."
-echo ""
-
-# Get public IP
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "Unable to fetch")
-
-echo "📊 Domain Configuration Summary:"
-echo "─────────────────────────────────────────────────────────────"
-echo "Domain: $DOMAIN"
-echo "WWW Domain: $DOMAIN_WWW"
-echo "EC2 Public IP: $PUBLIC_IP"
-echo "Nginx Status: $(systemctl is-active nginx)"
-echo "─────────────────────────────────────────────────────────────"
-echo ""
-
-# Test local connectivity
-echo "🧪 Testing local connectivity..."
-if curl -s -f -m 5 http://localhost > /dev/null 2>&1; then
-    echo "✅ Web app responding on localhost"
-else
-    echo "⚠️  Web app not responding on localhost (may still be starting)"
-fi
-
-if curl -s -f -m 5 http://localhost/api/v1/auth/health > /dev/null 2>&1; then
-    echo "✅ Auth API responding"
-else
-    echo "⚠️  Auth API not responding (may still be starting)"
-fi
-echo ""
-
-# Check if services are running
-echo "📦 Checking Docker services..."
-if docker ps | grep -q business-web-app; then
-    echo "✅ Web app container: Running"
-else
-    echo "⚠️  Web app container: Not running"
-fi
-
-if docker ps | grep -q business-auth; then
-    echo "✅ Auth service container: Running"
-else
-    echo "⚠️  Auth service container: Not running"
-fi
-echo ""
-
-echo "═══════════════════════════════════════════════════════════════"
-echo "✅ DOMAIN SETUP COMPLETE!"
-echo "═══════════════════════════════════════════════════════════════"
-echo ""
-echo "🌐 Your application should be accessible at:"
-echo "   http://$DOMAIN"
-echo "   http://$DOMAIN_WWW"
-echo ""
-echo "⏳ DNS Propagation:"
-echo "   DNS changes may take 10-30 minutes to propagate globally"
-echo "   Check propagation: https://www.whatsmydns.net"
-echo ""
-echo "🧪 Test your domain:"
-echo "   curl -I http://$DOMAIN"
-echo "   curl -I http://$DOMAIN/api/v1/auth/health"
-echo ""
 # Test Let's Encrypt validation path
 echo "🧪 Testing Let's Encrypt validation path..."
 TEST_FILE="/var/www/html/.well-known/acme-challenge/test"
 echo "test-content" > $TEST_FILE
 chmod 644 $TEST_FILE
-if curl -s -f "http://$DOMAIN/.well-known/acme-challenge/test" | grep -q "test-content" 2>/dev/null; then
+
+if curl -s -f "http://$DOMAIN/.well-known/acme-challenge/test" | grep -q "test-content"; then
     echo "✅ Let's Encrypt validation path is accessible"
     rm -f $TEST_FILE
 else
-    echo "⚠️  Validation path test inconclusive (may need DNS propagation)"
+    echo "⚠️  Validation path test failed, but continuing..."
     rm -f $TEST_FILE
 fi
 echo ""
 
-echo "📋 Next Steps:"
-echo "   1. Wait for DNS propagation (10-30 minutes)"
-echo "   2. Test: http://$DOMAIN in your browser"
-echo "   3. Setup SSL/HTTPS: sudo bash scripts/setup-ssl-ec2.sh"
+echo "═══════════════════════════════════════════════════════════════"
+echo "✅ SSL VALIDATION FIX COMPLETE!"
+echo "═══════════════════════════════════════════════════════════════"
 echo ""
-echo "💡 Troubleshooting:"
-echo "   - If domain not working, check DNS: nslookup $DOMAIN"
-echo "   - Check Nginx logs: sudo tail -f /var/log/nginx/error.log"
-echo "   - Check service logs: docker logs business-web-app"
+echo "📋 Next Steps:"
+echo "   1. Run SSL setup again:"
+echo "      sudo bash scripts/setup-ssl-ec2.sh"
+echo ""
+echo "   2. Or run Certbot manually:"
+echo "      sudo certbot --nginx -d samriddhi.buzz -d www.samriddhi.buzz"
+echo ""
+echo "💡 The key fix: Added /.well-known/acme-challenge/ location"
+echo "   This allows Let's Encrypt to validate your domain"
 echo ""
 

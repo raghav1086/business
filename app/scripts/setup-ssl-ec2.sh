@@ -82,8 +82,35 @@ else
 fi
 echo ""
 
-# Step 4: Get SSL certificate
-echo "🔐 Step 4/6: Obtaining SSL certificate from Let's Encrypt..."
+# Step 4: Ensure Let's Encrypt validation path is accessible
+echo "🔧 Step 4/7: Ensuring Let's Encrypt validation path is accessible..."
+mkdir -p /var/www/html/.well-known/acme-challenge
+chown -R nginx:nginx /var/www/html
+chmod -R 755 /var/www/html
+
+# Check if Nginx config has the validation path
+if ! grep -q "\.well-known/acme-challenge" /etc/nginx/conf.d/business-app.conf; then
+    echo "⚠️  Nginx config missing Let's Encrypt validation path"
+    echo "   Run: sudo bash scripts/fix-ssl-validation.sh"
+    echo "   Then retry SSL setup"
+    exit 1
+fi
+
+# Test validation path
+TEST_FILE="/var/www/html/.well-known/acme-challenge/test-ssl"
+echo "test" > $TEST_FILE
+chmod 644 $TEST_FILE
+if curl -s -f "http://$DOMAIN/.well-known/acme-challenge/test-ssl" > /dev/null 2>&1; then
+    echo "✅ Let's Encrypt validation path is accessible"
+    rm -f $TEST_FILE
+else
+    echo "⚠️  Validation path not accessible, but continuing..."
+    rm -f $TEST_FILE
+fi
+echo ""
+
+# Step 5: Get SSL certificate
+echo "🔐 Step 5/7: Obtaining SSL certificate from Let's Encrypt..."
 echo "   This may take a few minutes..."
 echo ""
 
@@ -115,8 +142,8 @@ echo ""
 echo "✅ SSL certificate obtained successfully"
 echo ""
 
-# Step 5: Verify SSL configuration
-echo "🔍 Step 5/6: Verifying SSL configuration..."
+# Step 6: Verify SSL configuration
+echo "🔍 Step 6/7: Verifying SSL configuration..."
 if nginx -t; then
     echo "✅ Nginx configuration is valid"
     systemctl reload nginx
@@ -127,8 +154,8 @@ else
 fi
 echo ""
 
-# Step 6: Test HTTPS
-echo "🧪 Step 6/6: Testing HTTPS..."
+# Step 7: Test HTTPS
+echo "🧪 Step 7/7: Testing HTTPS..."
 sleep 3
 
 if curl -s -f -m 10 "https://$DOMAIN" > /dev/null 2>&1; then
