@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { OTPInput } from '@/components/ui/otp-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { authApi, tokenStorage } from '@/lib/api-client';
@@ -204,24 +205,28 @@ export default function LoginPage() {
           {step === 'phone' ? (
             <form onSubmit={handlePhoneSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Phone Number</label>
-                <div className="flex shadow-sm">
-                  <div className="flex items-center px-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-lg">
-                    <span className="text-gray-700 dark:text-gray-300 font-semibold">+91</span>
+                <label className="text-sm font-semibold text-foreground mb-3 block">
+                  Phone Number
+                </label>
+                <div className="flex shadow-md rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all duration-200">
+                  <div className="flex items-center px-4 sm:px-5 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border-r-2 border-gray-200 dark:border-gray-700">
+                    <span className="text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg">+91</span>
                   </div>
                   <Input
                     type="tel"
                     placeholder="9876543210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="rounded-l-none border-l-0 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="rounded-none border-0 focus-visible:ring-0 focus-visible:border-0 h-12 sm:h-14 text-base sm:text-lg font-semibold px-4 bg-white dark:bg-gray-800"
                     maxLength={10}
                     disabled={isLoading}
+                    inputMode="numeric"
                   />
                 </div>
                 {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
-                    <span>⚠</span> {error}
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5 mt-2 px-1">
+                    <span className="text-base">⚠️</span> 
+                    <span>{error}</span>
                   </p>
                 )}
               </div>
@@ -241,20 +246,21 @@ export default function LoginPage() {
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Enter OTP</label>
-                <Input
-                  type="text"
-                  placeholder="000000"
+              <div className="space-y-4">
+                <label className="text-sm font-semibold text-foreground block text-center">
+                  Enter OTP
+                </label>
+                <OTPInput
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="text-center text-3xl tracking-[0.5em] font-bold h-16 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  maxLength={6}
+                  onChange={setOtp}
+                  length={6}
                   disabled={isLoading}
+                  autoFocus={true}
                 />
                 {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
-                    <span>⚠</span> {error}
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center justify-center gap-1.5 mt-2 px-1">
+                    <span className="text-base">⚠️</span> 
+                    <span>{error}</span>
                   </p>
                 )}
               </div>

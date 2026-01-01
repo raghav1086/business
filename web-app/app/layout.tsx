@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Samruddhi - Business Management Platform",
   description: "Complete business management solution for Indian businesses with GST, invoicing, inventory, and more. Drive prosperity with Samruddhi.",
+  icons: {
+    icon: "/samruddhi-logo-icon.svg",
+    shortcut: "/samruddhi-logo-icon.svg",
+    apple: "/samruddhi-logo-icon.svg",
+  },
 };
 
 export default function RootLayout({
