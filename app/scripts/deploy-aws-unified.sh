@@ -15,12 +15,13 @@ INSTANCE_TYPE=${3:-t3.medium}
 GIT_REPO="https://github.com/ashishnimrot/business.git"
 
 # AWS Profile support (can be set via environment variable or passed as 4th argument)
-AWS_PROFILE=${AWS_PROFILE:-${4:-}}
-AWS_CMD="aws"
-if [ -n "$AWS_PROFILE" ]; then
-    AWS_CMD="aws --profile $AWS_PROFILE"
-    export AWS_PROFILE
-fi
+# Default to 'business-app' if not provided
+AWS_PROFILE=${AWS_PROFILE:-${4:-business-app}}
+DOMAIN=${5:-}
+EMAIL=${6:-}
+
+AWS_CMD="aws --profile $AWS_PROFILE"
+export AWS_PROFILE
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║     BUSINESS APP - UNIFIED AWS DEPLOYMENT                      ║"
@@ -31,8 +32,14 @@ echo "📋 Configuration:"
 echo "   Region: $REGION"
 echo "   Key Name: $KEY_NAME"
 echo "   Instance Type: $INSTANCE_TYPE"
-if [ -n "$AWS_PROFILE" ]; then
-    echo "   AWS Profile: $AWS_PROFILE"
+echo "   AWS Profile: $AWS_PROFILE"
+if [ -n "$DOMAIN" ]; then
+    echo "   Domain: $DOMAIN"
+    if [ -n "$EMAIL" ]; then
+        echo "   Email: $EMAIL"
+    else
+        echo "   Email: admin@$DOMAIN (default)"
+    fi
 fi
 echo "   Git Repo: $GIT_REPO"
 echo ""
@@ -40,16 +47,16 @@ echo ""
 # =============================================================================
 # SECTION 1: AWS CREDENTIALS & VALIDATION
 # =============================================================================
-echo "🔍 Step 1/8: Verifying AWS credentials..."
+echo "🔍 Step 1/10: Verifying AWS credentials..."
 if ! $AWS_CMD sts get-caller-identity &>/dev/null; then
     echo "❌ AWS credentials not configured"
-    if [ -n "$AWS_PROFILE" ]; then
-        echo "Profile '$AWS_PROFILE' not found or invalid"
-        echo "Run: aws configure --profile $AWS_PROFILE"
-    else
-        echo "Run: aws configure"
-        echo "Or set AWS_PROFILE environment variable: export AWS_PROFILE=business-app"
-    fi
+    echo "Profile '$AWS_PROFILE' not found or invalid"
+    echo ""
+    echo "Please configure AWS credentials:"
+    echo "   aws configure --profile $AWS_PROFILE"
+    echo ""
+    echo "Or use a different profile:"
+    echo "   AWS_PROFILE=your-profile make deploy-aws"
     exit 1
 fi
 ACCOUNT_ID=$($AWS_CMD sts get-caller-identity --query Account --output text)
@@ -61,7 +68,7 @@ echo ""
 # =============================================================================
 # SECTION 2: IAM SETUP
 # =============================================================================
-echo "🔐 Step 2/8: Setting up IAM user..."
+echo "🔐 Step 2/10: Setting up IAM user..."
 IAM_USER_EXISTS=false
 if $AWS_CMD iam get-user --user-name business-app-deployer &>/dev/null 2>&1; then
     IAM_USER_EXISTS=true
@@ -107,7 +114,7 @@ echo ""
 # =============================================================================
 # SECTION 3: KEY PAIR SETUP
 # =============================================================================
-echo "🔑 Step 3/8: Setting up Key Pair..."
+echo "🔑 Step 3/10: Setting up Key Pair..."
 if ! $AWS_CMD ec2 describe-key-pairs --region $REGION --key-names $KEY_NAME &>/dev/null; then
     echo "Creating key pair..."
     mkdir -p ~/.ssh
@@ -122,7 +129,7 @@ echo ""
 # =============================================================================
 # SECTION 4: VPC & SUBNET DETECTION
 # =============================================================================
-echo "🌐 Step 4/8: Finding VPC and Subnet..."
+echo "🌐 Step 4/10: Finding VPC and Subnet..."
 VPC_ID=$($AWS_CMD ec2 describe-vpcs --region $REGION --filters "Name=isDefault,Values=true" --query 'Vpcs[0].VpcId' --output text)
 if [ "$VPC_ID" = "None" ] || [ -z "$VPC_ID" ]; then
     VPC_ID=$($AWS_CMD ec2 describe-vpcs --region $REGION --query 'Vpcs[0].VpcId' --output text)
@@ -144,7 +151,7 @@ echo ""
 # =============================================================================
 # SECTION 5: SECURITY GROUP SETUP
 # =============================================================================
-echo "🔒 Step 5/8: Creating Security Group..."
+echo "🔒 Step 5/10: Creating Security Group..."
 
 # First check if security group already exists
 SG_ID=$($AWS_CMD ec2 describe-security-groups --region $REGION \
@@ -179,7 +186,7 @@ echo ""
 # =============================================================================
 # SECTION 6: AMI DETECTION
 # =============================================================================
-echo "🖼️  Step 6/8: Finding latest AMI..."
+echo "🖼️  Step 6/10: Finding latest AMI..."
 AMI_ID=$($AWS_CMD ec2 describe-images \
     --region $REGION \
     --owners amazon \
@@ -204,264 +211,57 @@ echo ""
 # =============================================================================
 # SECTION 7: USER DATA SCRIPT GENERATION
 # =============================================================================
-echo "📝 Step 7/8: Preparing deployment script..."
+echo "📝 Step 7/10: Preparing deployment script..."
 USER_DATA=$(cat <<'USERDATA_EOF'
 #!/bin/bash
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-
-# Error handling function
-error_exit() {
-    echo "❌ Error: $1" >&2
-    exit 1
-}
-
-# Set error handling for critical sections
 set -e
+echo "Starting deployment..."
+yum update -y -q
+yum install -y docker git curl --allowerasing || yum install -y docker git curl
+systemctl start docker && systemctl enable docker
+usermod -a -G docker ec2-user
 
-echo "🚀 Starting automated Business App deployment..."
-
-# Update system
-sudo yum update -y -q
-
-# Install Docker
-echo "📦 Installing Docker..."
-# Fix curl package conflict by using --allowerasing or installing separately
-sudo yum install -y docker git --allowerasing || sudo yum install -y docker git
-sudo yum install -y curl --allowerasing || sudo yum install -y curl
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -a -G docker ec2-user
-
-# Install Docker Compose
-echo "📦 Installing Docker Compose..."
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Install Nginx
-echo "📦 Installing Nginx..."
-sudo yum install -y nginx
-sudo systemctl enable nginx
-
-# Install Node.js
-echo "📦 Installing Node.js..."
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash - >/dev/null 2>&1
-sudo yum install -y nodejs >/dev/null 2>&1
-
-# Create app directory
-echo "📁 Setting up application directory..."
-sudo mkdir -p /opt/business-app
-sudo chown ec2-user:ec2-user /opt/business-app
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+yum install -y nginx && systemctl enable nginx
+curl -fsSL https://rpm.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
+yum install -y nodejs >/dev/null 2>&1
+mkdir -p /opt/business-app && chown ec2-user:ec2-user /opt/business-app
 cd /opt/business-app
-
-# Clone repository
-echo "📥 Cloning repository..."
-for attempt in {1..3}; do
-    if sudo -u ec2-user git clone https://github.com/ashishnimrot/business.git . 2>/dev/null; then
-        echo "✅ Repository cloned successfully"
-        break
-    fi
-    if [ $attempt -lt 3 ]; then
-        echo "⚠️  Clone attempt $attempt failed, retrying in 10 seconds..."
-        sleep 10
-    else
-        echo "❌ Failed to clone repository after 3 attempts"
-        exit 1
-    fi
+for i in {1..3}; do
+    sudo -u ec2-user git clone https://github.com/ashishnimrot/business.git . 2>/dev/null && break
+    [ $i -lt 3 ] && sleep 10 || exit 1
 done
 
-# Generate secure passwords
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
-JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
-
-# Create production environment file
-echo "⚙️  Creating environment configuration..."
+DB_PASSWORD=$(openssl rand -base64 32|tr -d "=+/"|cut -c1-25)
+JWT_SECRET=$(openssl rand -base64 64|tr -d "=+/"|cut -c1-64)
+JWT_REFRESH_SECRET=$(openssl rand -base64 64|tr -d "=+/"|cut -c1-64)
 cd /opt/business-app/app
-# Use printf to avoid issues with special characters in passwords
 sudo -u ec2-user bash -c "printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nJWT_REFRESH_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n' \"${DB_PASSWORD}\" \"${JWT_SECRET}\" \"${JWT_REFRESH_SECRET}\" > .env.production"
+sudo -u ec2-user cp .env.production .env && chown ec2-user:ec2-user .env .env.production
 
-# Also create .env file (docker-compose reads .env by default)
-sudo -u ec2-user cp .env.production .env
-sudo chown ec2-user:ec2-user .env .env.production
-
-# Build and deploy
-echo "🔨 Building and deploying services..."
 cd /opt/business-app/app
-
-# Wait for Docker to be ready and ensure ec2-user can use it
-echo "⏳ Waiting for Docker to be ready..."
 for i in {1..30}; do
-    if sudo docker ps &>/dev/null; then
-        # Ensure ec2-user can access docker
-        sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
-        # Test if ec2-user can use docker
-        if sudo -u ec2-user docker ps &>/dev/null 2>&1; then
-            break
-        fi
-    fi
+    docker ps &>/dev/null && chmod 666 /var/run/docker.sock 2>/dev/null && sudo -u ec2-user docker ps &>/dev/null && break
     sleep 2
 done
+[ ! -f .env ] && sudo -u ec2-user cp .env.production .env && chown ec2-user:ec2-user .env
+mkdir -p /root/.docker/cli-plugins /home/ec2-user/.docker/cli-plugins
+chown -R ec2-user:ec2-user /home/ec2-user/.docker
+curl -L "https://github.com/docker/buildx/releases/download/v0.17.0/buildx-v0.17.0.linux-amd64" -o /tmp/docker-buildx 2>/dev/null || curl -L "https://github.com/docker/buildx/releases/latest/download/buildx-linux-amd64" -o /tmp/docker-buildx 2>/dev/null || true
+[ -f /tmp/docker-buildx ] && chmod +x /tmp/docker-buildx && cp /tmp/docker-buildx /root/.docker/cli-plugins/docker-buildx && cp /tmp/docker-buildx /home/ec2-user/.docker/cli-plugins/docker-buildx && chmod +x /root/.docker/cli-plugins/docker-buildx /home/ec2-user/.docker/cli-plugins/docker-buildx && chown ec2-user:ec2-user /home/ec2-user/.docker/cli-plugins/docker-buildx
 
-# Final check and fix permissions
-if ! sudo -u ec2-user docker ps &>/dev/null 2>&1; then
-    echo "⚠️  Fixing Docker permissions for ec2-user..."
-    sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
-    sudo newgrp docker <<EOF
-exit
-EOF
-fi
+sudo -u ec2-user bash -c 'cd /opt/business-app/app && eval $(awk -F"=" "{if(NF>=2&&\$1!~/^[[:space:]]*#/&&\$1!~/^[[:space:]]*$/){k=\$1;gsub(/^[[:space:]]+|[[:space:]]+\$/,\"\",k);v=substr(\$0,index(\$0,\"=\")+1);gsub(/^[[:space:]]+|[[:space:]]+\$/,\"\",v);gsub(/^[\"'\''\"]|[\"'\''\"]\$/,\"\",v);printf \"export %s=\\\"%s\\\"\\n\",k,v}}" .env.production) && docker-compose -f docker-compose.prod.yml build --no-cache || docker-compose -f docker-compose.prod.yml build'
+sudo -u ec2-user bash -c 'cd /opt/business-app/app && eval $(awk -F"=" "{if(NF>=2&&\$1!~/^[[:space:]]*#/&&\$1!~/^[[:space:]]*$/){k=\$1;gsub(/^[[:space:]]+|[[:space:]]+\$/,\"\",k);v=substr(\$0,index(\$0,\"=\")+1);gsub(/^[[:space:]]+|[[:space:]]+\$/,\"\",v);gsub(/^[\"'\''\"]|[\"'\''\"]\$/,\"\",v);printf \"export %s=\\\"%s\\\"\\n\",k,v}}" .env.production) && docker-compose -f docker-compose.prod.yml up -d'
 
-# Install Docker Buildx if needed (for both root and ec2-user)
-echo "🔧 Installing Docker Buildx..."
-BUILDX_VERSION="v0.17.0"
-
-# Create directories with proper permissions
-sudo mkdir -p /root/.docker/cli-plugins
-sudo mkdir -p /home/ec2-user/.docker/cli-plugins
-sudo chown -R ec2-user:ec2-user /home/ec2-user/.docker
-
-# Download buildx
-curl -L "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" -o /tmp/docker-buildx 2>/dev/null || {
-    echo "⚠️  Buildx download failed, trying alternative method..."
-    curl -L "https://github.com/docker/buildx/releases/latest/download/buildx-linux-amd64" -o /tmp/docker-buildx 2>/dev/null || true
-}
-
-if [ -f /tmp/docker-buildx ]; then
-    chmod +x /tmp/docker-buildx
-    sudo cp /tmp/docker-buildx /root/.docker/cli-plugins/docker-buildx
-    sudo cp /tmp/docker-buildx /home/ec2-user/.docker/cli-plugins/docker-buildx
-    sudo chmod +x /root/.docker/cli-plugins/docker-buildx
-    sudo chmod +x /home/ec2-user/.docker/cli-plugins/docker-buildx
-    sudo chown ec2-user:ec2-user /home/ec2-user/.docker/cli-plugins/docker-buildx
-    echo "✅ Docker Buildx installed"
-else
-    echo "⚠️  Could not install Buildx, continuing without it..."
-fi
-
-# Build services with environment variables
-echo "🔨 Building Docker images (this may take 10-15 minutes)..."
-cd /opt/business-app/app
-
-# Ensure .env file exists (docker-compose reads .env by default)
-if [ ! -f .env ]; then
-    sudo -u ec2-user cp .env.production .env
-    sudo chown ec2-user:ec2-user .env
-fi
-
-# Build with environment variables loaded using heredoc to avoid escaping issues
-sudo -u ec2-user bash <<'BUILD_EOF'
-cd /opt/business-app/app
-# Load environment variables safely using awk
-eval $(awk -F'=' '{ 
-    if (NF >= 2 && $1 !~ /^[[:space:]]*#/ && $1 !~ /^[[:space:]]*$/) {
-        key=$1
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
-        value=substr($0, index($0, "=")+1)
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-        gsub(/^["'\'']|["'\'']$/, "", value)
-        printf "export %s=\"%s\"\n", key, value
-    }
-}' .env.production)
-# Build images
-docker-compose -f docker-compose.prod.yml build --no-cache
-BUILD_EOF
-
-# If build failed, retry without --no-cache
-BUILD_EXIT_CODE=$?
-if [ $BUILD_EXIT_CODE -ne 0 ]; then
-    echo "⚠️  Build failed, retrying without --no-cache..."
-    sleep 10
-    sudo -u ec2-user bash <<'BUILD_EOF'
-cd /opt/business-app/app
-# Load environment variables safely using awk
-eval $(awk -F'=' '{ 
-    if (NF >= 2 && $1 !~ /^[[:space:]]*#/ && $1 !~ /^[[:space:]]*$/) {
-        key=$1
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
-        value=substr($0, index($0, "=")+1)
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-        gsub(/^["'\'']|["'\'']$/, "", value)
-        printf "export %s=\"%s\"\n", key, value
-    }
-}' .env.production)
-docker-compose -f docker-compose.prod.yml build
-BUILD_EOF
-fi
-
-# Start services with environment variables
-echo "🚀 Starting services..."
-sudo -u ec2-user bash <<'START_EOF'
-cd /opt/business-app/app
-# Load environment variables safely using awk
-eval $(awk -F'=' '{ 
-    if (NF >= 2 && $1 !~ /^[[:space:]]*#/ && $1 !~ /^[[:space:]]*$/) {
-        key=$1
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
-        value=substr($0, index($0, "=")+1)
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-        gsub(/^["'\'']|["'\'']$/, "", value)
-        printf "export %s=\"%s\"\n", key, value
-    }
-}' .env.production)
-docker-compose -f docker-compose.prod.yml up -d
-START_EOF
-
-# Wait for services to be ready
-echo "⏳ Waiting for services to start (this may take 2-3 minutes)..."
-for i in {1..60}; do
-    if sudo docker ps | grep -q business-postgres && sudo docker ps | grep -q business-auth; then
-        echo "✅ Core services are starting..."
-        break
-    fi
-    sleep 3
-done
-
-# Wait additional time for all services
-sleep 60
-
-# Verify database tables are created
-echo "🔍 Verifying database setup..."
-echo "⏳ Waiting for services to create database tables (this may take 1-2 minutes)..."
-
-# Wait for services to initialize and create tables
-for i in {1..40}; do
-    # Check if auth service has created users table
-    if sudo docker exec business-postgres psql -U postgres -d auth_db -c "\dt" 2>/dev/null | grep -q "users"; then
-        echo "✅ Database tables are being created..."
-        break
-    fi
-    sleep 3
-done
-
-# Final wait for all tables
+for i in {1..60}; do docker ps|grep -q business-postgres && docker ps|grep -q business-auth && break; sleep 3; done
+sleep 90
+for i in {1..40}; do docker exec business-postgres psql -U postgres -d auth_db -c "\dt" 2>/dev/null|grep -q users && break; sleep 3; done
 sleep 30
 
-# Verify all databases have tables
-echo "🔍 Verifying all databases..."
-for db in auth_db business_db party_db inventory_db invoice_db payment_db; do
-    TABLE_COUNT=$(sudo docker exec business-postgres psql -U postgres -d $db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ' || echo "0")
-    if [ "$TABLE_COUNT" != "0" ]; then
-        echo "✅ $db: $TABLE_COUNT tables created"
-    else
-        echo "⚠️  $db: Tables may still be creating..."
-    fi
-done
-
-# Verify port mappings are exposed
-echo "🔍 Verifying port mappings..."
-for port in 3002 3003 3004 3005 3006 3007; do
-    if netstat -tuln 2>/dev/null | grep -q ":$port " || ss -tuln 2>/dev/null | grep -q ":$port "; then
-        echo "✅ Port $port: Exposed"
-    else
-        echo "⚠️  Port $port: Not exposed (may still be starting)"
-    fi
-done
-
-# Setup Nginx with complete configuration
-echo "🔧 Configuring Nginx..."
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-
-sudo tee /etc/nginx/conf.d/business-app.conf <<'NGINX_EOF'
+tee /etc/nginx/conf.d/business-app.conf <<'NGINX_EOF'
 upstream auth_service { server localhost:3002; }
 upstream business_service { server localhost:3003; }
 upstream party_service { server localhost:3004; }
@@ -551,63 +351,18 @@ server {
 }
 NGINX_EOF
 
-# Test and restart Nginx
-echo "🧪 Testing Nginx configuration..."
-if sudo nginx -t; then
-    sudo systemctl restart nginx
-    sudo systemctl enable nginx
-    sleep 2
-    if sudo systemctl is-active --quiet nginx; then
-        echo "✅ Nginx configured and started"
-    else
-        echo "⚠️  Nginx configuration test passed but service not running"
-        sudo systemctl start nginx
-    fi
-else
-    echo "⚠️  Nginx configuration test failed, but continuing..."
-    echo "   Check: sudo nginx -t"
-fi
+nginx -t && systemctl restart nginx && systemctl enable nginx || systemctl start nginx
 
-# Verify Nginx can reach backend services
-echo "🔍 Verifying backend connectivity..."
-for port in 3002 3003 3004 3005 3006 3007; do
-    if curl -s -f -m 3 http://localhost:$port/health > /dev/null 2>&1; then
-        echo "✅ Port $port: Service responding"
-    else
-        echo "⚠️  Port $port: Service not responding (may still be starting)"
-    fi
-done
-
-# Setup automatic backups
-echo "💾 Setting up backups..."
-sudo mkdir -p /opt/backups
-sudo tee /home/ec2-user/backup.sh <<'BACKUP_EOF'
-#!/bin/bash
+mkdir -p /opt/backups
+echo '#!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/opt/backups"
-mkdir -p $BACKUP_DIR
-docker exec business-postgres pg_dumpall -U postgres | gzip > $BACKUP_DIR/db_backup_$DATE.sql.gz
-find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
-BACKUP_EOF
-
-sudo chmod +x /home/ec2-user/backup.sh
-(crontab -l 2>/dev/null; echo "0 2 * * * /home/ec2-user/backup.sh") | crontab -
-
-# Create verification script
-echo "📝 Creating verification script..."
-sudo tee /home/ec2-user/verify-deployment.sh <<'VERIFY_EOF'
-#!/bin/bash
-cd /opt/business-app/app
-bash scripts/verify-deployment.sh
-VERIFY_EOF
-
-sudo chmod +x /home/ec2-user/verify-deployment.sh
-
-echo "✅ Deployment complete!"
-echo "🌐 Application will be available at: http://${PUBLIC_IP}"
-echo ""
-echo "📋 To verify deployment, run:"
-echo "   /home/ec2-user/verify-deployment.sh"
+docker exec business-postgres pg_dumpall -U postgres|gzip >/opt/backups/db_backup_$DATE.sql.gz
+find /opt/backups -name "*.sql.gz" -mtime +7 -delete' >/home/ec2-user/backup.sh
+chmod +x /home/ec2-user/backup.sh
+(crontab -l 2>/dev/null;echo "0 2 * * * /home/ec2-user/backup.sh")|crontab -
+echo '#!/bin/bash
+cd /opt/business-app/app && bash scripts/verify-deployment.sh' >/home/ec2-user/verify-deployment.sh
+chmod +x /home/ec2-user/verify-deployment.sh
 USERDATA_EOF
 )
 
@@ -618,10 +373,117 @@ else
     USER_DATA_ENCODED=$(echo "$USER_DATA" | base64 -w 0)
 fi
 
+# Check user data size (AWS limit is 16,384 bytes for base64 encoded)
+USER_DATA_SIZE=${#USER_DATA_ENCODED}
+if [ $USER_DATA_SIZE -gt 16384 ]; then
+    echo ""
+    echo "⚠️  WARNING: User data size ($USER_DATA_SIZE bytes) exceeds AWS limit (16,384 bytes)"
+    echo "   The script has been optimized, but may still be too large."
+    echo "   Consider using a bootstrap script approach or further optimization."
+    echo ""
+    echo "📋 Options:"
+    echo "   1. Continue anyway (may fail)"
+    echo "   2. Exit and further optimize"
+    echo ""
+    read -p "Choose option (1/2): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[1]$ ]]; then
+        echo "❌ Deployment cancelled. User-data script needs further optimization."
+        exit 1
+    fi
+    echo "⚠️  Continuing with oversized user-data (may fail at launch)..."
+    echo ""
+elif [ $USER_DATA_SIZE -gt 15000 ]; then
+    echo "⚠️  User data size is close to limit: $USER_DATA_SIZE / 16384 bytes"
+    echo ""
+fi
+
 # =============================================================================
-# SECTION 8: EC2 INSTANCE LAUNCH
+# SECTION 8: CHECK FOR EXISTING INSTANCE
 # =============================================================================
-echo "🚀 Step 8/8: Launching EC2 instance..."
+echo "🔍 Checking for existing instances..."
+EXISTING_INSTANCE=$($AWS_CMD ec2 describe-instances \
+    --region $REGION \
+    --filters "Name=tag:Name,Values=business-app-beta" "Name=instance-state-name,Values=running,stopped,stopping" \
+    --query 'Reservations[0].Instances[0].InstanceId' \
+    --output text 2>/dev/null || echo "")
+
+if [ -n "$EXISTING_INSTANCE" ] && [ "$EXISTING_INSTANCE" != "None" ]; then
+    EXISTING_STATE=$($AWS_CMD ec2 describe-instances \
+        --region $REGION \
+        --instance-ids $EXISTING_INSTANCE \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text)
+    
+    echo "⚠️  Found existing instance: $EXISTING_INSTANCE (State: $EXISTING_STATE)"
+    echo ""
+    echo "Options:"
+    echo "  1. Terminate existing instance and deploy new one"
+    echo "  2. Skip deployment (keep existing instance)"
+    echo "  3. Exit"
+    echo "  4. Deploy new instance (keep existing instance running)"
+    echo ""
+    read -p "Choose option (1/2/3/4): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[1]$ ]]; then
+        echo "🗑️  Terminating existing instance..."
+        $AWS_CMD ec2 terminate-instances --region $REGION --instance-ids $EXISTING_INSTANCE > /dev/null
+        echo "⏳ Waiting for termination..."
+        $AWS_CMD ec2 wait instance-terminated --region $REGION --instance-ids $EXISTING_INSTANCE 2>/dev/null || true
+        sleep 5
+        echo "✅ Existing instance terminated"
+        echo ""
+        INSTANCE_NAME="business-app-beta"
+    elif [[ $REPLY =~ ^[2]$ ]]; then
+        echo "⏸️  Skipping deployment. Keeping existing instance."
+        exit 0
+    elif [[ $REPLY =~ ^[3]$ ]]; then
+        echo "❌ Deployment cancelled"
+        exit 1
+    elif [[ $REPLY =~ ^[4]$ ]]; then
+        echo "🆕 Deploying new instance alongside existing one..."
+        # Find next available instance number
+        EXISTING_COUNT=$($AWS_CMD ec2 describe-instances \
+            --region $REGION \
+            --filters "Name=tag:Name,Values=business-app-beta*" "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+            --query 'length(Reservations[*].Instances[*])' \
+            --output text 2>/dev/null || echo "0")
+        
+        if [ "$EXISTING_COUNT" = "0" ] || [ -z "$EXISTING_COUNT" ]; then
+            INSTANCE_NAME="business-app-beta-2"
+        else
+            # Find the highest number
+            MAX_NUM=1
+            for i in {2..20}; do
+                CHECK_NAME="business-app-beta-$i"
+                EXISTS=$($AWS_CMD ec2 describe-instances \
+                    --region $REGION \
+                    --filters "Name=tag:Name,Values=$CHECK_NAME" "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+                    --query 'length(Reservations[*].Instances[*])' \
+                    --output text 2>/dev/null || echo "0")
+                if [ "$EXISTS" != "0" ] && [ -n "$EXISTS" ]; then
+                    MAX_NUM=$i
+                fi
+            done
+            INSTANCE_NAME="business-app-beta-$((MAX_NUM + 1))"
+        fi
+        echo "   New instance will be named: $INSTANCE_NAME"
+        echo ""
+    else
+        echo "❌ Invalid option. Deployment cancelled"
+        exit 1
+    fi
+else
+    echo "✅ No existing instance found"
+    echo ""
+    INSTANCE_NAME="business-app-beta"
+fi
+
+# =============================================================================
+# SECTION 9: EC2 INSTANCE LAUNCH
+# =============================================================================
+echo "🚀 Step 8/10: Launching EC2 instance..."
 
 # Try to launch instance (temporarily disable exit on error to capture output)
 set +e
@@ -633,7 +495,7 @@ LAUNCH_OUTPUT=$($AWS_CMD ec2 run-instances \
     --security-group-ids $SG_ID \
     --subnet-id $SUBNET_ID \
     --user-data "$USER_DATA_ENCODED" \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=business-app-beta},{Key=Environment,Value=beta}]" \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Environment,Value=beta}]" \
     --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
     --query 'Instances[0].InstanceId' --output text 2>&1)
 LAUNCH_EXIT_CODE=$?
@@ -642,37 +504,192 @@ set -e
 # Check if error is about Free Tier or any other error
 if [ $LAUNCH_EXIT_CODE -ne 0 ] || echo "$LAUNCH_OUTPUT" | grep -qi "free-tier\|Free Tier\|not eligible for Free Tier\|error\|Error"; then
     echo ""
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "⚠️  FREE TIER RESTRICTION DETECTED"
-    echo "═══════════════════════════════════════════════════════════════"
-    echo ""
-    echo "Your AWS account is using Free Tier benefits."
-    echo "Free Tier only allows: t2.micro or t3.micro"
-    echo ""
-    echo "You requested: $INSTANCE_TYPE"
-    echo ""
-    echo "Error: $LAUNCH_OUTPUT"
-    echo ""
-    echo "📋 Solutions:"
-    echo ""
-    echo "Option 1: Use t3.micro (Free Tier eligible, but very limited)"
-    echo "   ⚠️  Warning: Only 1 GB RAM - may cause OOM errors"
-    echo "   Run:"
-    echo "   AWS_PROFILE=business-app bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.micro"
-    echo ""
-    echo "Option 2: Accept charges and use t3.medium/t3.large (Recommended)"
-    echo "   Your account will be charged for the instance"
-    echo "   Free Tier restrictions only apply if you want FREE usage"
-    echo "   If you're okay paying, you may need to:"
-    echo "   - Contact AWS Support to enable paid instances"
-    echo "   - Or wait for Free Tier period to end"
-    echo ""
-    echo "Option 3: Wait for Free Tier to expire (12 months from account creation)"
-    echo ""
-    echo "Option 4: Use a different AWS account without Free Tier"
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
-    exit 1
+    
+    # Check for user data size limit error
+    if echo "$LAUNCH_OUTPUT" | grep -qi "User data is limited\|16384\|user.*data.*limit"; then
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "⚠️  USER DATA SIZE LIMIT EXCEEDED"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Error: User data script exceeds AWS limit of 16,384 bytes"
+        echo ""
+        echo "📋 Choose an instance type to retry:"
+        echo ""
+        echo "  1. t3.micro (Free Tier, 1 GB RAM - may have issues)"
+        echo "  2. t3.small (2 GB RAM - better performance)"
+        echo "  3. t3.medium (4 GB RAM - recommended)"
+        echo "  4. t3.large (8 GB RAM - high performance)"
+        echo "  5. Exit and optimize user-data script"
+        echo ""
+        read -p "Choose option (1/2/3/4/5): " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[1]$ ]]; then
+            INSTANCE_TYPE="t3.micro"
+            echo "🔄 Retrying with t3.micro..."
+        elif [[ $REPLY =~ ^[2]$ ]]; then
+            INSTANCE_TYPE="t3.small"
+            echo "🔄 Retrying with t3.small..."
+        elif [[ $REPLY =~ ^[3]$ ]]; then
+            INSTANCE_TYPE="t3.medium"
+            echo "🔄 Retrying with t3.medium..."
+        elif [[ $REPLY =~ ^[4]$ ]]; then
+            INSTANCE_TYPE="t3.large"
+            echo "🔄 Retrying with t3.large..."
+        else
+            echo "❌ Deployment cancelled. Please optimize user-data script."
+            exit 1
+        fi
+        
+        # Retry launch with selected instance type
+        set +e
+        LAUNCH_OUTPUT=$($AWS_CMD ec2 run-instances \
+            --region $REGION \
+            --image-id $AMI_ID \
+            --instance-type $INSTANCE_TYPE \
+            --key-name $KEY_NAME \
+            --security-group-ids $SG_ID \
+            --subnet-id $SUBNET_ID \
+            --user-data "$USER_DATA_ENCODED" \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Environment,Value=beta}]" \
+            --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
+            --query 'Instances[0].InstanceId' --output text 2>&1)
+        LAUNCH_EXIT_CODE=$?
+        set -e
+        
+        if [ $LAUNCH_EXIT_CODE -ne 0 ]; then
+            echo "❌ Retry with $INSTANCE_TYPE also failed"
+            echo "   Error: $LAUNCH_OUTPUT"
+            echo ""
+            echo "⚠️  The user-data script may be too large for any instance type"
+            echo "   Please optimize the user-data script or contact support"
+            exit 1
+        fi
+        echo "✅ Instance launched with $INSTANCE_TYPE"
+    # Check for Free Tier restriction
+    elif echo "$LAUNCH_OUTPUT" | grep -qi "free-tier\|Free Tier\|not eligible for Free Tier"; then
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "⚠️  FREE TIER RESTRICTION DETECTED"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Your AWS account is using Free Tier benefits."
+        echo "Free Tier only allows: t2.micro or t3.micro"
+        echo ""
+        echo "You requested: $INSTANCE_TYPE"
+        echo ""
+        echo "📋 Choose an instance type:"
+        echo ""
+        echo "  1. t3.micro (Free Tier eligible, 1 GB RAM)"
+        echo "  2. t3.small (Paid, 2 GB RAM)"
+        echo "  3. t3.medium (Paid, 4 GB RAM - recommended)"
+        echo "  4. t3.large (Paid, 8 GB RAM)"
+        echo "  5. Exit"
+        echo ""
+        read -p "Choose option (1/2/3/4/5): " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[1]$ ]]; then
+            INSTANCE_TYPE="t3.micro"
+            echo "🔄 Retrying with t3.micro (Free Tier)..."
+        elif [[ $REPLY =~ ^[2]$ ]]; then
+            INSTANCE_TYPE="t3.small"
+            echo "🔄 Retrying with t3.small (Paid)..."
+        elif [[ $REPLY =~ ^[3]$ ]]; then
+            INSTANCE_TYPE="t3.medium"
+            echo "🔄 Retrying with t3.medium (Paid)..."
+        elif [[ $REPLY =~ ^[4]$ ]]; then
+            INSTANCE_TYPE="t3.large"
+            echo "🔄 Retrying with t3.large (Paid)..."
+        else
+            echo "❌ Deployment cancelled"
+            exit 1
+        fi
+        
+        # Retry launch with selected instance type
+        set +e
+        LAUNCH_OUTPUT=$($AWS_CMD ec2 run-instances \
+            --region $REGION \
+            --image-id $AMI_ID \
+            --instance-type $INSTANCE_TYPE \
+            --key-name $KEY_NAME \
+            --security-group-ids $SG_ID \
+            --subnet-id $SUBNET_ID \
+            --user-data "$USER_DATA_ENCODED" \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Environment,Value=beta}]" \
+            --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
+            --query 'Instances[0].InstanceId' --output text 2>&1)
+        LAUNCH_EXIT_CODE=$?
+        set -e
+        
+        if [ $LAUNCH_EXIT_CODE -ne 0 ]; then
+            echo "❌ Retry with $INSTANCE_TYPE failed"
+            echo "   Error: $LAUNCH_OUTPUT"
+            echo ""
+            if [[ "$INSTANCE_TYPE" != "t3.micro" ]]; then
+                echo "⚠️  You may need to contact AWS Support to enable paid instances"
+            fi
+            exit 1
+        fi
+        echo "✅ Instance launched with $INSTANCE_TYPE"
+    else
+        # Generic error handling
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "❌ DEPLOYMENT ERROR"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Error: $LAUNCH_OUTPUT"
+        echo ""
+        echo "📋 Would you like to try a different instance type?"
+        echo ""
+        echo "  1. t3.micro (Free Tier, 1 GB RAM)"
+        echo "  2. t3.small (2 GB RAM)"
+        echo "  3. t3.medium (4 GB RAM)"
+        echo "  4. t3.large (8 GB RAM)"
+        echo "  5. Exit"
+        echo ""
+        read -p "Choose option (1/2/3/4/5): " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[1]$ ]]; then
+            INSTANCE_TYPE="t3.micro"
+            echo "🔄 Retrying with t3.micro..."
+        elif [[ $REPLY =~ ^[2]$ ]]; then
+            INSTANCE_TYPE="t3.small"
+            echo "🔄 Retrying with t3.small..."
+        elif [[ $REPLY =~ ^[3]$ ]]; then
+            INSTANCE_TYPE="t3.medium"
+            echo "🔄 Retrying with t3.medium..."
+        elif [[ $REPLY =~ ^[4]$ ]]; then
+            INSTANCE_TYPE="t3.large"
+            echo "🔄 Retrying with t3.large..."
+        else
+            echo "❌ Deployment cancelled"
+            exit 1
+        fi
+        
+        # Retry launch with selected instance type
+        set +e
+        LAUNCH_OUTPUT=$($AWS_CMD ec2 run-instances \
+            --region $REGION \
+            --image-id $AMI_ID \
+            --instance-type $INSTANCE_TYPE \
+            --key-name $KEY_NAME \
+            --security-group-ids $SG_ID \
+            --subnet-id $SUBNET_ID \
+            --user-data "$USER_DATA_ENCODED" \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},{Key=Environment,Value=beta}]" \
+            --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
+            --query 'Instances[0].InstanceId' --output text 2>&1)
+        LAUNCH_EXIT_CODE=$?
+        set -e
+        
+        if [ $LAUNCH_EXIT_CODE -ne 0 ]; then
+            echo "❌ Retry with $INSTANCE_TYPE also failed"
+            echo "   Error: $LAUNCH_OUTPUT"
+            exit 1
+        fi
+        echo "✅ Instance launched with $INSTANCE_TYPE"
+    fi
 fi
 
 # Extract instance ID (should be in the output)
@@ -850,5 +867,276 @@ else
     echo ""
     echo "💡 Note: Database tables are auto-created on first service start"
     echo "   Services will create tables automatically with ENABLE_SYNC=true"
+fi
+
+# =============================================================================
+# SECTION 10: DOMAIN & SSL SETUP (OPTIONAL)
+# =============================================================================
+
+# Validate domain format if provided
+if [ -n "$DOMAIN" ]; then
+    if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+        echo "❌ Invalid domain format: $DOMAIN"
+        echo "   Domain should be in format: example.com"
+        exit 1
+    fi
+    
+    # Validate email format if provided
+    if [ -n "$EMAIL" ]; then
+        if [[ ! "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            echo "❌ Invalid email format: $EMAIL"
+            echo "   Email should be in format: user@example.com"
+            exit 1
+        fi
+    fi
+fi
+
+if [ -n "$DOMAIN" ] && [ -n "$PUBLIC_IP" ] && [ "$PUBLIC_IP" != "None" ]; then
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "🌐 DOMAIN & SSL SETUP"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Domain: $DOMAIN"
+    echo "EC2 IP: $PUBLIC_IP"
+    echo ""
+    
+    # Step 1: DNS Configuration Instructions
+    echo "📋 Step 1: Configure DNS"
+    echo "─────────────────────────────────────────────────────────────"
+    echo "Please configure DNS in your domain provider (GoDaddy, etc.):"
+    echo ""
+    echo "1. Add A Record:"
+    echo "   Type: A"
+    echo "   Name: @"
+    echo "   Value: $PUBLIC_IP"
+    echo "   TTL: 600"
+    echo ""
+    echo "2. Add CNAME (optional):"
+    echo "   Type: CNAME"
+    echo "   Name: www"
+    echo "   Value: @"
+    echo ""
+    echo "⚠️  Important: Remove any 'Parked' or conflicting A records"
+    echo ""
+    read -p "Have you configured DNS? (y/n) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "⏸️  Skipping domain/SSL setup. You can run it later:"
+        echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo "   cd /opt/business-app/app"
+        echo "   sudo bash scripts/setup-domain-ec2.sh $DOMAIN"
+        if [ -n "$EMAIL" ]; then
+            echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN $EMAIL"
+        else
+            echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN"
+        fi
+        echo ""
+        exit 0
+    fi
+    
+    # Step 2: Wait for DNS propagation (optional)
+    echo ""
+    echo "⏳ Step 2: Waiting for DNS propagation..."
+    
+    # Check if dig is available
+    if ! command -v dig &> /dev/null; then
+        echo "⚠️  'dig' command not found. Installing bind-utils..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "   Please install bind-utils manually: brew install bind"
+            echo "   Or skip DNS check and continue"
+            read -p "Continue without DNS check? (y/n) " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
+            DNS_READY=false
+        else
+            # On Linux, we can't install here, but we'll try to use nslookup or skip
+            echo "   Will use alternative method for DNS check"
+            DNS_READY=false
+        fi
+    else
+        echo "   This may take 10-30 minutes. Checking every 30 seconds..."
+        DNS_READY=false
+        for i in {1..20}; do
+            sleep 30
+            RESOLVED_IP=$(dig +short $DOMAIN 2>/dev/null | head -1 || echo "")
+            if [ "$RESOLVED_IP" = "$PUBLIC_IP" ]; then
+                echo "✅ DNS is resolving correctly!"
+                DNS_READY=true
+                break
+            fi
+            if [ $((i % 5)) -eq 0 ]; then
+                echo "   Attempt $i/20: DNS not ready yet (resolved: $RESOLVED_IP, expected: $PUBLIC_IP)"
+            fi
+        done
+    fi
+    
+    if [ "$DNS_READY" = false ]; then
+        echo ""
+        echo "⚠️  DNS may not be fully propagated yet"
+        read -p "Continue with domain setup anyway? (y/n) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "⏸️  Skipping domain/SSL setup. Run manually later:"
+            echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+            echo "   cd /opt/business-app/app"
+            echo "   sudo bash scripts/setup-domain-ec2.sh $DOMAIN"
+            if [ -n "$EMAIL" ]; then
+                echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN $EMAIL"
+            else
+                echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN"
+            fi
+            echo ""
+            exit 0
+        fi
+    fi
+    
+    # Step 3: Setup domain on EC2
+    echo ""
+    echo "🔧 Step 3: Setting up domain on EC2..."
+    SSH_KEY_FILE="$HOME/.ssh/$KEY_NAME.pem"
+    if [ ! -f "$SSH_KEY_FILE" ]; then
+        echo "❌ SSH key not found: $SSH_KEY_FILE"
+        echo "   Cannot setup domain automatically"
+        echo "   Please run manually:"
+        echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo "   cd /opt/business-app/app"
+        echo "   sudo bash scripts/setup-domain-ec2.sh $DOMAIN"
+        exit 1
+    fi
+    
+    # Update domain setup script with actual domain
+    echo "   Connecting to EC2 and setting up domain..."
+    ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@$PUBLIC_IP <<SSH_EOF
+cd /opt/business-app/app
+git pull origin main || true
+sudo bash scripts/setup-domain-ec2.sh "$DOMAIN"
+SSH_EOF
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Domain setup complete on EC2"
+    else
+        echo "❌ Domain setup failed"
+        echo "   Please run manually:"
+        echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo "   cd /opt/business-app/app"
+        echo "   sudo bash scripts/setup-domain-ec2.sh $DOMAIN"
+        exit 1
+    fi
+    
+    # Step 4: Add HTTPS port to security group
+    echo ""
+    echo "🔒 Step 4: Adding HTTPS port (443) to security group..."
+    HTTPS_EXISTS=$($AWS_CMD ec2 describe-security-groups \
+        --region $REGION \
+        --group-ids $SG_ID \
+        --query 'SecurityGroups[0].IpPermissions[?FromPort==`443`]' \
+        --output text 2>/dev/null || echo "")
+    
+    if [ -z "$HTTPS_EXISTS" ] || [ "$HTTPS_EXISTS" = "None" ]; then
+        $AWS_CMD ec2 authorize-security-group-ingress \
+            --region $REGION \
+            --group-id $SG_ID \
+            --protocol tcp \
+            --port 443 \
+            --cidr 0.0.0.0/0 2>/dev/null || true
+        echo "✅ Port 443 added to security group"
+    else
+        echo "✅ Port 443 already allowed"
+    fi
+    
+    # Step 5: Setup SSL on EC2
+    echo ""
+    echo "🔐 Step 5: Setting up SSL/HTTPS..."
+    if [ -z "$EMAIL" ]; then
+        EMAIL="admin@$DOMAIN"
+    fi
+    
+    echo "   Connecting to EC2 and setting up SSL..."
+    ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@$PUBLIC_IP <<SSH_EOF
+cd /opt/business-app/app
+sudo bash scripts/setup-ssl-ec2.sh "$DOMAIN" "$EMAIL"
+SSH_EOF
+    
+    SSL_EXIT_CODE=$?
+    
+    if [ $SSL_EXIT_CODE -eq 0 ]; then
+        echo ""
+        echo "🔍 Step 6: Verifying HTTPS..."
+        sleep 5  # Give Nginx time to reload
+        
+        # Test HTTPS connectivity
+        if curl -s -f -m 10 "https://$DOMAIN" > /dev/null 2>&1; then
+            echo "✅ HTTPS is working: https://$DOMAIN"
+        else
+            echo "⚠️  HTTPS test failed, but certificate may still be valid"
+            echo "   This can happen if Nginx is still reloading"
+            echo "   Wait 1-2 minutes and test: curl -I https://$DOMAIN"
+        fi
+        
+        # Verify certificate renewal is set up
+        echo ""
+        echo "🔍 Verifying certificate renewal setup..."
+        ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@$PUBLIC_IP <<SSH_EOF
+if systemctl is-active --quiet certbot-renew.timer 2>/dev/null || systemctl is-active --quiet certbot-renew.timer 2>/dev/null; then
+    echo "✅ Certificate auto-renewal is configured"
+else
+    echo "⚠️  Certificate renewal timer not found (may be using cron instead)"
+fi
+SSH_EOF
+        
+        echo ""
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "🎉 DOMAIN & SSL SETUP COMPLETE!"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo ""
+        echo "🌐 Your application is now accessible via HTTPS:"
+        echo "   https://$DOMAIN"
+        echo "   https://www.$DOMAIN"
+        echo ""
+        echo "✅ HTTP automatically redirects to HTTPS"
+        echo "✅ SSL certificate auto-renews every 90 days"
+        echo ""
+        echo "📋 Access Information:"
+        echo "   - HTTPS: https://$DOMAIN"
+        echo "   - HTTP: http://$DOMAIN (redirects to HTTPS)"
+        echo "   - API: https://$DOMAIN/api/v1/*"
+        echo "   - SSH: ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo ""
+        echo "🧪 Test HTTPS:"
+        echo "   curl -I https://$DOMAIN"
+    else
+        echo ""
+        echo "❌ SSL setup failed (exit code: $SSL_EXIT_CODE)"
+        echo ""
+        echo "⚠️  Check logs on EC2:"
+        echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo "   sudo tail -f /var/log/letsencrypt/letsencrypt.log"
+        echo ""
+        echo "   Or run manually:"
+        echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@$PUBLIC_IP"
+        echo "   cd /opt/business-app/app"
+        echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN $EMAIL"
+        echo ""
+        echo "⚠️  Deployment completed but SSL setup failed"
+        echo "   Application is accessible via HTTP: http://$PUBLIC_IP"
+        exit 1
+    fi
+elif [ -n "$DOMAIN" ]; then
+    echo ""
+    echo "⚠️  Domain provided but public IP not available yet"
+    echo "   Once instance has public IP, run:"
+    echo "   ssh -i ~/.ssh/$KEY_NAME.pem ec2-user@<PUBLIC_IP>"
+    echo "   cd /opt/business-app/app"
+    echo "   sudo bash scripts/setup-domain-ec2.sh $DOMAIN"
+    if [ -n "$EMAIL" ]; then
+        echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN $EMAIL"
+    else
+        echo "   sudo bash scripts/setup-ssl-ec2.sh $DOMAIN"
+    fi
 fi
 

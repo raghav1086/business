@@ -1,12 +1,13 @@
 #!/bin/bash
 # Setup Domain on EC2 Instance
 # Updates Nginx configuration to recognize the domain name
-# Usage: bash scripts/setup-domain-ec2.sh
+# Usage: sudo bash scripts/setup-domain-ec2.sh [domain]
+# Example: sudo bash scripts/setup-domain-ec2.sh samriddhi.buzz
 
 set -e
 
-DOMAIN="samriddhi.buzz"
-DOMAIN_WWW="www.samriddhi.buzz"
+DOMAIN=${1:-samriddhi.buzz}
+DOMAIN_WWW="www.$DOMAIN"
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║     DOMAIN SETUP FOR EC2 INSTANCE                              ║"
@@ -35,7 +36,7 @@ echo ""
 echo "🔧 Step 2/5: Updating Nginx configuration for domain: $DOMAIN..."
 
 # Create/update Nginx config
-cat > /etc/nginx/conf.d/business-app.conf <<'NGINX_EOF'
+cat > /etc/nginx/conf.d/business-app.conf <<NGINX_EOF
 upstream auth_service { server localhost:3002; }
 upstream business_service { server localhost:3003; }
 upstream party_service { server localhost:3004; }
@@ -46,13 +47,13 @@ upstream web_app { server localhost:3000; }
 
 server {
     listen 80;
-    server_name samriddhi.buzz www.samriddhi.buzz;
+    server_name $DOMAIN $DOMAIN_WWW;
     
     # CRITICAL: Allow Let's Encrypt validation
     # This MUST come BEFORE location / to prevent redirects
     location /.well-known/acme-challenge/ {
         root /var/www/html;
-        try_files $uri =404;
+        try_files \$uri =404;
     }
     
     # Security headers
@@ -63,13 +64,13 @@ server {
     location / {
         proxy_pass http://web_app;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -77,10 +78,10 @@ server {
     # Auth service - preserve full path
     location /api/v1/auth {
         proxy_pass http://auth_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -88,10 +89,10 @@ server {
     # Business service
     location /api/v1/businesses {
         proxy_pass http://business_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -99,10 +100,10 @@ server {
     # Party service
     location /api/v1/parties {
         proxy_pass http://party_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -110,10 +111,10 @@ server {
     # Inventory service
     location /api/v1/items {
         proxy_pass http://inventory_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -121,10 +122,10 @@ server {
     # Stock endpoints
     location /api/v1/stock {
         proxy_pass http://inventory_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -132,10 +133,10 @@ server {
     # Invoice service
     location /api/v1/invoices {
         proxy_pass http://invoice_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }
@@ -143,10 +144,10 @@ server {
     # Payment service
     location /api/v1/payments {
         proxy_pass http://payment_service;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
     }

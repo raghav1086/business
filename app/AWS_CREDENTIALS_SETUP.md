@@ -46,25 +46,46 @@ aws sts get-caller-identity
 }
 ```
 
-### Step 4: Deploy!
+### Step 4: Set Default AWS Profile (Optional but Recommended)
 
-**If using default profile:**
+To avoid specifying `--profile business-app` every time, set it as default:
+
+**For zsh (macOS default):**
+```bash
+echo 'export AWS_PROFILE=business-app' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**For bash:**
+```bash
+echo 'export AWS_PROFILE=business-app' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify it's set:**
+```bash
+echo $AWS_PROFILE
+# Should output: business-app
+```
+
+Now you can use AWS CLI without `--profile`:
+```bash
+aws sts get-caller-identity
+# Uses business-app profile automatically
+```
+
+### Step 5: Deploy!
+
+**With default profile set:**
 ```bash
 cd app
 make deploy-aws-quick
 ```
 
-**If using a named profile (like `business-app`):**
+**Or override with a different profile:**
 ```bash
 cd app
-export AWS_PROFILE=business-app
-make deploy-aws-quick
-```
-
-Or pass it directly:
-```bash
-cd app
-AWS_PROFILE=business-app make deploy-aws-quick
+AWS_PROFILE=other-profile make deploy-aws-quick
 ```
 
 ## Using AWS Profiles

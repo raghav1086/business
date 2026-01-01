@@ -19,14 +19,17 @@ make deploy-aws-quick
 
 1. **AWS CLI installed and configured:**
    ```bash
-   aws configure
+   # Configure default profile (business-app)
+   aws configure --profile business-app
    # Enter your AWS Access Key ID, Secret Access Key, Region (ap-south-1), and output format (json)
    ```
 
 2. **Verify AWS credentials:**
    ```bash
-   aws sts get-caller-identity
+   aws sts get-caller-identity --profile business-app
    ```
+
+**Note:** The deployment script uses `business-app` as the default AWS profile. You can override it by setting `AWS_PROFILE` environment variable.
 
 ## What the Deployment Does Automatically
 

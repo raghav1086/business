@@ -237,7 +237,7 @@ deploy-aws: ## Deploy entire app to AWS with single command (fully automated, en
 	@echo "  ✅ Build and deploy all services"
 	@echo "  ✅ Configure Nginx with all routes"
 	@echo "  ✅ Setup automatic backups"
-	@echo "  ✅ Verify deployment"
+	@echo "  ✅ Optionally setup domain and SSL/HTTPS"
 	@echo ""
 	@read -p "$(YELLOW)AWS Region (default: ap-south-1): $(NC)" REGION; \
 	REGION=$${REGION:-ap-south-1}; \
@@ -245,22 +245,47 @@ deploy-aws: ## Deploy entire app to AWS with single command (fully automated, en
 	KEY_NAME=$${KEY_NAME:-business-app-key}; \
 	read -p "$(YELLOW)Instance Type (default: t3.medium): $(NC)" INSTANCE_TYPE; \
 	INSTANCE_TYPE=$${INSTANCE_TYPE:-t3.medium}; \
-	read -p "$(YELLOW)AWS Profile (optional, press Enter for default): $(NC)" AWS_PROFILE; \
-	AWS_PROFILE=$${AWS_PROFILE:-}; \
-	echo ""; \
-	if [ -n "$$AWS_PROFILE" ]; then \
-		export AWS_PROFILE=$$AWS_PROFILE; \
-	fi; \
-	bash scripts/deploy-aws-unified.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE $$AWS_PROFILE
-
-deploy-aws-quick: ## Quick deploy with all defaults (no prompts)
-	@echo "$(BLUE)🚀 Quick Deploy to AWS (all defaults)$(NC)"
-	@if [ -n "$$AWS_PROFILE" ]; then \
-		export AWS_PROFILE=$$AWS_PROFILE; \
-		bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE; \
+	read -p "$(YELLOW)AWS Profile (default: business-app): $(NC)" AWS_PROFILE; \
+	AWS_PROFILE=$${AWS_PROFILE:-business-app}; \
+	read -p "$(YELLOW)Domain name (optional, press Enter to skip): $(NC)" DOMAIN; \
+	DOMAIN=$${DOMAIN:-}; \
+	if [ -n "$$DOMAIN" ]; then \
+		read -p "$(YELLOW)Email for SSL certificate (default: admin@$$DOMAIN): $(NC)" EMAIL; \
+		EMAIL=$${EMAIL:-admin@$$DOMAIN}; \
 	else \
-		bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium; \
+		EMAIL=""; \
+	fi; \
+	echo ""; \
+	export AWS_PROFILE=$$AWS_PROFILE; \
+	if [ -n "$$DOMAIN" ]; then \
+		bash scripts/deploy-aws-unified.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE $$AWS_PROFILE "$$DOMAIN" "$$EMAIL"; \
+	else \
+		bash scripts/deploy-aws-unified.sh $$REGION $$KEY_NAME $$INSTANCE_TYPE $$AWS_PROFILE; \
 	fi
+
+deploy-aws-quick: ## Quick deploy with all defaults (no domain/SSL)
+	@echo "$(BLUE)🚀 Quick Deploy to AWS (all defaults, no domain/SSL)$(NC)"
+	@AWS_PROFILE=$${AWS_PROFILE:-business-app}; \
+	export AWS_PROFILE; \
+	bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE
+
+deploy-aws-full: ## Full deploy with domain and SSL (requires DOMAIN, optional EMAIL)
+	@if [ -z "$$DOMAIN" ]; then \
+		echo "$(RED)❌ Error: DOMAIN is required$(NC)"; \
+		echo "Usage: make deploy-aws-full DOMAIN=samriddhi.buzz EMAIL=admin@samriddhi.buzz"; \
+		echo "   Or: make deploy-aws-full DOMAIN=samriddhi.buzz"; \
+		exit 1; \
+	fi; \
+	if [ -z "$$EMAIL" ]; then \
+		EMAIL="admin@$$DOMAIN"; \
+	fi; \
+	echo "$(BLUE)🚀 Full Deploy to AWS with Domain & SSL$(NC)"; \
+	echo "  Domain: $$DOMAIN"; \
+	echo "  Email: $$EMAIL"; \
+	echo ""; \
+	AWS_PROFILE=$${AWS_PROFILE:-business-app}; \
+	export AWS_PROFILE; \
+	bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.medium $$AWS_PROFILE "$$DOMAIN" "$$EMAIL"
 
 # =============================================================================
 # DATABASE

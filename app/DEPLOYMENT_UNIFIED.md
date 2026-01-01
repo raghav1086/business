@@ -22,17 +22,17 @@ bash scripts/deploy-aws-unified.sh [region] [key-name] [instance-type] [aws-prof
 ### Examples
 
 ```bash
-# Default deployment
+# Default deployment (uses business-app profile by default)
 make deploy-aws
 
-# With AWS profile
-AWS_PROFILE=business-app make deploy-aws
+# With custom AWS profile
+AWS_PROFILE=your-profile make deploy-aws
 
-# Custom instance type
-bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.large business-app
+# Custom instance type (uses business-app profile by default)
+bash scripts/deploy-aws-unified.sh ap-south-1 business-app-key t3.large
 
-# Quick deploy with profile
-AWS_PROFILE=business-app make deploy-aws-quick
+# Quick deploy (uses business-app profile by default)
+make deploy-aws-quick
 ```
 
 ## ✅ What It Does (End-to-End)

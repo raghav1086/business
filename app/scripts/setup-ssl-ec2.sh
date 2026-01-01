@@ -1,12 +1,13 @@
 #!/bin/bash
-# Setup SSL/HTTPS for samriddhi.buzz using Let's Encrypt
-# Usage: sudo bash scripts/setup-ssl-ec2.sh
+# Setup SSL/HTTPS using Let's Encrypt
+# Usage: sudo bash scripts/setup-ssl-ec2.sh [domain] [email]
+# Example: sudo bash scripts/setup-ssl-ec2.sh samriddhi.buzz admin@samriddhi.buzz
 
 set -e
 
-DOMAIN="samriddhi.buzz"
-DOMAIN_WWW="www.samriddhi.buzz"
-EMAIL="admin@samriddhi.buzz"  # Change this to your email
+DOMAIN=${1:-samriddhi.buzz}
+DOMAIN_WWW="www.$DOMAIN"
+EMAIL=${2:-admin@$DOMAIN}
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║     SSL/HTTPS SETUP FOR $DOMAIN                                ║"
