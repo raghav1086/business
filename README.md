@@ -51,6 +51,12 @@ This project aims to build a comprehensive billing, accounting, and GST manageme
 - **[Pre-MVP Checklist](./docs/PRE_MVP_CHECKLIST.md)** - Comprehensive checklist of all items needed before starting MVP development
 - **[Critical Gaps Before MVP](./docs/CRITICAL_GAPS_BEFORE_MVP.md)** - Critical blockers and action items that must be completed before Sprint 1
 
+### Branding & Philosophy
+- **[Samruddhi Philosophy](./docs/SAMRUDDHI_PHILOSOPHY.md)** - Complete explanation of Samruddhi (समृद्धि) - prosperity, holistic growth, and business framework
+- **[Mission & Vision](./docs/SAMRUDDHI_MISSION_VISION.md)** - Official mission, vision, values, and brand positioning based on Samruddhi
+- **[Branding Guidelines](./docs/SAMRUDDHI_BRANDING_GUIDELINES.md)** - Complete brand identity guidelines including logo concepts, colors, typography, and marketing materials
+- **[Social Media Content](./docs/SAMRUDDHI_SOCIAL_MEDIA_CONTENT.md)** - Social media content strategy, templates, and calendar based on Samruddhi philosophy
+
 ### Original Reference
 - [DPR Report](./Vyapar_App_Full_DPR_Report.pdf) - Original project report (Note: File name unchanged)
 
