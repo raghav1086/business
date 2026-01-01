@@ -31,7 +31,7 @@ env:
   AWS_REGION: ap-south-1
   AWS_PROFILE: business-app
   KEY_NAME: business-app-key
-  INSTANCE_TAG: business-app-beta
+  INSTANCE_TAG: business-app-beta-2
 
 jobs:
   detect-changes:
