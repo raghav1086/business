@@ -259,10 +259,12 @@ deploy-prod: ## Deploy latest code to production (EC2/Production) - uses existin
 	echo ""; \
 	bash scripts/deploy-prod-ec2.sh localhost 5432 postgres postgres $$JWT_SECRET
 
-deploy-prod-quick: ## Quick production deploy - uses existing Docker DB (no prompts)
+deploy-prod-quick: ## Quick production deploy - uses existing Docker DB (no prompts, fixes password)
 	@echo "$(BLUE)🚀 Quick Production Deployment (using existing Docker DB)${NC}"
 	@echo "$(YELLOW)Using: DB=localhost:5432, User=postgres, Password=postgres (Docker default)${NC}"
-	@bash scripts/deploy-prod-ec2.sh localhost 5432 postgres postgres
+	@echo "$(YELLOW)This will ensure PostgreSQL password matches all services${NC}"
+	@export DB_PASSWORD=postgres; \
+	bash scripts/deploy-prod-ec2.sh localhost 5432 postgres postgres
 
 start-prod-quick: start-prod ## Alias for start-prod
 

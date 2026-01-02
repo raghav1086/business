@@ -170,28 +170,69 @@ fi
 echo -e "${GREEN}✓ Infrastructure services started${NC}"
 echo ""
 
-# Step 3.5: Fix PostgreSQL password if needed
-echo -e "${YELLOW}Step 3.5/9: Verifying PostgreSQL password...${NC}"
-echo -e "${BLUE}  → Ensuring PostgreSQL password matches service configuration...${NC}"
+# Step 3.5: Ensure PostgreSQL password matches (CRITICAL - must be done before services start)
+echo -e "${YELLOW}Step 3.5/9: Ensuring PostgreSQL password matches service configuration...${NC}"
+echo -e "${BLUE}  → This is critical - all services must use the same password${NC}"
+
+# Wait a moment for PostgreSQL to be fully ready
+sleep 3
 
 # Try to connect with expected password
 if docker exec -e PGPASSWORD="$DB_PASSWORD" business-postgres psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
-    echo -e "${GREEN}    ✓ PostgreSQL password is correct${NC}"
+    echo -e "${GREEN}    ✓ PostgreSQL password is already correct${NC}"
 else
     echo -e "${YELLOW}    ⚠️  PostgreSQL password mismatch detected${NC}"
-    echo -e "${BLUE}    → Attempting to fix password...${NC}"
+    echo -e "${BLUE}    → Resetting password to match service configuration...${NC}"
     
-    # Try to reset password using fix script
-    if [ -f "$SCRIPT_DIR/fix-postgres-password.sh" ]; then
-        set +e
-        bash "$SCRIPT_DIR/fix-postgres-password.sh" "$DB_PASSWORD" || \
-            echo -e "${YELLOW}    ⚠️  Automatic password fix failed, services may need manual password reset${NC}"
-        set -e
+    # Try multiple methods to reset password
+    PASSWORD_FIXED=false
+    
+    # Method 1: Try without password (trust auth for local connections)
+    if docker exec business-postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null; then
+        echo -e "${GREEN}    ✓ Password reset successful (method 1: trust auth)${NC}"
+        PASSWORD_FIXED=true
+    fi
+    
+    # Method 2: Try using su to become postgres user (bypasses password)
+    if [ "$PASSWORD_FIXED" = false ]; then
+        if docker exec business-postgres sh -c "su - postgres -c \"psql -c \\\"ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';\\\"\"" 2>/dev/null; then
+            echo -e "${GREEN}    ✓ Password reset successful (method 2: su method)${NC}"
+            PASSWORD_FIXED=true
+        fi
+    fi
+    
+    # Method 3: Try common passwords
+    if [ "$PASSWORD_FIXED" = false ]; then
+        COMMON_PASSWORDS=("postgres" "password" "admin" "")
+        for try_password in "${COMMON_PASSWORDS[@]}"; do
+            if docker exec -e PGPASSWORD="$try_password" business-postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null; then
+                echo -e "${GREEN}    ✓ Password reset successful (method 3: found old password)${NC}"
+                PASSWORD_FIXED=true
+                break
+            fi
+        done
+    fi
+    
+    if [ "$PASSWORD_FIXED" = false ]; then
+        echo -e "${RED}    ✗ Could not automatically reset password${NC}"
+        echo -e "${YELLOW}    → Manual intervention required${NC}"
+        echo -e "${YELLOW}    → Run: docker exec -it business-postgres sh -c \"su - postgres -c \\\"psql -c 'ALTER USER postgres WITH PASSWORD \\\\\\\"$DB_PASSWORD\\\\\\\";'\\\"\"${NC}"
+        echo -e "${YELLOW}    → Or use the fix script: bash scripts/fix-postgres-password.sh $DB_PASSWORD${NC}"
+        exit 1
+    fi
+    
+    # Verify the password now works
+    sleep 2
+    if docker exec -e PGPASSWORD="$DB_PASSWORD" business-postgres psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+        echo -e "${GREEN}    ✓ Password verification successful${NC}"
     else
-        echo -e "${YELLOW}    ⚠️  fix-postgres-password.sh not found${NC}"
-        echo -e "${YELLOW}    → You may need to manually reset PostgreSQL password${NC}"
+        echo -e "${RED}    ✗ Password verification failed${NC}"
+        echo -e "${YELLOW}    → Password may not have been set correctly${NC}"
+        exit 1
     fi
 fi
+
+echo -e "${GREEN}✓ PostgreSQL password verified and synchronized${NC}"
 echo ""
 
 # Step 4: Verify existing databases
@@ -382,6 +423,11 @@ echo -e "${YELLOW}Step 8/9: Starting all application services...${NC}"
 cd "$PROJECT_ROOT"
 
 echo -e "${BLUE}  → Starting all services in production mode...${NC}"
+echo -e "${BLUE}  → Using DB_PASSWORD: ${DB_PASSWORD:0:3}***${NC}"
+
+# CRITICAL: Ensure DB_PASSWORD is exported for docker-compose
+export DB_PASSWORD
+
 # Don't fail if some services can't start (they might not be built)
 set +e
 $DOCKER_COMPOSE -f docker-compose.prod.yml up -d
@@ -397,6 +443,30 @@ fi
 # Wait for services to start
 echo -e "${BLUE}  → Waiting for services to initialize...${NC}"
 sleep 20
+
+# Verify services can connect to database
+echo -e "${BLUE}  → Verifying database connections...${NC}"
+sleep 10
+
+# Check auth-service logs for database connection
+if docker logs business-auth --tail 20 2>&1 | grep -q "password authentication failed"; then
+    echo -e "${RED}  ✗ Database password mismatch detected in auth-service${NC}"
+    echo -e "${YELLOW}  → Services are using different password than PostgreSQL${NC}"
+    echo -e "${YELLOW}  → Re-running password fix...${NC}"
+    
+    # Try to fix password again
+    if docker exec business-postgres sh -c "su - postgres -c \"psql -c \\\"ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';\\\"\"" 2>/dev/null; then
+        echo -e "${GREEN}  ✓ Password reset successful${NC}"
+        echo -e "${BLUE}  → Restarting services...${NC}"
+        $DOCKER_COMPOSE -f docker-compose.prod.yml restart
+        sleep 20
+    else
+        echo -e "${RED}  ✗ Could not fix password automatically${NC}"
+        echo -e "${YELLOW}  → Manual intervention required${NC}"
+    fi
+else
+    echo -e "${GREEN}  ✓ Database connections appear to be working${NC}"
+fi
 
 echo ""
 
