@@ -11,7 +11,8 @@
 #   KEEP_LOCAL: Keep local files after upload (default: true, set to "false" to delete)
 #   UPLOAD_ONLY_LATEST: Upload only latest backup per database (default: true)
 
-set -e
+# Don't exit on error immediately - we'll handle errors explicitly
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -24,13 +25,27 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Parse arguments
-DB_HOST="${1:-localhost}"
-DB_PORT="${2:-5432}"
-DB_USER="${3:-postgres}"
-DB_PASSWORD="${4:-postgres}"
-S3_BUCKET="${5:-${AWS_S3_BACKUP_BUCKET}}"
-KEEP_LOCAL="${6:-true}"
-UPLOAD_ONLY_LATEST="${7:-true}"
+# Smart parameter detection: if only one argument is provided and it looks like a bucket name, treat it as S3_BUCKET
+if [ $# -eq 1 ] && [[ "$1" =~ ^[a-z0-9][a-z0-9-]*[a-z0-9]$ ]] && [[ ! "$1" =~ \. ]] && [ ${#1} -ge 3 ] && [ ${#1} -le 63 ]; then
+    # Single argument that looks like a bucket name (S3 naming rules)
+    DB_HOST="localhost"
+    DB_PORT="5432"
+    DB_USER="postgres"
+    DB_PASSWORD="postgres"
+    S3_BUCKET="$1"
+    KEEP_LOCAL="true"
+    UPLOAD_ONLY_LATEST="true"
+    echo -e "${BLUE}Detected S3 bucket name: $S3_BUCKET${NC}"
+else
+    # Standard parameter parsing
+    DB_HOST="${1:-localhost}"
+    DB_PORT="${2:-5432}"
+    DB_USER="${3:-postgres}"
+    DB_PASSWORD="${4:-postgres}"
+    S3_BUCKET="${5:-${AWS_S3_BACKUP_BUCKET}}"
+    KEEP_LOCAL="${6:-true}"
+    UPLOAD_ONLY_LATEST="${7:-true}"
+fi
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}Database Backup and S3 Upload${NC}"

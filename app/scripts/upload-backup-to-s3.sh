@@ -8,7 +8,8 @@
 #   KEEP_LOCAL: Keep local files after upload (default: true, set to "false" to delete)
 #   UPLOAD_ONLY_LATEST: Upload only latest backup per database (default: false, set to "true" to enable)
 
-set -e
+# Don't exit on error immediately - we'll handle errors explicitly
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -377,11 +378,26 @@ echo -e "${BLUE}Uploading ${#VALID_FILES[@]} backup file(s) to S3...${NC}"
 echo -e "${BLUE}  Bucket: s3://$S3_BUCKET/$S3_PREFIX${NC}"
 echo ""
 
+# Debug: List files to upload
+if [ ${#VALID_FILES[@]} -gt 0 ]; then
+    echo -e "${BLUE}Files to upload:${NC}"
+    for f in "${VALID_FILES[@]}"; do
+        echo -e "${BLUE}  - $(basename "$f")${NC}"
+    done
+    echo ""
+fi
+
 UPLOAD_SUCCESS=0
 UPLOAD_FAILED=0
 
 # Upload each backup file
 for backup_file in "${VALID_FILES[@]}"; do
+    # Verify file still exists before uploading
+    if [ ! -f "$backup_file" ]; then
+        echo -e "${YELLOW}  ⚠️  File no longer exists: $backup_file${NC}"
+        ((UPLOAD_FAILED++))
+        continue
+    fi
     filename=$(basename "$backup_file")
     s3_path="s3://$S3_BUCKET/$S3_PREFIX/$filename"
     
@@ -391,8 +407,11 @@ for backup_file in "${VALID_FILES[@]}"; do
     file_size=$(du -h "$backup_file" | cut -f1)
     echo -e "${BLUE}    Size: $file_size${NC}"
     
-    # Upload to S3
-    if aws s3 cp "$backup_file" "$s3_path" --region "$AWS_REGION" 2>&1; then
+    # Upload to S3 (capture output to show errors)
+    UPLOAD_OUTPUT=$(aws s3 cp "$backup_file" "$s3_path" --region "$AWS_REGION" 2>&1)
+    UPLOAD_EXIT_CODE=$?
+    
+    if [ $UPLOAD_EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}    ✓ Uploaded to $s3_path${NC}"
         ((UPLOAD_SUCCESS++))
         
@@ -406,6 +425,7 @@ for backup_file in "${VALID_FILES[@]}"; do
         fi
     else
         echo -e "${RED}    ✗ Upload failed${NC}"
+        echo -e "${RED}      Error: $UPLOAD_OUTPUT${NC}"
         ((UPLOAD_FAILED++))
     fi
     echo ""
