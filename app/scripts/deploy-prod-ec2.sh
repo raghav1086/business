@@ -170,6 +170,30 @@ fi
 echo -e "${GREEN}✓ Infrastructure services started${NC}"
 echo ""
 
+# Step 3.5: Fix PostgreSQL password if needed
+echo -e "${YELLOW}Step 3.5/9: Verifying PostgreSQL password...${NC}"
+echo -e "${BLUE}  → Ensuring PostgreSQL password matches service configuration...${NC}"
+
+# Try to connect with expected password
+if docker exec -e PGPASSWORD="$DB_PASSWORD" business-postgres psql -U postgres -c "SELECT 1;" > /dev/null 2>&1; then
+    echo -e "${GREEN}    ✓ PostgreSQL password is correct${NC}"
+else
+    echo -e "${YELLOW}    ⚠️  PostgreSQL password mismatch detected${NC}"
+    echo -e "${BLUE}    → Attempting to fix password...${NC}"
+    
+    # Try to reset password using fix script
+    if [ -f "$SCRIPT_DIR/fix-postgres-password.sh" ]; then
+        set +e
+        bash "$SCRIPT_DIR/fix-postgres-password.sh" "$DB_PASSWORD" || \
+            echo -e "${YELLOW}    ⚠️  Automatic password fix failed, services may need manual password reset${NC}"
+        set -e
+    else
+        echo -e "${YELLOW}    ⚠️  fix-postgres-password.sh not found${NC}"
+        echo -e "${YELLOW}    → You may need to manually reset PostgreSQL password${NC}"
+    fi
+fi
+echo ""
+
 # Step 4: Verify existing databases
 echo -e "${YELLOW}Step 4/9: Verifying existing databases...${NC}"
 echo -e "${BLUE}  → Checking existing databases...${NC}"
