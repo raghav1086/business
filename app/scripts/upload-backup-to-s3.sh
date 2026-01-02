@@ -2,10 +2,11 @@
 
 # Upload Database Backups to S3
 # Uploads all backup files from the backup directory to AWS S3
-# Usage: ./upload-backup-to-s3.sh [S3_BUCKET] [BACKUP_DIR] [KEEP_LOCAL]
+# Usage: ./upload-backup-to-s3.sh [S3_BUCKET] [BACKUP_DIR] [KEEP_LOCAL] [UPLOAD_ONLY_LATEST]
 #   S3_BUCKET: S3 bucket name (default: from AWS_S3_BACKUP_BUCKET env var or prompt)
 #   BACKUP_DIR: Directory containing backups (default: ./backups)
 #   KEEP_LOCAL: Keep local files after upload (default: true, set to "false" to delete)
+#   UPLOAD_ONLY_LATEST: Upload only latest backup per database (default: false, set to "true" to enable)
 
 set -e
 
@@ -20,6 +21,7 @@ NC='\033[0m'
 S3_BUCKET="${1:-${AWS_S3_BACKUP_BUCKET}}"
 BACKUP_DIR="${2:-${BACKUP_DIR:-./backups}}"
 KEEP_LOCAL="${3:-true}"
+UPLOAD_ONLY_LATEST="${4:-false}"  # If true, only upload the latest backup for each database
 S3_PREFIX="${S3_PREFIX:-database-backups}"
 AWS_REGION="${AWS_REGION:-ap-south-1}"
 
@@ -292,6 +294,83 @@ done
 if [ ${#VALID_FILES[@]} -eq 0 ]; then
     echo -e "${YELLOW}⚠️  No valid backup files found in $BACKUP_DIR${NC}"
     exit 0
+fi
+
+# If UPLOAD_ONLY_LATEST is true, filter to only the latest backup for each database
+if [ "$UPLOAD_ONLY_LATEST" = "true" ]; then
+    echo -e "${BLUE}Filtering to latest backups only...${NC}"
+    
+    # Group files by database name and keep only the latest (most recent) for each
+    declare -A LATEST_FILES
+    for file in "${VALID_FILES[@]}"; do
+        filename=$(basename "$file")
+        # Extract database name (e.g., "auth_db" from "auth_db_20260102_115534.sql")
+        db_name=$(echo "$filename" | sed -E 's/^([^_]+_[^_]+)_.*\.(sql|sql\.gz)$/\1/')
+        
+        if [ -z "$db_name" ] || [ "$db_name" = "$filename" ]; then
+            # If we can't extract DB name, include the file anyway
+            LATEST_FILES["$filename"]="$file"
+        else
+            # Check if we already have a file for this database
+            existing_file="${LATEST_FILES[$db_name]}"
+            if [ -z "$existing_file" ]; then
+                LATEST_FILES["$db_name"]="$file"
+            else
+                # Compare modification times - keep the newer one
+                if [ "$file" -nt "$existing_file" ]; then
+                    LATEST_FILES["$db_name"]="$file"
+                fi
+            fi
+        fi
+    done
+    
+    # Convert associative array back to regular array
+    VALID_FILES=()
+    for key in "${!LATEST_FILES[@]}"; do
+        VALID_FILES+=("${LATEST_FILES[$key]}")
+    done
+    
+    echo -e "${GREEN}  ✓ Filtered to ${#VALID_FILES[@]} latest backup file(s)${NC}"
+    echo ""
+fi
+
+# Check which files already exist in S3 and skip them (optional - can be disabled)
+FILES_TO_UPLOAD=()
+FILES_SKIPPED=0
+
+if [ ${#VALID_FILES[@]} -gt 0 ]; then
+    echo -e "${BLUE}Checking which files need to be uploaded...${NC}"
+    
+    # Get list of existing files in S3
+    S3_EXISTING_FILES=$(aws s3 ls "s3://$S3_BUCKET/$S3_PREFIX/" --region "$AWS_REGION" 2>/dev/null | awk '{print $4}' || echo "")
+    
+    for file in "${VALID_FILES[@]}"; do
+        filename=$(basename "$file")
+        
+        # Check if file exists in S3
+        if echo "$S3_EXISTING_FILES" | grep -qFx "$filename"; then
+            # File already exists in S3, skip it to avoid duplicates
+            ((FILES_SKIPPED++))
+            continue
+        fi
+        
+        FILES_TO_UPLOAD+=("$file")
+    done
+    
+    if [ $FILES_SKIPPED -gt 0 ]; then
+        echo -e "${YELLOW}  ⚠️  Skipping $FILES_SKIPPED file(s) that already exist in S3${NC}"
+    fi
+    
+    VALID_FILES=("${FILES_TO_UPLOAD[@]}")
+    
+    if [ ${#VALID_FILES[@]} -eq 0 ]; then
+        echo -e "${GREEN}✓ All backup files already exist in S3${NC}"
+        echo -e "${BLUE}  No new files to upload${NC}"
+        exit 0
+    fi
+    
+    echo -e "${GREEN}  ✓ ${#VALID_FILES[@]} new file(s) to upload${NC}"
+    echo ""
 fi
 
 echo -e "${BLUE}Uploading ${#VALID_FILES[@]} backup file(s) to S3...${NC}"
