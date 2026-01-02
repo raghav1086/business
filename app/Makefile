@@ -385,3 +385,12 @@ status: ## Check status of all services
 	@bash scripts/check-services.sh
 
 check: status ## Alias for status
+
+diagnose: ## Diagnose web access issues
+	@echo "$(BLUE)🔍 Diagnosing web access...$(NC)"
+	@bash scripts/diagnose-web-access.sh
+
+fix-web: ## Fix web app access issues
+	@echo "$(BLUE)🔧 Fixing web app...$(NC)"
+	@docker-compose -f docker-compose.prod.yml restart web-app
+	@echo "$(GREEN)✅ Web app restarted. Wait 30 seconds and check: make diagnose$(NC)"
