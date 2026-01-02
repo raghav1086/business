@@ -7,6 +7,7 @@
 # Usage: ./deploy-prod-ec2.sh [DB_HOST] [DB_PORT] [DB_USER] [DB_PASSWORD] [JWT_SECRET]
 # =============================================================================
 
+# Exit on error for critical failures, but handle build errors gracefully
 set -e
 
 # Colors
@@ -123,7 +124,10 @@ if [ ! -f "docker-compose.prod.yml" ]; then
 fi
 
 echo -e "${BLUE}  → Starting PostgreSQL and Redis...${NC}"
+# Don't fail if containers already exist
+set +e
 $DOCKER_COMPOSE -f docker-compose.prod.yml up -d postgres redis
+set -e
 
 # Wait for databases to be ready
 echo -e "${BLUE}  → Waiting for databases to be ready...${NC}"
@@ -158,6 +162,8 @@ done
 
 if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
     echo -e "${RED}✗ Redis did not become ready in time${NC}"
+    echo -e "${YELLOW}  → Checking container status...${NC}"
+    docker ps | grep business-redis || echo "  Container not running"
     exit 1
 fi
 
@@ -314,6 +320,9 @@ build_service() {
     fi
 }
 
+# Temporarily disable exit on error for build loop
+set +e
+
 for service in "${SERVICES[@]}"; do
     if build_service "$service"; then
         ((BUILD_SUCCESS++))
@@ -323,12 +332,16 @@ for service in "${SERVICES[@]}"; do
     echo ""
 done
 
+# Re-enable exit on error for critical steps
+set -e
+
 # Cleanup log files
 rm -f /tmp/docker-build-*.log 2>/dev/null
 
 if [ $BUILD_FAILED -gt 0 ]; then
     echo -e "${YELLOW}  ⚠️  $BUILD_FAILED service(s) failed to build${NC}"
     echo -e "${YELLOW}  → Continuing with successfully built services...${NC}"
+    echo -e "${YELLOW}  → You can rebuild failed services later${NC}"
 else
     echo -e "${GREEN}✓ All Docker images built successfully${NC}"
 fi
@@ -339,13 +352,22 @@ echo -e "${YELLOW}Step 8/9: Starting all application services...${NC}"
 cd "$PROJECT_ROOT"
 
 echo -e "${BLUE}  → Starting all services in production mode...${NC}"
+# Don't fail if some services can't start (they might not be built)
+set +e
 $DOCKER_COMPOSE -f docker-compose.prod.yml up -d
+START_EXIT_CODE=$?
+set -e
+
+if [ $START_EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}  ✓ Services start command completed${NC}"
+else
+    echo -e "${YELLOW}  ⚠️  Some services may not have started (check logs)${NC}"
+fi
 
 # Wait for services to start
 echo -e "${BLUE}  → Waiting for services to initialize...${NC}"
 sleep 20
 
-echo -e "${GREEN}✓ All services started${NC}"
 echo ""
 
 # Step 9: Health check and verification
