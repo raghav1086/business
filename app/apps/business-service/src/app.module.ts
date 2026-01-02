@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { HttpModule } from '@nestjs/axios';
 import { BusinessController } from './controllers/business.controller';
 import { HealthController } from './controllers/health.controller';
 import { BusinessUserController } from './controllers/business-user.controller';
@@ -36,6 +37,7 @@ import { AuditLogRepository } from './repositories/audit-log.repository';
       }),
       inject: [ConfigService],
     }),
+    HttpModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

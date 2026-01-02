@@ -52,14 +52,18 @@ export class AuthController {
     @Body() verifyOtpDto: VerifyOtpDto
   ): Promise<VerifyOtpResponseDto> {
     const result = await this.authService.verifyOtp(verifyOtpDto);
+    
+    // Ensure is_superadmin is explicitly included
+    const isSuperadmin = result.user.is_superadmin === true || Boolean(result.user.is_superadmin);
+    
     return {
       user: {
         id: result.user.id,
         phone: result.user.phone,
-        name: result.user.name,
-        email: result.user.email,
-        phone_verified: result.user.phone_verified,
-        is_superadmin: result.user.is_superadmin || false,
+        name: result.user.name || null,
+        email: result.user.email || null,
+        phone_verified: result.user.phone_verified || false,
+        is_superadmin: isSuperadmin,
       },
       tokens: result.tokens,
       is_new_user: result.is_new_user,

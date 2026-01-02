@@ -21,6 +21,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiConsumes,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { UserService } from '../services/user.service';
@@ -164,6 +165,115 @@ export class UserController {
       throw new ForbiddenException('Superadmin access required');
     }
     const count = await this.userService.getUserCount();
+    return { count };
+  }
+
+  /**
+   * Get active users count (superadmin only)
+   */
+  @Get('admin/stats/active')
+  @ApiOperation({ summary: 'Get active users count (last 30 days) (superadmin only)' })
+  @ApiQuery({ name: 'days', required: false, description: 'Number of days', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Active users count',
+    schema: { type: 'object', properties: { count: { type: 'number' } } },
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getActiveUsersCount(
+    @Request() req: any,
+    @Query('days') days?: string
+  ): Promise<{ count: number }> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const daysCount = days ? parseInt(days, 10) : 30;
+    const count = await this.userService.getActiveUsersCount(daysCount);
+    return { count };
+  }
+
+  /**
+   * Get users growth (superadmin only)
+   */
+  @Get('admin/stats/growth')
+  @ApiOperation({ summary: 'Get users growth data (superadmin only)' })
+  @ApiQuery({ name: 'months', required: false, description: 'Number of months', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Users growth data',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          month: { type: 'string' },
+          count: { type: 'number' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getUsersGrowth(
+    @Request() req: any,
+    @Query('months') months?: string
+  ): Promise<Array<{ month: string; count: number }>> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const monthsCount = months ? parseInt(months, 10) : 6;
+    return this.userService.getUsersGrowth(monthsCount);
+  }
+
+  /**
+   * Get users by type distribution (superadmin only)
+   */
+  @Get('admin/stats/distribution')
+  @ApiOperation({ summary: 'Get users by type distribution (superadmin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Users by type distribution',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          count: { type: 'number' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getUsersByTypeDistribution(
+    @Request() req: any
+  ): Promise<Array<{ type: string; count: number }>> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    return this.userService.getUsersByTypeDistribution();
+  }
+
+  /**
+   * Get recent users count (superadmin only)
+   */
+  @Get('admin/stats/recent')
+  @ApiOperation({ summary: 'Get recent users count (last 7 days) (superadmin only)' })
+  @ApiQuery({ name: 'days', required: false, description: 'Number of days', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent users count',
+    schema: { type: 'object', properties: { count: { type: 'number' } } },
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getRecentUsersCount(
+    @Request() req: any,
+    @Query('days') days?: string
+  ): Promise<{ count: number }> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const daysCount = days ? parseInt(days, 10) : 7;
+    const count = await this.userService.getRecentUsersCount(daysCount);
     return { count };
   }
 

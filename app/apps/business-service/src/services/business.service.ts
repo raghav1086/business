@@ -1,4 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 import { BusinessRepository } from '../repositories/business.repository';
 import { BusinessUserRepository } from '../repositories/business-user.repository';
 import { CreateBusinessDto, UpdateBusinessDto } from '@business-app/shared/dto';
@@ -16,7 +19,9 @@ import { Role } from '@business-app/shared/constants';
 export class BusinessService {
   constructor(
     private readonly businessRepository: BusinessRepository,
-    private readonly businessUserRepository: BusinessUserRepository
+    private readonly businessUserRepository: BusinessUserRepository,
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService
   ) {}
 
   /**
@@ -95,21 +100,93 @@ export class BusinessService {
   /**
    * Get system statistics (superadmin only)
    */
-  async getSystemStats(): Promise<{
+  async getSystemStats(authToken?: string): Promise<{
     totalBusinesses: number;
     activeBusinesses: number;
     inactiveBusinesses: number;
-    totalUsers: number; // This would need to come from auth-service
+    totalUsers: number;
+    activeUsers: number;
+    businessesGrowth: Array<{ month: string; count: number }>;
+    usersGrowth: Array<{ month: string; count: number }>;
+    businessTypeDistribution: Array<{ type: string; count: number }>;
+    userTypeDistribution: Array<{ type: string; count: number }>;
+    recentBusinesses: number;
+    recentUsers: number;
   }> {
     const totalBusinesses = await this.businessRepository.countAll();
     const activeBusinesses = await this.businessRepository.countByStatus('active');
     const inactiveBusinesses = await this.businessRepository.countByStatus('inactive');
     
+    // Get growth data (last 6 months)
+    const businessesGrowth = await this.businessRepository.getMonthlyCounts(6);
+    const businessTypeDistribution = await this.businessRepository.getByTypeDistribution();
+    
+    // Recent businesses (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentBusinesses = await this.businessRepository.countByDateRange(
+      sevenDaysAgo,
+      new Date()
+    );
+    
+    // Fetch user stats from auth-service
+    let totalUsers = 0;
+    let activeUsers = 0;
+    let usersGrowth: Array<{ month: string; count: number }> = [];
+    let userTypeDistribution: Array<{ type: string; count: number }> = [];
+    let recentUsers = 0;
+    
+    if (authToken) {
+      try {
+        const authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL', 'http://localhost:3002');
+        const headers = {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        };
+        
+        // Fetch user stats in parallel
+        const results = await Promise.allSettled([
+          firstValueFrom(this.httpService.get(`${authServiceUrl}/api/v1/users/admin/count`, { headers })),
+          firstValueFrom(this.httpService.get(`${authServiceUrl}/api/v1/users/admin/stats/active`, { headers })),
+          firstValueFrom(this.httpService.get(`${authServiceUrl}/api/v1/users/admin/stats/growth`, { headers })),
+          firstValueFrom(this.httpService.get(`${authServiceUrl}/api/v1/users/admin/stats/distribution`, { headers })),
+          firstValueFrom(this.httpService.get(`${authServiceUrl}/api/v1/users/admin/stats/recent`, { headers })),
+        ]);
+        
+        const [countRes, activeRes, growthRes, typeRes, recentRes] = results;
+        
+        if (countRes.status === 'fulfilled') {
+          totalUsers = (countRes.value as any)?.data?.count || 0;
+        }
+        if (activeRes.status === 'fulfilled') {
+          activeUsers = (activeRes.value as any)?.data?.count || 0;
+        }
+        if (growthRes.status === 'fulfilled') {
+          usersGrowth = (growthRes.value as any)?.data || [];
+        }
+        if (typeRes.status === 'fulfilled') {
+          userTypeDistribution = (typeRes.value as any)?.data || [];
+        }
+        if (recentRes.status === 'fulfilled') {
+          recentUsers = (recentRes.value as any)?.data?.count || 0;
+        }
+      } catch (error) {
+        // Silently fail - user stats are optional
+        console.warn('Failed to fetch user stats from auth-service:', error);
+      }
+    }
+    
     return {
       totalBusinesses,
       activeBusinesses,
       inactiveBusinesses,
-      totalUsers: 0, // TODO: Get from auth-service
+      totalUsers,
+      activeUsers,
+      businessesGrowth,
+      usersGrowth,
+      businessTypeDistribution,
+      userTypeDistribution,
+      recentBusinesses,
+      recentUsers,
     };
   }
 

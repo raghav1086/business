@@ -44,26 +44,13 @@ install: ## Install all dependencies
 # =============================================================================
 # DEVELOPMENT (Local without Docker)
 # =============================================================================
-dev: ## Start all services locally for development (with migrations)
-	@echo "$(BLUE)🚀 Starting development environment...$(NC)"
-	@echo "$(YELLOW)Step 1/5: Starting Docker services...$(NC)"
-	@docker-compose up -d postgres redis
-	@echo "$(YELLOW)Step 2/5: Waiting for databases...$(NC)"
-	@sleep 5
-	@echo "$(YELLOW)Step 3/5: Initializing databases...$(NC)"
-	@docker exec -i business-postgres psql -U postgres -c "SELECT 1 FROM pg_database WHERE datname='auth_db'" | grep -q 1 || \
-		docker exec -i business-postgres psql -U postgres -f /docker-entrypoint-initdb.d/init-db.sql
-	@echo "$(YELLOW)Step 4/5: Running RBAC migrations...$(NC)"
-	@bash scripts/run-rbac-migrations.sh localhost 5432 postgres postgres 2>/dev/null || \
-		(echo "$(YELLOW)⚠️  Migrations skipped (may already be applied)$(NC)" && sleep 1)
-	@echo "$(YELLOW)Step 5/5: Starting application services...$(NC)"
-	@npx nx run-many --target=serve --all --parallel=6
-	@echo "$(GREEN)✅ All services running$(NC)"
+dev: ## Start all services locally for development (DB & Redis from Docker)
+	@echo "$(BLUE)🚀 Starting development environment (local services, Docker DB/Redis)...$(NC)"
+	@bash scripts/start-local-services.sh
 
 dev-stop: ## Stop local development services
 	@echo "$(BLUE)🛑 Stopping development services...$(NC)"
-	@pkill -f "nx serve" || true
-	@echo "$(GREEN)✅ Services stopped$(NC)"
+	@bash scripts/stop-local-services.sh
 
 # =============================================================================
 # DOCKER OPERATIONS

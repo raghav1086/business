@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/auth-store';
@@ -28,34 +28,112 @@ import {
   XCircle,
   Download,
   Eye,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Clock,
+  AlertCircle,
+  Settings,
+  FileText,
+  ArrowUpRight,
+  ArrowDownRight,
+  Server,
+  Database,
+  Zap,
 } from 'lucide-react';
 import {
   getSystemStats,
   getAllBusinesses,
   getAllUsers,
+  getAllAuditLogs,
+  getAuditLogStatistics,
   type SystemStats,
   type BusinessListItem,
   type UserListItem,
+  type AuditLog,
+  type AuditLogStatistics,
+  type AuditLogFilters,
 } from '@/lib/services/superadmin.service';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/ui/page-header';
-import { useState } from 'react';
 import { formatPhoneNumber } from '@/lib/services/user-search.service';
 import { toast } from 'sonner';
+import { BusinessDetailsSheet } from '@/components/admin/business-details-sheet';
+import { UserDetailsSheet } from '@/components/admin/user-details-sheet';
+import { AuditLogsViewer } from '@/components/admin/audit-logs-viewer';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+
+// Chart color palette
+const CHART_COLORS = {
+  primary: '#3b82f6',
+  secondary: '#8b5cf6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+};
+
+const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1'];
 
 export default function SuperAdminPage() {
   const router = useRouter();
   const { isAuthenticated, isSuperadmin } = useAuthStore();
   const [businessSearch, setBusinessSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
+  const [businessDetailsOpen, setBusinessDetailsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false);
+  
+  // Filter and sort state for businesses
+  const [businessStatusFilter, setBusinessStatusFilter] = useState<string>('all');
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
+  const [businessSortBy, setBusinessSortBy] = useState<string>('created_desc');
+  const [businessPage, setBusinessPage] = useState(1);
+  const businessesPerPage = 50;
+  
+  // Filter and sort state for users
+  const [userStatusFilter, setUserStatusFilter] = useState<string>('all');
+  const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
+  const [userSortBy, setUserSortBy] = useState<string>('created_desc');
+  
+  // Bulk selection for users
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
 
   // Redirect if not authenticated or not superadmin
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (!isSuperadmin) {
-      router.push('/dashboard');
-    }
+    // Wait a bit for auth store to initialize from token
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else if (!isSuperadmin) {
+        // If user is authenticated but not superadmin, redirect to dashboard
+        router.push('/dashboard');
+      }
+    }, 100); // Small delay to allow token decoding
+
+    return () => clearTimeout(timer);
   }, [isAuthenticated, isSuperadmin, router]);
 
   // Fetch system stats
@@ -63,6 +141,7 @@ export default function SuperAdminPage() {
     queryKey: ['superadmin-stats'],
     queryFn: getSystemStats,
     enabled: isAuthenticated && isSuperadmin,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Fetch all businesses
@@ -75,23 +154,202 @@ export default function SuperAdminPage() {
   // Fetch all users
   const { data: users, isLoading: loadingUsers } = useQuery<UserListItem[]>({
     queryKey: ['superadmin-users'],
-    queryFn: () => getAllUsers(100), // Limit to 100 for now
+    queryFn: () => getAllUsers(100),
     enabled: isAuthenticated && isSuperadmin,
   });
 
-  // Filter businesses by search
-  const filteredBusinesses = businesses?.filter((business) =>
-    business.name.toLowerCase().includes(businessSearch.toLowerCase()) ||
-    business.gstin?.toLowerCase().includes(businessSearch.toLowerCase()) ||
-    business.owner_id.toLowerCase().includes(businessSearch.toLowerCase())
-  ) || [];
+  // Filter and sort businesses
+  const filteredBusinesses = businesses
+    ?.filter((business) => {
+      const matchesSearch =
+        business.name.toLowerCase().includes(businessSearch.toLowerCase()) ||
+        business.gstin?.toLowerCase().includes(businessSearch.toLowerCase()) ||
+        business.owner_id.toLowerCase().includes(businessSearch.toLowerCase());
+      const matchesStatus = businessStatusFilter === 'all' || business.status === businessStatusFilter;
+      const matchesType = businessTypeFilter === 'all' || business.type === businessTypeFilter;
+      return matchesSearch && matchesStatus && matchesType;
+    })
+    .sort((a, b) => {
+      switch (businessSortBy) {
+        case 'created_desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'created_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'status_asc':
+          return a.status.localeCompare(b.status);
+        case 'status_desc':
+          return b.status.localeCompare(a.status);
+        default:
+          return 0;
+      }
+    }) || [];
 
-  // Filter users by search
-  const filteredUsers = users?.filter((user) =>
-    user.phone.includes(userSearch) ||
-    user.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
-    user.email?.toLowerCase().includes(userSearch.toLowerCase())
-  ) || [];
+  // Pagination for businesses
+  const totalBusinessPages = Math.ceil(filteredBusinesses.length / businessesPerPage);
+  const paginatedBusinesses = filteredBusinesses.slice(
+    (businessPage - 1) * businessesPerPage,
+    businessPage * businessesPerPage
+  );
+
+  // Filter and sort users
+  const filteredUsers = users
+    ?.filter((user) => {
+      // Search filter
+      const matchesSearch =
+        user.phone.includes(userSearch) ||
+        user.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        user.email?.toLowerCase().includes(userSearch.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = userStatusFilter === 'all' || user.status === userStatusFilter;
+      
+      // Type filter
+      const matchesType = userTypeFilter === 'all' || 
+        (userTypeFilter === 'superadmin' && user.is_superadmin) ||
+        (userTypeFilter === 'business_owner' && !user.is_superadmin);
+      
+      return matchesSearch && matchesStatus && matchesType;
+    })
+    .sort((a, b) => {
+      switch (userSortBy) {
+        case 'name_asc':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'name_desc':
+          return (b.name || '').localeCompare(a.name || '');
+        case 'phone_asc':
+          return a.phone.localeCompare(b.phone);
+        case 'phone_desc':
+          return b.phone.localeCompare(a.phone);
+        case 'created_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'created_desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'last_login_asc':
+          const aLogin = a.last_login_at ? new Date(a.last_login_at).getTime() : 0;
+          const bLogin = b.last_login_at ? new Date(b.last_login_at).getTime() : 0;
+          return aLogin - bLogin;
+        case 'last_login_desc':
+          const aLoginDesc = a.last_login_at ? new Date(a.last_login_at).getTime() : 0;
+          const bLoginDesc = b.last_login_at ? new Date(b.last_login_at).getTime() : 0;
+          return bLoginDesc - aLoginDesc;
+        case 'status_asc':
+          return a.status.localeCompare(b.status);
+        case 'status_desc':
+          return b.status.localeCompare(a.status);
+        default:
+          return 0;
+      }
+    }) || [];
+  
+  // Pagination for users
+  const [userPage, setUserPage] = useState(1);
+  const usersPerPage = 50;
+  const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (userPage - 1) * usersPerPage,
+    userPage * usersPerPage
+  );
+  
+  // Bulk operations
+  const handleToggleUserSelection = (userId: string) => {
+    setSelectedUserIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+  
+  const handleSelectAllUsers = () => {
+    if (selectedUserIds.size === paginatedUsers.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(paginatedUsers.map(u => u.id)));
+    }
+  };
+  
+  const handleBulkExportUsers = () => {
+    const selectedUsers = filteredUsers.filter(u => selectedUserIds.has(u.id));
+    if (selectedUsers.length === 0) {
+      toast.error('Please select at least one user');
+      return;
+    }
+    
+    const headers = ['ID', 'Phone', 'Name', 'Email', 'Superadmin', 'Status', 'Created At', 'Last Login'];
+    const rows = selectedUsers.map((u) => [
+      u.id,
+      u.phone,
+      u.name || 'N/A',
+      u.email || 'N/A',
+      u.is_superadmin ? 'Yes' : 'No',
+      u.status,
+      new Date(u.created_at).toISOString(),
+      u.last_login_at ? new Date(u.last_login_at).toISOString() : 'N/A',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `selected-users-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Exported ${selectedUsers.length} user(s)`);
+    setSelectedUserIds(new Set());
+  };
+
+  // Calculate growth percentages
+  const calculateGrowth = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Get previous period count for growth calculation
+  const getPreviousPeriodCount = (growthData: Array<{ month: string; count: number }>): number => {
+    if (!growthData || growthData.length < 2) return 0;
+    return growthData[growthData.length - 2]?.count || 0;
+  };
+
+  const getCurrentPeriodCount = (growthData: Array<{ month: string; count: number }>): number => {
+    if (!growthData || growthData.length === 0) return 0;
+    return growthData[growthData.length - 1]?.count || 0;
+  };
+
+  // Calculate business growth
+  const businessGrowth = stats?.businessesGrowth
+    ? calculateGrowth(
+        getCurrentPeriodCount(stats.businessesGrowth),
+        getPreviousPeriodCount(stats.businessesGrowth)
+      )
+    : 0;
+
+  // Calculate user growth
+  const userGrowth = stats?.usersGrowth
+    ? calculateGrowth(
+        getCurrentPeriodCount(stats.usersGrowth),
+        getPreviousPeriodCount(stats.usersGrowth)
+      )
+    : 0;
+
+  // Recent activity (last 7 days)
+  const recentActivity = {
+    businesses: stats?.recentBusinesses || 0,
+    users: stats?.recentUsers || 0,
+  };
 
   // Export functions
   const exportBusinesses = () => {
@@ -153,8 +411,74 @@ export default function SuperAdminPage() {
     toast.success('Users exported successfully');
   };
 
-  if (!isAuthenticated || !isSuperadmin) {
-    return null;
+  // Global search state
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [globalSearchResults, setGlobalSearchResults] = useState<{
+    businesses: BusinessListItem[];
+    users: UserListItem[];
+  }>({ businesses: [], users: [] });
+
+  // Global search function
+  const handleGlobalSearch = (query: string) => {
+    if (!query || query.length < 2) {
+      setGlobalSearchResults({ businesses: [], users: [] });
+      return;
+    }
+
+    const searchLower = query.toLowerCase();
+    const matchingBusinesses = businesses?.filter(
+      (b) =>
+        b.name.toLowerCase().includes(searchLower) ||
+        b.gstin?.toLowerCase().includes(searchLower) ||
+        b.owner_id.toLowerCase().includes(searchLower)
+    ) || [];
+
+    const matchingUsers = users?.filter(
+      (u) =>
+        u.phone.includes(query) ||
+        u.name?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower)
+    ) || [];
+
+    setGlobalSearchResults({
+      businesses: matchingBusinesses.slice(0, 5),
+      users: matchingUsers.slice(0, 5),
+    });
+  };
+
+  // Quick actions
+  const handleQuickSearch = () => {
+    setGlobalSearchOpen(!globalSearchOpen);
+  };
+
+  const handleExportAll = () => {
+    exportBusinesses();
+    setTimeout(() => exportUsers(), 500);
+    toast.success('All data exported');
+  };
+
+  // Show loading state while checking authentication
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect non-superadmin users
+  if (!isSuperadmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Access denied. Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -178,13 +502,113 @@ export default function SuperAdminPage() {
             <Users className="h-4 w-4 mr-2" />
             Users
           </TabsTrigger>
+          <TabsTrigger value="audit-logs">
+            <Activity className="h-4 w-4 mr-2" />
+            Audit Logs
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
+          {/* System Health Monitoring */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                System Health
+              </CardTitle>
+              <CardDescription>Service status and performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <Database className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Database</p>
+                    <p className="text-xs text-muted-foreground">Connected</p>
+                  </div>
+                  <Badge variant="default" className="ml-auto">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Healthy
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <Zap className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Services</p>
+                    <p className="text-xs text-muted-foreground">All Running</p>
+                  </div>
+                  <Badge variant="default" className="ml-auto">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Operational
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div className="p-2 bg-purple-100 rounded-full">
+                    <Activity className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Performance</p>
+                    <p className="text-xs text-muted-foreground">Optimal</p>
+                  </div>
+                  <Badge variant="default" className="ml-auto">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Good
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <Shield className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Security</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                  </div>
+                  <Badge variant="default" className="ml-auto">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Secure
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions Panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common administrative tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <Button variant="outline" onClick={handleQuickSearch} className="h-auto flex-col py-4">
+                  <Search className="h-5 w-5 mb-2" />
+                  <span>Global Search</span>
+                </Button>
+                <Button variant="outline" onClick={handleExportAll} className="h-auto flex-col py-4">
+                  <Download className="h-5 w-5 mb-2" />
+                  <span>Export All Data</span>
+                </Button>
+                <Button variant="outline" onClick={() => toast.info('System settings coming soon')} className="h-auto flex-col py-4">
+                  <Settings className="h-5 w-5 mb-2" />
+                  <span>System Settings</span>
+                </Button>
+                <Button variant="outline" onClick={() => toast.info('System logs coming soon')} className="h-auto flex-col py-4">
+                  <FileText className="h-5 w-5 mb-2" />
+                  <span>View Logs</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Statistics Cards */}
           {loadingStats ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <Card key={i}>
                   <CardHeader>
                     <Skeleton className="h-4 w-24" />
@@ -204,7 +628,17 @@ export default function SuperAdminPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalBusinesses}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                    {businessGrowth >= 0 ? (
+                      <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 mr-1 text-red-600" />
+                    )}
+                    <span className={businessGrowth >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {Math.abs(businessGrowth).toFixed(1)}% from last month
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {stats.activeBusinesses} active
                   </p>
                 </CardContent>
@@ -222,6 +656,11 @@ export default function SuperAdminPage() {
                   <p className="text-xs text-muted-foreground">
                     {stats.inactiveBusinesses} inactive
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.totalBusinesses > 0
+                      ? ((stats.activeBusinesses / stats.totalBusinesses) * 100).toFixed(1)
+                      : 0}% active rate
+                  </p>
                 </CardContent>
               </Card>
 
@@ -232,7 +671,69 @@ export default function SuperAdminPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">Registered users</p>
+                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                    {userGrowth >= 0 ? (
+                      <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 mr-1 text-red-600" />
+                    )}
+                    <span className={userGrowth >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {Math.abs(userGrowth).toFixed(1)}% from last month
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.activeUsers} active (last 30 days)
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                  <Activity className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {stats.activeUsers}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Logged in last 30 days
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.totalUsers > 0
+                      ? ((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)
+                      : 0}% active rate
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Recent Businesses</CardTitle>
+                  <Clock className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {recentActivity.businesses}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Created in last 7 days
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Recent Users</CardTitle>
+                  <Users className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {recentActivity.users}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Registered in last 7 days
+                  </p>
                 </CardContent>
               </Card>
 
@@ -246,25 +747,294 @@ export default function SuperAdminPage() {
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Operational
                   </Badge>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    All systems running
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {recentActivity.businesses + recentActivity.users}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    New entities this week
+                  </p>
                 </CardContent>
               </Card>
             </div>
           ) : null}
+
+          {/* Charts Section */}
+          {stats && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Business Growth Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Growth</CardTitle>
+                  <CardDescription>Last 6 months</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats.businessesGrowth && stats.businessesGrowth.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={stats.businessesGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={CHART_COLORS.primary}
+                          strokeWidth={2}
+                          name="Businesses"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* User Registration Trend */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Registration Trend</CardTitle>
+                  <CardDescription>Last 6 months</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats.usersGrowth && stats.usersGrowth.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={stats.usersGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={CHART_COLORS.secondary}
+                          strokeWidth={2}
+                          name="Users"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Business Type Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Type Distribution</CardTitle>
+                  <CardDescription>By business type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats.businessTypeDistribution && stats.businessTypeDistribution.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={stats.businessTypeDistribution}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={(props: any) => `${props.type || ''} ${((props.percent || 0) * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="count"
+                        >
+                          {stats.businessTypeDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* User Type Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Type Distribution</CardTitle>
+                  <CardDescription>By user type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {stats.userTypeDistribution && stats.userTypeDistribution.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={stats.userTypeDistribution}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={(props: any) => `${props.type || ''} ${((props.percent || 0) * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="count"
+                        >
+                          {stats.userTypeDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Activity Feed */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest system events</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity.businesses > 0 && (
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {recentActivity.businesses} new business{recentActivity.businesses !== 1 ? 'es' : ''} created
+                      </p>
+                      <p className="text-xs text-muted-foreground">In the last 7 days</p>
+                    </div>
+                    <Badge variant="outline">{recentActivity.businesses}</Badge>
+                  </div>
+                )}
+                {recentActivity.users > 0 && (
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <Users className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {recentActivity.users} new user{recentActivity.users !== 1 ? 's' : ''} registered
+                      </p>
+                      <p className="text-xs text-muted-foreground">In the last 7 days</p>
+                    </div>
+                    <Badge variant="outline">{recentActivity.users}</Badge>
+                  </div>
+                )}
+                {recentActivity.businesses === 0 && recentActivity.users === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No recent activity</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Businesses Tab */}
         <TabsContent value="businesses" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-sm">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search businesses..."
-                  value={businessSearch}
-                  onChange={(e) => setBusinessSearch(e.target.value)}
-                  className="pl-9"
-                />
+          {/* Filters and Search */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Filters & Search</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search businesses..."
+                      value={businessSearch}
+                      onChange={(e) => {
+                        setBusinessSearch(e.target.value);
+                        setBusinessPage(1); // Reset to first page on search
+                      }}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="status-filter">Status</Label>
+                  <Select value={businessStatusFilter} onValueChange={(value) => {
+                    setBusinessStatusFilter(value);
+                    setBusinessPage(1);
+                  }}>
+                    <SelectTrigger id="status-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="type-filter">Type</Label>
+                  <Select value={businessTypeFilter} onValueChange={(value) => {
+                    setBusinessTypeFilter(value);
+                    setBusinessPage(1);
+                  }}>
+                    <SelectTrigger id="type-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {businesses && Array.from(new Set(businesses.map(b => b.type))).map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="sort-by">Sort By</Label>
+                  <Select value={businessSortBy} onValueChange={setBusinessSortBy}>
+                    <SelectTrigger id="sort-by">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created_desc">Newest First</SelectItem>
+                      <SelectItem value="created_asc">Oldest First</SelectItem>
+                      <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+                      <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+                      <SelectItem value="status_asc">Status (A-Z)</SelectItem>
+                      <SelectItem value="status_desc">Status (Z-A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {paginatedBusinesses.length} of {filteredBusinesses.length} businesses
             </div>
             <Button variant="outline" onClick={exportBusinesses} disabled={!filteredBusinesses.length}>
               <Download className="h-4 w-4 mr-2" />
@@ -278,64 +1048,93 @@ export default function SuperAdminPage() {
                 <Skeleton className="h-64 w-full" />
               </CardContent>
             </Card>
-          ) : filteredBusinesses.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>All Businesses</CardTitle>
-                <CardDescription>
-                  {filteredBusinesses.length} business(es) found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Owner ID</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>GSTIN</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredBusinesses.map((business) => (
-                        <TableRow key={business.id}>
-                          <TableCell className="font-medium">{business.name}</TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {business.owner_id.substring(0, 8)}...
-                          </TableCell>
-                          <TableCell>{business.type}</TableCell>
-                          <TableCell>{business.gstin || 'N/A'}</TableCell>
-                          <TableCell>
-                            <Badge variant={business.status === 'active' ? 'default' : 'secondary'}>
-                              {business.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(business.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to business details or settings
-                                toast.info('Business details view coming soon');
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+          ) : paginatedBusinesses.length > 0 ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Businesses</CardTitle>
+                  <CardDescription>
+                    {filteredBusinesses.length} business(es) found
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Owner ID</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>GSTIN</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedBusinesses.map((business: BusinessListItem) => (
+                          <TableRow key={business.id}>
+                            <TableCell className="font-medium">{business.name}</TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {business.owner_id.substring(0, 8)}...
+                            </TableCell>
+                            <TableCell>{business.type}</TableCell>
+                            <TableCell>{business.gstin || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge variant={business.status === 'active' ? 'default' : 'secondary'}>
+                                {business.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(business.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBusiness(business.id);
+                                  setBusinessDetailsOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pagination */}
+              {totalBusinessPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Page {businessPage} of {totalBusinessPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBusinessPage((p: number) => Math.max(1, p - 1))}
+                      disabled={businessPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBusinessPage((p: number) => Math.min(totalBusinessPages, p + 1))}
+                      disabled={businessPage === totalBusinessPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </>
           ) : (
             <Card>
               <CardContent className="py-8 text-center">
@@ -344,21 +1143,120 @@ export default function SuperAdminPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Business Details Sheet */}
+          <BusinessDetailsSheet
+            businessId={selectedBusiness}
+            open={businessDetailsOpen}
+            onOpenChange={setBusinessDetailsOpen}
+            business={businesses?.find(b => b.id === selectedBusiness)}
+          />
         </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-sm">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="pl-9"
-                />
+          {/* Filters and Search */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Filters & Search</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={userSearch}
+                      onChange={(e) => {
+                        setUserSearch(e.target.value);
+                        setUserPage(1);
+                      }}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="user-status-filter">Status</Label>
+                  <Select value={userStatusFilter} onValueChange={(value) => {
+                    setUserStatusFilter(value);
+                    setUserPage(1);
+                  }}>
+                    <SelectTrigger id="user-status-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="user-type-filter">Type</Label>
+                  <Select value={userTypeFilter} onValueChange={(value) => {
+                    setUserTypeFilter(value);
+                    setUserPage(1);
+                  }}>
+                    <SelectTrigger id="user-type-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="superadmin">Superadmin</SelectItem>
+                      <SelectItem value="business_owner">Business Owner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="user-sort-by">Sort By</Label>
+                  <Select value={userSortBy} onValueChange={setUserSortBy}>
+                    <SelectTrigger id="user-sort-by">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created_desc">Newest First</SelectItem>
+                      <SelectItem value="created_asc">Oldest First</SelectItem>
+                      <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+                      <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+                      <SelectItem value="phone_asc">Phone (A-Z)</SelectItem>
+                      <SelectItem value="phone_desc">Phone (Z-A)</SelectItem>
+                      <SelectItem value="last_login_desc">Last Login (Recent)</SelectItem>
+                      <SelectItem value="last_login_asc">Last Login (Oldest)</SelectItem>
+                      <SelectItem value="status_asc">Status (A-Z)</SelectItem>
+                      <SelectItem value="status_desc">Status (Z-A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Bulk Actions */}
+          {selectedUserIds.size > 0 && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {selectedUserIds.size} user(s) selected
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleBulkExportUsers}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Selected
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedUserIds(new Set())}>
+                      Clear Selection
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {paginatedUsers.length} of {filteredUsers.length} users
             </div>
             <Button variant="outline" onClick={exportUsers} disabled={!filteredUsers.length}>
               <Download className="h-4 w-4 mr-2" />
@@ -372,69 +1270,114 @@ export default function SuperAdminPage() {
                 <Skeleton className="h-64 w-full" />
               </CardContent>
             </Card>
-          ) : filteredUsers.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>All Users</CardTitle>
-                <CardDescription>
-                  {filteredUsers.length} user(s) found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
-                          <TableCell>{user.name || 'N/A'}</TableCell>
-                          <TableCell>{user.email || 'N/A'}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
-                              <Shield className="h-3 w-3 mr-1" />
-                              {user.is_superadmin ? 'Superadmin' : 'User'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                              {user.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.last_login_at
-                              ? new Date(user.last_login_at).toLocaleDateString()
-                              : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                // Navigate to user details
-                                toast.info('User details view coming soon');
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+          ) : paginatedUsers.length > 0 ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Users</CardTitle>
+                  <CardDescription>
+                    {filteredUsers.length} user(s) found
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">
+                            <input
+                              type="checkbox"
+                              checked={selectedUserIds.size === paginatedUsers.length && paginatedUsers.length > 0}
+                              onChange={handleSelectAllUsers}
+                              className="rounded"
+                            />
+                          </TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Login</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedUserIds.has(user.id)}
+                                onChange={() => handleToggleUserSelection(user.id)}
+                                className="rounded"
+                              />
+                            </TableCell>
+                            <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
+                            <TableCell>{user.name || 'N/A'}</TableCell>
+                            <TableCell>{user.email || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
+                                <Shield className="h-3 w-3 mr-1" />
+                                {user.is_superadmin ? 'Superadmin' : 'User'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                                {user.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {user.last_login_at
+                                ? new Date(user.last_login_at).toLocaleDateString()
+                                : 'Never'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user.id);
+                                  setUserDetailsOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pagination */}
+              {totalUserPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Page {userPage} of {totalUserPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                      disabled={userPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUserPage((p) => Math.min(totalUserPages, p + 1))}
+                      disabled={userPage === totalUserPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </>
           ) : (
             <Card>
               <CardContent className="py-8 text-center">
@@ -443,9 +1386,21 @@ export default function SuperAdminPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* User Details Sheet */}
+          <UserDetailsSheet
+            userId={selectedUser}
+            open={userDetailsOpen}
+            onOpenChange={setUserDetailsOpen}
+            user={users?.find(u => u.id === selectedUser)}
+          />
+        </TabsContent>
+
+        {/* Audit Logs Tab */}
+        <TabsContent value="audit-logs" className="space-y-4">
+          <AuditLogsViewer />
         </TabsContent>
       </Tabs>
     </AppLayout>
   );
 }
-

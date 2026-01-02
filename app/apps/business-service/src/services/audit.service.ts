@@ -119,5 +119,54 @@ export class AuditService {
   async getUserAuditLogs(userId: string, limit: number = 100) {
     return this.auditLogRepository.findByUser(userId, limit);
   }
+
+  /**
+   * Get all audit logs (system-wide, superadmin only)
+   */
+  async getAllAuditLogs(
+    filters?: {
+      action?: string;
+      userId?: string;
+      targetUserId?: string;
+      businessId?: string;
+      startDate?: Date;
+      endDate?: Date;
+    },
+    limit: number = 500
+  ) {
+    // Build filters object for simple where conditions
+    const whereFilters: Record<string, any> = {};
+    if (filters?.action) whereFilters.action = filters.action;
+    if (filters?.userId) whereFilters.user_id = filters.userId;
+    if (filters?.targetUserId) whereFilters.target_user_id = filters.targetUserId;
+    if (filters?.businessId) whereFilters.business_id = filters.businessId;
+    
+    // For date filters, we need to use query builder
+    if (filters?.startDate || filters?.endDate) {
+      const queryBuilder = (this.auditLogRepository as any).repository.createQueryBuilder('audit_log');
+      
+      if (filters?.action) queryBuilder.andWhere('audit_log.action = :action', { action: filters.action });
+      if (filters?.userId) queryBuilder.andWhere('audit_log.user_id = :userId', { userId: filters.userId });
+      if (filters?.targetUserId) queryBuilder.andWhere('audit_log.target_user_id = :targetUserId', { targetUserId: filters.targetUserId });
+      if (filters?.businessId) queryBuilder.andWhere('audit_log.business_id = :businessId', { businessId: filters.businessId });
+      if (filters?.startDate) queryBuilder.andWhere('audit_log.created_at >= :startDate', { startDate: filters.startDate });
+      if (filters?.endDate) queryBuilder.andWhere('audit_log.created_at <= :endDate', { endDate: filters.endDate });
+      
+      return queryBuilder
+        .orderBy('audit_log.created_at', 'DESC')
+        .take(limit)
+        .getMany();
+    }
+    
+    // Use simple findAll for non-date filters
+    return this.auditLogRepository.findAll(Object.keys(whereFilters).length > 0 ? whereFilters : undefined, limit);
+  }
+
+  /**
+   * Get audit log statistics (superadmin only)
+   */
+  async getAuditLogStatistics() {
+    return this.auditLogRepository.getStatistics();
+  }
 }
 

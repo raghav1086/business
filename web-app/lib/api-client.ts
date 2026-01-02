@@ -133,15 +133,25 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
       
       // Add business ID to headers if available
       const businessId = tokenStorage.getBusinessId();
-      if (businessId) {
+      const url = config.url || '';
+      
+      // Don't require business ID for:
+      // - Auth endpoints
+      // - Health checks
+      // - Business listing/creation endpoints
+      // - Admin/superadmin endpoints
+      // - User admin endpoints
+      const skipBusinessId = url.includes('/auth/') ||
+                            url.includes('/health') ||
+                            url.includes('/businesses') ||
+                            url.includes('/admin/') ||
+                            url.includes('/users/admin/');
+      
+      if (businessId && !skipBusinessId) {
         config.headers['x-business-id'] = businessId;
-      } else {
-        // Warn if business_id is required but missing (except for /businesses endpoint)
-        const url = config.url || '';
-        const needsBusinessId = !url.includes('/businesses') && 
-                                !url.includes('/auth/') &&
-                                !url.includes('/health');
-        if (needsBusinessId && typeof window !== 'undefined') {
+      } else if (!businessId && !skipBusinessId) {
+        // Warn if business_id is required but missing (only for non-skipped endpoints)
+        if (typeof window !== 'undefined') {
           console.warn(`[API Client] Business ID missing for request: ${config.method?.toUpperCase()} ${url}`);
         }
       }
@@ -183,8 +193,9 @@ const createApiClient = (baseURL: string, serviceName: string): AxiosInstance =>
         if (errorMessage.includes('Business ID is required')) {
           console.warn('[API Client] Business ID is required, redirecting to business selection');
           if (typeof window !== 'undefined') {
-            // Only redirect if not already on business selection page
-            if (!window.location.pathname.includes('/business/select')) {
+            // Only redirect if not already on business selection page or admin page
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/business/select') && !currentPath.includes('/admin')) {
               window.location.href = '/business/select';
             }
           }

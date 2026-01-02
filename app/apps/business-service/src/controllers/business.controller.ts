@@ -82,7 +82,8 @@ export class BusinessController {
     if (!req.user?.is_superadmin) {
       throw new ForbiddenException('Superadmin access required');
     }
-    return this.businessService.getSystemStats();
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
+    return this.businessService.getSystemStats(authToken);
   }
 
   @Get(':id')

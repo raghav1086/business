@@ -1,0 +1,1 @@
+{"id":"req_1767333118781_g4tz9w0xc","timestamp":"2026-01-02T05:51:58.781Z","type":"request","method":"POST","url":"[auth] http://localhost:3002/api/v1/auth/verify-otp","headers":{"Accept":"application/json, text/plain, */*","Content-Type":"application/json"},"data":{"phone":"9175760649","otp_id":"fd73373d-1522-479c-a127-32731c8aac6f","otp":"760649"}}

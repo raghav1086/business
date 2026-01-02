@@ -90,5 +90,34 @@ export class UserService {
   async getUserCount(): Promise<number> {
     return this.userRepository.countAll();
   }
+
+  /**
+   * Get active users count (logged in last N days)
+   */
+  async getActiveUsersCount(days: number = 30): Promise<number> {
+    return this.userRepository.countActiveUsers(days);
+  }
+
+  /**
+   * Get users growth data (monthly counts)
+   */
+  async getUsersGrowth(months: number = 6): Promise<Array<{ month: string; count: number }>> {
+    return this.userRepository.getMonthlyCounts(months);
+  }
+
+  /**
+   * Get users by type distribution
+   */
+  async getUsersByTypeDistribution(): Promise<Array<{ type: string; count: number }>> {
+    return this.userRepository.getByTypeDistribution();
+  }
+
+  /**
+   * Get recent users count (created in last N days)
+   */
+  async getRecentUsersCount(days: number = 7): Promise<number> {
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return this.userRepository.countByDateRange(startDate, new Date());
+  }
 }
 

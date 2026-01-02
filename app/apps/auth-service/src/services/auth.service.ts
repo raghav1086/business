@@ -128,6 +128,7 @@ export class AuthService {
         phone_verified: true,
       };
       
+      // Always set superadmin flag if this is a superadmin login
       if (isSuperadminLogin) {
         updateData.is_superadmin = true;
         updateData.user_type = 'superadmin';
@@ -136,18 +137,27 @@ export class AuthService {
       await this.userRepository.update(user.id, updateData);
       await this.userRepository.updateLastLogin(user.id);
       
-      // Refresh user object to get updated is_superadmin
-      if (isSuperadminLogin) {
-        user = await this.userRepository.findById(user.id);
+      // Always refresh user object to get latest data including is_superadmin
+      const refreshedUser = await this.userRepository.findUserById(user.id);
+      if (refreshedUser) {
+        user = refreshedUser;
       }
     }
 
+    // Ensure is_superadmin is set correctly (check both database value and login type)
+    const finalIsSuperadmin = isSuperadminLogin || (user.is_superadmin === true);
+    
     // Generate tokens with superadmin flag
     const tokens = await this.jwtTokenService.generateTokenPair(
       user.id,
       user.phone,
-      user.is_superadmin || false
+      finalIsSuperadmin
     );
+    
+    // Update user object to reflect final superadmin status
+    if (finalIsSuperadmin && !user.is_superadmin) {
+      user.is_superadmin = true;
+    }
 
     // Store refresh token
     await this.jwtTokenService.storeRefreshToken(

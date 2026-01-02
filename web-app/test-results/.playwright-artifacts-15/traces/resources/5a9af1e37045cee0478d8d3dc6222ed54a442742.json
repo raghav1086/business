@@ -1,0 +1,1 @@
+{"id":"req_1767333118907_6pf3yh219","timestamp":"2026-01-02T05:51:58.907Z","type":"request","method":"GET","url":"[business] http://localhost:3003/api/v1/businesses","headers":{"Accept":"application/json, text/plain, */*","Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIU...[REDACTED]"},"data":null}

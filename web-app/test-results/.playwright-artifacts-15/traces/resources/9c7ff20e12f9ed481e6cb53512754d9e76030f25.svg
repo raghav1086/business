@@ -1,0 +1,31 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <circle cx="32" cy="32" r="28" fill="url(#iconGradient)"/>
+  
+  <!-- Upward trending bars -->
+  <rect x="20" y="28" width="4" height="12" rx="2" fill="url(#iconAccent)"/>
+  <rect x="28" y="24" width="4" height="16" rx="2" fill="url(#iconAccent)"/>
+  <rect x="36" y="20" width="4" height="20" rx="2" fill="url(#iconAccent)"/>
+  <rect x="44" y="26" width="4" height="14" rx="2" fill="url(#iconAccent)"/>
+  
+  <!-- Central prosperity symbol -->
+  <path d="M 32 18 Q 26 22 26 28 Q 26 34 32 38 Q 38 34 38 28 Q 38 22 32 18" 
+        stroke="white" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <circle cx="32" cy="23" r="1.5" fill="white"/>
+  <circle cx="32" cy="31" r="1.5" fill="white"/>
+</svg>
+

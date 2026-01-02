@@ -99,27 +99,30 @@ export default function LoginPage() {
       const { tokens, user, is_new_user } = response.data;
       const { access_token, refresh_token } = tokens;
 
-      // Store tokens
+      // Store tokens FIRST
       tokenStorage.setAccessToken(access_token);
       tokenStorage.setRefreshToken(refresh_token);
       
       // Set user in store (include is_superadmin if available)
+      const isSuperadmin = user.is_superadmin || false;
       setUser({ 
         id: user.id, 
         phone: user.phone,
-        is_superadmin: user.is_superadmin || false,
+        is_superadmin: isSuperadmin,
       });
 
       toast.success(is_new_user ? 'Registration successful!' : 'Login successful', {
         description: is_new_user ? 'Welcome! Let\'s set up your business.' : 'Welcome back!',
       });
 
-      // Redirect based on user type
-      if (user.is_superadmin) {
-        router.push('/admin');
-      } else {
-        router.push('/business/select');
-      }
+      // Wait a moment for store to update, then redirect based on user type
+      setTimeout(() => {
+        if (isSuperadmin) {
+          router.push('/admin');
+        } else {
+          router.push('/business/select');
+        }
+      }, 100);
     } catch (error: any) {
       const message = error.response?.data?.message || 'Invalid OTP';
       setError(message);

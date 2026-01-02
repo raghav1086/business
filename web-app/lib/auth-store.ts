@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { tokenStorage } from './api-client';
+import { extractUserFromToken, isTokenExpired } from './jwt-utils';
 
 interface User {
   id: string;
@@ -65,12 +66,32 @@ export const useAuthStore = create<AuthState>((set) => ({
     const accessToken = tokenStorage.getAccessToken();
     
     if (userId && accessToken) {
-      // Note: is_superadmin would need to be stored/retrieved from token
-      // For now, we'll fetch it when needed
+      // Check if token is expired
+      if (isTokenExpired(accessToken)) {
+        console.warn('[Auth Store] Token expired, clearing auth state');
+        tokenStorage.clearAll();
+        set({
+          user: null,
+          isAuthenticated: false,
+          isSuperadmin: false,
+          businessId: null,
+          businessName: null,
+        });
+        return;
+      }
+
+      // Extract user info from token (including is_superadmin)
+      const userInfo = extractUserFromToken(accessToken);
+      const isSuperadmin = userInfo?.is_superadmin || false;
+      
       set({
-        user: { id: userId, phone: '' }, // Phone will be fetched if needed
+        user: { 
+          id: userId, 
+          phone: userInfo?.phone || '', 
+          is_superadmin: isSuperadmin 
+        },
         isAuthenticated: true,
-        isSuperadmin: false, // Will be updated from token/user profile
+        isSuperadmin: isSuperadmin,
         businessId: businessId || null,
         businessName: businessName || null,
       });

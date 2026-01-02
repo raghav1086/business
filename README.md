@@ -32,6 +32,10 @@ This project aims to build a comprehensive billing, accounting, and GST manageme
 - **[Strategic Analysis Features](./docs/STRATEGIC_ANALYSIS_FEATURES.md)** - Strategic features added (Regulatory Future-Proofing, Partner Ecosystem, Support & Operations, Pricing)
 - **[Complete Feature Coverage](./docs/COMPLETE_FEATURE_COVERAGE.md)** - Comprehensive overview of all 35 modules and 100% feature coverage from all PDFs
 - **[AI Strategy & Implementation](./docs/AI_STRATEGY_AND_IMPLEMENTATION.md)** - Comprehensive AI & Agentic AI strategy, implementation roadmap, and strategic recommendations
+- **[AI Chatbot Documentation](./docs/ai/README.md)** - Complete AI Chatbot documentation including 360-degree use cases, architecture, and implementation guide
+  - **[360-Degree Use Cases](./docs/ai/CHATBOT_360_DEGREE_USE_CASES.md)** - 350+ use cases organized by chatbot roles (Friend, Teacher, Supporter)
+  - **[Chatbot Architecture](./docs/ai/CHATBOT_ARCHITECTURE.md)** - Technical architecture, system design, and implementation phases
+  - **[Quick Reference Guide](./docs/ai/CHATBOT_QUICK_REFERENCE.md)** - User-friendly quick reference for business owners
 - **[Comprehensive Review](./docs/COMPREHENSIVE_REVIEW.md)** - Complete quality assurance review, issues fixed, and readiness assessment
 
 ### Development Planning
