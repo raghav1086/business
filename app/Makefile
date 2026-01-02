@@ -394,3 +394,14 @@ fix-web: ## Fix web app access issues
 	@echo "$(BLUE)🔧 Fixing web app...$(NC)"
 	@docker-compose -f docker-compose.prod.yml restart web-app
 	@echo "$(GREEN)✅ Web app restarted. Wait 30 seconds and check: make diagnose$(NC)"
+
+fix-permissions: ## Fix user permissions (usage: make fix-permissions PHONE=8625953177)
+	@echo "$(BLUE)🔧 Fixing user permissions...$(NC)"
+	@if [ -z "$(PHONE)" ]; then \
+		echo "$(YELLOW)⚠️  No phone number provided, fixing all users...$(NC)"; \
+		bash scripts/fix-user-permissions.sh; \
+	else \
+		echo "$(YELLOW)Fixing permissions for phone: $(PHONE)$(NC)"; \
+		bash scripts/fix-user-permissions.sh "$(PHONE)"; \
+	fi
+	@echo "$(GREEN)✅ Permissions fixed. User should log out and log back in.$(NC)"

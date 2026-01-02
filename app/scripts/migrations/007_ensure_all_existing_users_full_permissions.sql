@@ -31,10 +31,17 @@ ON CONFLICT (business_id, user_id) DO NOTHING;
 -- This ensures all existing users have full permissions for seamless experience
 -- Only reset if permissions are NOT NULL (meaning they were explicitly set)
 -- This preserves the permissive-by-default philosophy
+-- IMPORTANT: This fixes the issue where existing users get permission errors
 UPDATE business_users
 SET permissions = NULL
 WHERE permissions IS NOT NULL
   AND permissions != 'null'::jsonb
+  AND status = 'active';
+
+-- Also ensure any users with empty JSONB objects get NULL (full access)
+UPDATE business_users
+SET permissions = NULL
+WHERE permissions = '{}'::jsonb
   AND status = 'active';
 
 -- ============================================
