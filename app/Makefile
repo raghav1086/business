@@ -218,32 +218,24 @@ deploy-staging: ## Deploy to staging environment
 	docker-compose -f docker-compose.yml up -d
 	@echo "$(GREEN)✅ Staging deployment complete$(NC)"
 
-start-prod: ## Start production with safe migrations and code deployment
+start-prod: ## Start production with Docker (local testing, single command)
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║     PRODUCTION DEPLOYMENT - SAFE MIGRATIONS                 ║$(NC)"
+	@echo "$(BLUE)║     PRODUCTION DEPLOYMENT - LOCAL DOCKER                    ║$(NC)"
 	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(YELLOW)This will:$(NC)"
+	@echo "  ✅ Stop existing services"
+	@echo "  ✅ Start infrastructure (PostgreSQL & Redis)"
+	@echo "  ✅ Initialize databases"
 	@echo "  ✅ Create database backup (MANDATORY)"
 	@echo "  ✅ Run safe, idempotent migrations (won't affect existing data)"
-	@echo "  ✅ Deploy new code"
-	@echo "  ✅ Start all services"
+	@echo "  ✅ Build Docker images"
+	@echo "  ✅ Start all services in production mode"
 	@echo "  ✅ Verify health"
 	@echo ""
-	@read -p "$(YELLOW)Database Host (default: localhost): $(NC)" DB_HOST; \
-	DB_HOST=$${DB_HOST:-localhost}; \
-	read -p "$(YELLOW)Database Port (default: 5432): $(NC)" DB_PORT; \
-	DB_PORT=$${DB_PORT:-5432}; \
-	read -p "$(YELLOW)Database User (default: postgres): $(NC)" DB_USER; \
-	DB_USER=$${DB_USER:-postgres}; \
-	read -sp "$(YELLOW)Database Password: $(NC)" DB_PASSWORD; \
-	echo ""; \
-	echo ""; \
-	bash scripts/deploy-prod.sh $$DB_HOST $$DB_PORT $$DB_USER $$DB_PASSWORD
+	@bash scripts/deploy-prod-local.sh
 
-start-prod-quick: ## Quick production start with defaults (no prompts)
-	@echo "$(BLUE)🚀 Starting production with safe migrations...$(NC)"
-	@bash scripts/deploy-prod.sh localhost 5432 postgres postgres
+start-prod-quick: start-prod ## Alias for start-prod
 
 # =============================================================================
 # AWS DEPLOYMENT (FULLY AUTOMATED - SINGLE COMMAND)
