@@ -68,6 +68,11 @@ echo ""
 echo -e "${BLUE}Running verification...${NC}"
 run_migration_on_db "business_db" "$MIGRATIONS_DIR/006_verify_and_fix_migrations.sql"
 
+# Migration 7: Ensure ALL existing users have full permissions (CRITICAL for seamless experience)
+echo ""
+echo -e "${BLUE}Ensuring all existing users have full permissions...${NC}"
+run_migration_on_db "business_db" "$MIGRATIONS_DIR/007_ensure_all_existing_users_full_permissions.sql"
+
 echo ""
 echo -e "${GREEN}✓ RBAC migrations complete!${NC}"
 echo ""

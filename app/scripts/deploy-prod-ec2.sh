@@ -331,6 +331,14 @@ if [ -f "$MIGRATIONS_DIR/006_verify_and_fix_migrations.sql" ]; then
     docker exec -i business-postgres psql -U postgres -d business_db < "$MIGRATIONS_DIR/006_verify_and_fix_migrations.sql" 2>/dev/null || true
 fi
 
+# Migration 7: Ensure ALL existing users have full permissions (CRITICAL for seamless experience)
+if [ -f "$MIGRATIONS_DIR/007_ensure_all_existing_users_full_permissions.sql" ]; then
+    echo -e "${BLUE}    → Running 007_ensure_all_existing_users_full_permissions.sql on business_db...${NC}"
+    echo -e "${YELLOW}      → Ensuring all existing users have full permissions for seamless experience${NC}"
+    docker exec -i business-postgres psql -U postgres -d business_db < "$MIGRATIONS_DIR/007_ensure_all_existing_users_full_permissions.sql" 2>/dev/null || \
+        echo -e "${YELLOW}      ⚠️  Skipped (may already be applied)${NC}"
+fi
+
 echo -e "${GREEN}✓ Migrations complete${NC}"
 echo ""
 
