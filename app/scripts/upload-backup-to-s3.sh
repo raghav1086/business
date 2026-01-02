@@ -269,8 +269,14 @@ else
 fi
 
 # Find all backup files
-BACKUP_FILES=("$BACKUP_DIR"/*.sql "$BACKUP_DIR"/*.sql.gz 2>/dev/null || true)
-if [ ${#BACKUP_FILES[@]} -eq 0 ] || [ ! -f "${BACKUP_FILES[0]}" ]; then
+BACKUP_FILES=()
+# Use nullglob to handle cases where no files match
+shopt -s nullglob
+BACKUP_FILES+=("$BACKUP_DIR"/*.sql)
+BACKUP_FILES+=("$BACKUP_DIR"/*.sql.gz)
+shopt -u nullglob
+
+if [ ${#BACKUP_FILES[@]} -eq 0 ]; then
     echo -e "${YELLOW}⚠️  No backup files found in $BACKUP_DIR${NC}"
     exit 0
 fi
