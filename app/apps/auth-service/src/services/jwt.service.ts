@@ -9,6 +9,7 @@ export interface TokenPayload {
   sub: string; // user id
   phone: string;
   type: string; // access or refresh
+  is_superadmin?: boolean; // superadmin flag
 }
 
 export interface TokenPair {
@@ -35,11 +36,16 @@ export class JwtTokenService {
   /**
    * Generate access token
    */
-  async generateAccessToken(userId: string, phone: string): Promise<string> {
+  async generateAccessToken(
+    userId: string,
+    phone: string,
+    isSuperadmin: boolean = false
+  ): Promise<string> {
     const payload: TokenPayload = {
       sub: userId,
       phone,
       type: 'access',
+      is_superadmin: isSuperadmin,
     };
 
     return this.jwtService.signAsync(payload, {
@@ -51,11 +57,16 @@ export class JwtTokenService {
   /**
    * Generate refresh token
    */
-  async generateRefreshToken(userId: string, phone: string): Promise<string> {
+  async generateRefreshToken(
+    userId: string,
+    phone: string,
+    isSuperadmin: boolean = false
+  ): Promise<string> {
     const payload: TokenPayload = {
       sub: userId,
       phone,
       type: 'refresh',
+      is_superadmin: isSuperadmin,
     };
 
     return this.jwtService.signAsync(payload, {
@@ -72,11 +83,12 @@ export class JwtTokenService {
    */
   async generateTokenPair(
     userId: string,
-    phone: string
+    phone: string,
+    isSuperadmin: boolean = false
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const [accessToken, refreshToken] = await Promise.all([
-      this.generateAccessToken(userId, phone),
-      this.generateRefreshToken(userId, phone),
+      this.generateAccessToken(userId, phone, isSuperadmin),
+      this.generateRefreshToken(userId, phone, isSuperadmin),
     ]);
 
     return { accessToken, refreshToken };

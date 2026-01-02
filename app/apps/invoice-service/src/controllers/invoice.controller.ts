@@ -18,6 +18,10 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../guards/auth.guard';
+import { CrossServiceBusinessContextGuard } from '@business-app/shared/guards';
+import { PermissionGuard } from '@business-app/shared/guards';
+import { RequirePermission } from '@business-app/shared/decorators';
+import { Permission } from '@business-app/shared/constants';
 import { InvoiceService } from '../services/invoice.service';
 import {
   CreateInvoiceDto,
@@ -28,13 +32,15 @@ import { validateOptionalUUID } from '@business-app/shared/utils';
 
 @ApiTags('Invoices')
 @Controller('api/v1/invoices')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, CrossServiceBusinessContextGuard)
 @ApiBearerAuth()
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVOICE_CREATE)
   @ApiOperation({ summary: 'Create a new invoice' })
   @ApiResponse({
     status: 201,
@@ -42,12 +48,14 @@ export class InvoiceController {
     type: InvoiceResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   async create(
     @Request() req: any,
     @Body() createDto: CreateInvoiceDto
   ): Promise<InvoiceResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -82,11 +90,14 @@ export class InvoiceController {
   }
 
   @Get()
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVOICE_READ)
   @ApiOperation({ summary: 'Get all invoices for business' })
   @ApiResponse({
     status: 200,
     description: 'List of invoices with pagination',
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async findAll(
     @Request() req: any,
     @Query('partyId') partyId?: string,
@@ -109,7 +120,8 @@ export class InvoiceController {
       validateOptionalUUID(partyId, 'partyId');
     }
 
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -134,6 +146,8 @@ export class InvoiceController {
   }
 
   @Get(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVOICE_READ)
   @ApiOperation({ summary: 'Get invoice by ID' })
   @ApiResponse({
     status: 200,
@@ -141,6 +155,7 @@ export class InvoiceController {
     type: InvoiceResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
   async findOne(
     @Request() req: any,
@@ -149,7 +164,8 @@ export class InvoiceController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }

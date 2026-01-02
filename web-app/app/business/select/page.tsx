@@ -72,7 +72,7 @@ interface Business {
 
 export default function BusinessSelectPage() {
   const router = useRouter();
-  const { isAuthenticated, setBusinessId, setBusiness, logout } = useAuthStore();
+  const { isAuthenticated, isSuperadmin, setBusinessId, setBusiness, logout } = useAuthStore();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,12 +117,18 @@ export default function BusinessSelectPage() {
       return;
     }
     
+    // Superadmin can skip business selection and go to admin dashboard
+    if (isSuperadmin) {
+      router.push('/admin');
+      return;
+    }
+    
     // Prevent duplicate fetches
     if (!hasFetched.current) {
       hasFetched.current = true;
       fetchBusinesses();
     }
-  }, [isAuthenticated, router, fetchBusinesses]);
+  }, [isAuthenticated, isSuperadmin, router, fetchBusinesses]);
 
   const handleSelectBusiness = (businessId: string) => {
     // Find the business to get its name

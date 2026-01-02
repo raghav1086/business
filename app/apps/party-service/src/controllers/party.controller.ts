@@ -21,6 +21,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../guards/auth.guard';
+import { CrossServiceBusinessContextGuard, PermissionGuard } from '@business-app/shared/guards';
+import { RequirePermission } from '@business-app/shared/decorators';
+import { Permission } from '@business-app/shared/constants';
 import { PartyService } from '../services/party.service';
 import { PartyLedgerService } from '../services/party-ledger.service';
 import {
@@ -34,7 +37,7 @@ import { validateOptionalUUID } from '@business-app/shared/utils';
 
 @ApiTags('Party')
 @Controller('api/v1/parties')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, CrossServiceBusinessContextGuard)
 @ApiBearerAuth()
 export class PartyController {
   constructor(
@@ -44,6 +47,8 @@ export class PartyController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_CREATE)
   @ApiOperation({ summary: 'Create a new party' })
   @ApiResponse({
     status: 201,
@@ -51,12 +56,14 @@ export class PartyController {
     type: PartyResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 409, description: 'Invalid GSTIN format' })
   async create(
     @Request() req: any,
     @Body() createDto: CreatePartyDto
   ): Promise<PartyResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -65,6 +72,8 @@ export class PartyController {
   }
 
   @Get()
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_READ)
   @ApiOperation({ summary: 'Get all parties for business' })
   @ApiQuery({ name: 'type', required: false, enum: ['customer', 'supplier', 'both'] })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -73,12 +82,14 @@ export class PartyController {
     description: 'List of parties',
     type: [PartyResponseDto],
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async findAll(
     @Request() req: any,
     @Query('type') type?: string,
     @Query('search') search?: string
   ): Promise<PartyResponseDto[]> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -94,6 +105,8 @@ export class PartyController {
   }
 
   @Get(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_READ)
   @ApiOperation({ summary: 'Get party by ID' })
   @ApiResponse({
     status: 200,
@@ -101,6 +114,7 @@ export class PartyController {
     type: PartyResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   async findOne(
     @Request() req: any,
@@ -109,7 +123,8 @@ export class PartyController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -118,12 +133,15 @@ export class PartyController {
   }
 
   @Patch(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_UPDATE)
   @ApiOperation({ summary: 'Update party' })
   @ApiResponse({
     status: 200,
     description: 'Party updated successfully',
     type: PartyResponseDto,
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   @ApiResponse({ status: 409, description: 'Invalid GSTIN format' })
   async update(
@@ -131,7 +149,8 @@ export class PartyController {
     @Param('id') id: string,
     @Body() updateDto: UpdatePartyDto
   ): Promise<PartyResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -141,11 +160,15 @@ export class PartyController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_DELETE)
   @ApiOperation({ summary: 'Delete party' })
   @ApiResponse({ status: 204, description: 'Party deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   async remove(@Request() req: any, @Param('id') id: string): Promise<void> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -153,6 +176,8 @@ export class PartyController {
   }
 
   @Get(':id/ledger')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PARTY_READ)
   @ApiOperation({ summary: 'Get party ledger' })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
@@ -161,6 +186,7 @@ export class PartyController {
     description: 'Party ledger',
     type: PartyLedgerResponseDto,
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Party not found' })
   async getLedger(
     @Request() req: any,
@@ -168,7 +194,8 @@ export class PartyController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string
   ): Promise<PartyLedgerResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }

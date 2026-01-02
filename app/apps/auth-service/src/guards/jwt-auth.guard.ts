@@ -33,10 +33,11 @@ export class JwtAuthGuard implements CanActivate {
         secret: this.configService.get<string>('JWT_SECRET', 'default-secret'),
       });
 
-      // Attach user to request
+      // Attach user to request with superadmin flag
       request['user'] = {
         id: payload.sub,
         phone: payload.phone,
+        is_superadmin: payload.is_superadmin || false,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid token');

@@ -55,5 +55,40 @@ export class UserService {
       avatar_url: avatarUrl,
     });
   }
+
+  /**
+   * Search users by phone, email, or name
+   */
+  async searchUsers(query: string, limit: number = 20): Promise<User[]> {
+    if (!query || query.length < 2) {
+      return [];
+    }
+    return this.userRepository.searchUsers(query, limit);
+  }
+
+  /**
+   * Get user by ID (for other services)
+   */
+  async getUserById(userId: string): Promise<User> {
+    const user = await this.userRepository.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  /**
+   * Get all users (superadmin only)
+   */
+  async getAllUsers(limit?: number): Promise<User[]> {
+    return this.userRepository.findAllUsers(limit);
+  }
+
+  /**
+   * Get user count (superadmin only)
+   */
+  async getUserCount(): Promise<number> {
+    return this.userRepository.countAll();
+  }
 }
 

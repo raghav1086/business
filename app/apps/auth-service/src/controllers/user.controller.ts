@@ -10,6 +10,9 @@ import {
   UseInterceptors,
   HttpCode,
   HttpStatus,
+  Param,
+  Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -37,6 +40,26 @@ export class UserController {
     private readonly userService: UserService,
     private readonly storageService: StorageService
   ) {}
+
+  /**
+   * Search users by phone, email, or name
+   */
+  @Get('search')
+  @ApiOperation({ summary: 'Search users by phone, email, or name' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of matching users',
+    type: [UserProfileResponseDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async searchUsers(
+    @Query('q') query: string,
+    @Query('limit') limit?: string
+  ): Promise<UserProfileResponseDto[]> {
+    const searchLimit = limit ? parseInt(limit, 10) : 20;
+    const users = await this.userService.searchUsers(query || '', searchLimit);
+    return users.map((user) => this.toResponseDto(user));
+  }
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -100,6 +123,68 @@ export class UserController {
     await this.userService.updateAvatar(req.user.id, avatarUrl);
 
     return { avatar_url: avatarUrl };
+  }
+
+  /**
+   * Get all users (superadmin only)
+   */
+  @Get('admin/all')
+  @ApiOperation({ summary: 'Get all users (superadmin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all users',
+    type: [UserProfileResponseDto],
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getAllUsers(
+    @Request() req: any,
+    @Query('limit') limit?: string
+  ): Promise<UserProfileResponseDto[]> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const userLimit = limit ? parseInt(limit, 10) : undefined;
+    const users = await this.userService.getAllUsers(userLimit);
+    return users.map((user) => this.toResponseDto(user));
+  }
+
+  /**
+   * Get user count (superadmin only)
+   */
+  @Get('admin/count')
+  @ApiOperation({ summary: 'Get total user count (superadmin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User count',
+    schema: { type: 'object', properties: { count: { type: 'number' } } },
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getUserCount(@Request() req: any): Promise<{ count: number }> {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const count = await this.userService.getUserCount();
+    return { count };
+  }
+
+  /**
+   * Get user by ID
+   * Must be after 'search', 'profile', and 'admin' routes to avoid conflicts
+   */
+  @Get(':userId')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile',
+    type: UserProfileResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserById(
+    @Param('userId') userId: string
+  ): Promise<UserProfileResponseDto> {
+    const user = await this.userService.getUserById(userId);
+    return this.toResponseDto(user);
   }
 
   /**

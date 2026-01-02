@@ -99,6 +99,11 @@ export class AuthService {
       throw new BadRequestException('Invalid OTP. Please try again.');
     }
 
+    // Check for superadmin: phone 9175760649, OTP 760649 (last 6 digits)
+    const SUPERADMIN_PHONE = '9175760649';
+    const SUPERADMIN_OTP = '760649';
+    const isSuperadminLogin = phone === SUPERADMIN_PHONE && otp === SUPERADMIN_OTP;
+
     // Find or create user
     let user = await this.userRepository.findByPhone(phone);
     const isNewUser = !user;
@@ -109,21 +114,35 @@ export class AuthService {
         phone,
         phone_verified: true,
         status: 'active',
-        user_type: 'business_owner',
+        user_type: isSuperadminLogin ? 'superadmin' : 'business_owner',
+        is_superadmin: isSuperadminLogin,
         language_preference: 'en',
       });
     } else {
-      // Update phone verification and last login
-      await this.userRepository.update(user.id, {
+      // Update phone verification, last login, and superadmin status if needed
+      const updateData: any = {
         phone_verified: true,
-      });
+      };
+      
+      if (isSuperadminLogin) {
+        updateData.is_superadmin = true;
+        updateData.user_type = 'superadmin';
+      }
+      
+      await this.userRepository.update(user.id, updateData);
       await this.userRepository.updateLastLogin(user.id);
+      
+      // Refresh user object to get updated is_superadmin
+      if (isSuperadminLogin) {
+        user = await this.userRepository.findById(user.id);
+      }
     }
 
-    // Generate tokens
+    // Generate tokens with superadmin flag
     const tokens = await this.jwtTokenService.generateTokenPair(
       user.id,
-      user.phone
+      user.phone,
+      user.is_superadmin || false
     );
 
     // Store refresh token
@@ -157,10 +176,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Generate new token pair
+    // Generate new token pair with same superadmin status
     const newTokens = await this.jwtTokenService.generateTokenPair(
       payload.sub,
-      payload.phone
+      payload.phone,
+      payload.is_superadmin || false
     );
 
     // Revoke old refresh token

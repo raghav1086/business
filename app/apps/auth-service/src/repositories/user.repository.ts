@@ -54,5 +54,56 @@ export class UserRepository extends BaseRepository<User> {
       last_login_at: new Date(),
     });
   }
+
+  /**
+   * Search users by phone, email, or name
+   * Returns up to limit results
+   */
+  async searchUsers(query: string, limit: number = 20): Promise<User[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    
+    return this.repository
+      .createQueryBuilder('user')
+      .where('user.status = :status', { status: 'active' })
+      .andWhere(
+        '(LOWER(user.phone) LIKE :searchTerm OR LOWER(user.email) LIKE :searchTerm OR LOWER(user.name) LIKE :searchTerm)',
+        { searchTerm }
+      )
+      .orderBy('user.created_at', 'DESC')
+      .limit(limit)
+      .getMany();
+  }
+
+  /**
+   * Find user by ID (public method)
+   */
+  async findUserById(userId: string): Promise<User | null> {
+    return this.repository.findOne({
+      where: { id: userId, status: 'active' },
+    });
+  }
+
+  /**
+   * Find all users (for superadmin)
+   */
+  async findAllUsers(limit?: number): Promise<User[]> {
+    const query = this.repository
+      .createQueryBuilder('user')
+      .where('user.status = :status', { status: 'active' })
+      .orderBy('user.created_at', 'DESC');
+    
+    if (limit) {
+      query.limit(limit);
+    }
+    
+    return query.getMany();
+  }
+
+  /**
+   * Count all users
+   */
+  async countAll(): Promise<number> {
+    return this.repository.count({ where: { status: 'active' } });
+  }
 }
 

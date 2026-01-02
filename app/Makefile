@@ -44,13 +44,19 @@ install: ## Install all dependencies
 # =============================================================================
 # DEVELOPMENT (Local without Docker)
 # =============================================================================
-dev: ## Start all services locally for development
+dev: ## Start all services locally for development (with migrations)
 	@echo "$(BLUE)🚀 Starting development environment...$(NC)"
+	@echo "$(YELLOW)Step 1/5: Starting Docker services...$(NC)"
 	@docker-compose up -d postgres redis
-	@echo "$(YELLOW)⏳ Waiting for databases...$(NC)"
+	@echo "$(YELLOW)Step 2/5: Waiting for databases...$(NC)"
 	@sleep 5
+	@echo "$(YELLOW)Step 3/5: Initializing databases...$(NC)"
 	@docker exec -i business-postgres psql -U postgres -c "SELECT 1 FROM pg_database WHERE datname='auth_db'" | grep -q 1 || \
 		docker exec -i business-postgres psql -U postgres -f /docker-entrypoint-initdb.d/init-db.sql
+	@echo "$(YELLOW)Step 4/5: Running RBAC migrations...$(NC)"
+	@bash scripts/run-rbac-migrations.sh localhost 5432 postgres postgres 2>/dev/null || \
+		(echo "$(YELLOW)⚠️  Migrations skipped (may already be applied)$(NC)" && sleep 1)
+	@echo "$(YELLOW)Step 5/5: Starting application services...$(NC)"
 	@npx nx run-many --target=serve --all --parallel=6
 	@echo "$(GREEN)✅ All services running$(NC)"
 
@@ -65,6 +71,11 @@ dev-stop: ## Stop local development services
 start: ## Start all services with Docker (ONE COMMAND TO RUN ALL)
 	@echo "$(BLUE)🐳 Starting all services with Docker...$(NC)"
 	docker-compose up -d
+	@echo "$(YELLOW)⏳ Waiting for databases...$(NC)"
+	@sleep 8
+	@echo "$(YELLOW)🔄 Running RBAC migrations...$(NC)"
+	@bash scripts/run-rbac-migrations.sh localhost 5432 postgres postgres 2>/dev/null || \
+		(echo "$(YELLOW)⚠️  Migrations skipped (may already be applied)$(NC)" && sleep 1)
 	@echo "$(GREEN)✅ All services started$(NC)"
 	@make health
 
@@ -209,9 +220,8 @@ health: ## Check health of all services
 # =============================================================================
 # DEPLOYMENT
 # =============================================================================
-deploy: ## Build and deploy to production
+deploy: ## Build and deploy to production (legacy)
 	@echo "$(BLUE)🚀 Deploying to production...$(NC)"
-	# @make test-all
 	@echo "$(YELLOW)Building production images...$(NC)"
 	docker-compose -f docker-compose.yml build
 	@echo "$(GREEN)✅ Deployment complete$(NC)"
@@ -220,6 +230,33 @@ deploy-staging: ## Deploy to staging environment
 	@echo "$(BLUE)🚀 Deploying to staging...$(NC)"
 	docker-compose -f docker-compose.yml up -d
 	@echo "$(GREEN)✅ Staging deployment complete$(NC)"
+
+start-prod: ## Start production with safe migrations and code deployment
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║     PRODUCTION DEPLOYMENT - SAFE MIGRATIONS                 ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(YELLOW)This will:$(NC)"
+	@echo "  ✅ Create database backup (MANDATORY)"
+	@echo "  ✅ Run safe, idempotent migrations (won't affect existing data)"
+	@echo "  ✅ Deploy new code"
+	@echo "  ✅ Start all services"
+	@echo "  ✅ Verify health"
+	@echo ""
+	@read -p "$(YELLOW)Database Host (default: localhost): $(NC)" DB_HOST; \
+	DB_HOST=$${DB_HOST:-localhost}; \
+	read -p "$(YELLOW)Database Port (default: 5432): $(NC)" DB_PORT; \
+	DB_PORT=$${DB_PORT:-5432}; \
+	read -p "$(YELLOW)Database User (default: postgres): $(NC)" DB_USER; \
+	DB_USER=$${DB_USER:-postgres}; \
+	read -sp "$(YELLOW)Database Password: $(NC)" DB_PASSWORD; \
+	echo ""; \
+	echo ""; \
+	bash scripts/deploy-prod.sh $$DB_HOST $$DB_PORT $$DB_USER $$DB_PASSWORD
+
+start-prod-quick: ## Quick production start with defaults (no prompts)
+	@echo "$(BLUE)🚀 Starting production with safe migrations...$(NC)"
+	@bash scripts/deploy-prod.sh localhost 5432 postgres postgres
 
 # =============================================================================
 # AWS DEPLOYMENT (FULLY AUTOMATED - SINGLE COMMAND)
@@ -301,9 +338,9 @@ db-reset: ## Reset all databases
 	@sleep 5
 	@echo "$(GREEN)✅ Databases reset$(NC)"
 
-db-migrate: ## Run database migrations
-	@echo "$(BLUE)🗄️ Running migrations...$(NC)"
-	npx nx run-many --target=migration:run --all
+db-migrate: ## Run RBAC migrations on all databases (auth_db + business_db)
+	@echo "$(BLUE)🗄️ Running RBAC migrations...$(NC)"
+	@bash scripts/run-rbac-migrations.sh localhost 5432 postgres postgres
 	@echo "$(GREEN)✅ Migrations complete$(NC)"
 
 # =============================================================================

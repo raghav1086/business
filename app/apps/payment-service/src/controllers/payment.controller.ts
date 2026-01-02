@@ -18,6 +18,9 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../guards/auth.guard';
+import { CrossServiceBusinessContextGuard, PermissionGuard } from '@business-app/shared/guards';
+import { RequirePermission } from '@business-app/shared/decorators';
+import { Permission } from '@business-app/shared/constants';
 import { PaymentService } from '../services/payment.service';
 import {
   CreatePaymentDto,
@@ -28,13 +31,15 @@ import { validateOptionalUUID } from '@business-app/shared/utils';
 
 @ApiTags('Payments')
 @Controller('api/v1/payments')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, CrossServiceBusinessContextGuard)
 @ApiBearerAuth()
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PAYMENT_CREATE)
   @ApiOperation({ summary: 'Record a payment' })
   @ApiResponse({
     status: 201,
@@ -42,11 +47,13 @@ export class PaymentController {
     type: PaymentResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async recordPayment(
     @Request() req: any,
     @Body() createDto: CreatePaymentDto
   ): Promise<PaymentResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -63,11 +70,14 @@ export class PaymentController {
   }
 
   @Get()
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PAYMENT_READ)
   @ApiOperation({ summary: 'Get all payments for business' })
   @ApiResponse({
     status: 200,
     description: 'List of payments with pagination',
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async findAll(
     @Request() req: any,
     @Query('partyId') partyId?: string,
@@ -89,7 +99,8 @@ export class PaymentController {
     }
     // invoiceId="new" is handled in service, so we don't validate it here
 
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -112,6 +123,8 @@ export class PaymentController {
   }
 
   @Get(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.PAYMENT_READ)
   @ApiOperation({ summary: 'Get payment by ID' })
   @ApiResponse({
     status: 200,
@@ -119,6 +132,7 @@ export class PaymentController {
     type: PaymentResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Payment not found' })
   async findOne(
     @Request() req: any,
@@ -127,7 +141,8 @@ export class PaymentController {
     // Validate UUID format
     validateOptionalUUID(id, 'id');
 
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }

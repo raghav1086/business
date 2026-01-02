@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { BusinessRepository } from '../repositories/business.repository';
+import { BusinessUserRepository } from '../repositories/business-user.repository';
 import { CreateBusinessDto, UpdateBusinessDto } from '@business-app/shared/dto';
 import { validateGSTIN, formatGSTIN } from '@business-app/shared/utils';
 import { Business } from '../entities/business.entity';
+import { Role } from '@business-app/shared/constants';
 
 /**
  * Business Service
@@ -12,7 +14,10 @@ import { Business } from '../entities/business.entity';
  */
 @Injectable()
 export class BusinessService {
-  constructor(private readonly businessRepository: BusinessRepository) {}
+  constructor(
+    private readonly businessRepository: BusinessRepository,
+    private readonly businessUserRepository: BusinessUserRepository
+  ) {}
 
   /**
    * Create a new business
@@ -41,6 +46,17 @@ export class BusinessService {
       status: 'active',
     });
 
+    // Automatically create business_user record for owner with full permissions
+    // permissions = null means use all role permissions (full access by default)
+    await this.businessUserRepository.create({
+      business_id: business.id,
+      user_id: ownerId,
+      role: Role.OWNER,
+      permissions: null, // NULL = use all role permissions (full access)
+      status: 'active',
+      joined_at: new Date(),
+    });
+
     return business;
   }
 
@@ -67,6 +83,34 @@ export class BusinessService {
    */
   async findByOwner(ownerId: string): Promise<Business[]> {
     return this.businessRepository.findByOwner(ownerId);
+  }
+
+  /**
+   * Get all businesses (superadmin only)
+   */
+  async findAll(): Promise<Business[]> {
+    return this.businessRepository.findAll();
+  }
+
+  /**
+   * Get system statistics (superadmin only)
+   */
+  async getSystemStats(): Promise<{
+    totalBusinesses: number;
+    activeBusinesses: number;
+    inactiveBusinesses: number;
+    totalUsers: number; // This would need to come from auth-service
+  }> {
+    const totalBusinesses = await this.businessRepository.countAll();
+    const activeBusinesses = await this.businessRepository.countByStatus('active');
+    const inactiveBusinesses = await this.businessRepository.countByStatus('inactive');
+    
+    return {
+      totalBusinesses,
+      activeBusinesses,
+      inactiveBusinesses,
+      totalUsers: 0, // TODO: Get from auth-service
+    };
   }
 
   /**

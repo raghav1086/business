@@ -28,6 +28,7 @@ import {
   Building2,
   HelpCircle,
   LogOut,
+  Shield,
 } from "lucide-react";
 
 interface NavItem {
@@ -90,7 +91,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { logout, isSuperadmin } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const handleLogout = () => {
@@ -146,6 +147,18 @@ export function Sidebar({ className }: SidebarProps) {
                   isCollapsed={isCollapsed}
                 />
               ))}
+              {/* Superadmin Link */}
+              {isSuperadmin && (
+                <NavLink
+                  item={{
+                    title: "Super Admin",
+                    href: "/admin",
+                    icon: Shield,
+                  }}
+                  isActive={pathname === "/admin" || pathname?.startsWith("/admin/")}
+                  isCollapsed={isCollapsed}
+                />
+              )}
             </nav>
           </ScrollArea>
 
@@ -248,6 +261,7 @@ function NavLink({ item, isActive, isCollapsed }: NavLinkProps) {
 // Mobile Sidebar
 export function MobileSidebar() {
   const pathname = usePathname();
+  const { isSuperadmin } = useAuthStore();
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -295,6 +309,22 @@ export function MobileSidebar() {
                   </Link>
                 );
               })}
+              {/* Superadmin Link */}
+              {isSuperadmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                    pathname === "/admin" || pathname?.startsWith("/admin/")
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Super Admin
+                </Link>
+              )}
             </nav>
           </ScrollArea>
 

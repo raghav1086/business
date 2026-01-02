@@ -4,11 +4,13 @@ import { tokenStorage } from './api-client';
 interface User {
   id: string;
   phone: string;
+  is_superadmin?: boolean;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isSuperadmin: boolean;
   businessId: string | null;
   businessName: string | null;
   setUser: (user: User) => void;
@@ -21,12 +23,17 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
+  isSuperadmin: false,
   businessId: null,
   businessName: null,
   
   setUser: (user) => {
     tokenStorage.setUserId(user.id);
-    set({ user, isAuthenticated: true });
+    set({ 
+      user, 
+      isAuthenticated: true,
+      isSuperadmin: user.is_superadmin || false,
+    });
   },
   
   setBusinessId: (businessId) => {
@@ -42,7 +49,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   logout: () => {
     tokenStorage.clearAll();
-    set({ user: null, isAuthenticated: false, businessId: null, businessName: null });
+    set({ 
+      user: null, 
+      isAuthenticated: false, 
+      isSuperadmin: false,
+      businessId: null, 
+      businessName: null 
+    });
   },
   
   initialize: () => {
@@ -52,9 +65,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     const accessToken = tokenStorage.getAccessToken();
     
     if (userId && accessToken) {
+      // Note: is_superadmin would need to be stored/retrieved from token
+      // For now, we'll fetch it when needed
       set({
         user: { id: userId, phone: '' }, // Phone will be fetched if needed
         isAuthenticated: true,
+        isSuperadmin: false, // Will be updated from token/user profile
         businessId: businessId || null,
         businessName: businessName || null,
       });

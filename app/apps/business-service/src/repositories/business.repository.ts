@@ -69,5 +69,28 @@ export class BusinessRepository extends BaseRepository<Business> {
     const count = await query.getCount();
     return count > 0;
   }
+
+  /**
+   * Find all businesses (for superadmin)
+   */
+  async findAll(): Promise<Business[]> {
+    return this.repository.find({
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  /**
+   * Count all businesses
+   */
+  async countAll(): Promise<number> {
+    return this.repository.count();
+  }
+
+  /**
+   * Count businesses by status
+   */
+  async countByStatus(status: string): Promise<number> {
+    return this.repository.count({ where: { status } });
+  }
 }
 
