@@ -41,6 +41,9 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 10, default: 'en', name: 'language_preference' })
   language_preference: string; // en, hi
 
+  @Column({ type: 'boolean', default: false, name: 'is_superadmin' })
+  is_superadmin: boolean;
+
   @Column({ type: 'timestamptz', nullable: true, name: 'last_login_at' })
   last_login_at?: Date;
 }

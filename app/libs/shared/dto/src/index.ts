@@ -13,3 +13,4 @@ export * from './party.dto';
 export * from './inventory.dto';
 export * from './invoice.dto';
 export * from './payment.dto';
+export * from './rbac.dto';

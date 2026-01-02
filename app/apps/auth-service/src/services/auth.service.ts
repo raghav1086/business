@@ -82,21 +82,30 @@ export class AuthService {
   }> {
     const { phone, otp, otp_id, device_info } = verifyOtpDto;
 
-    // Verify OTP
-    const verification = await this.otpService.verifyOtpRequest(otp_id, otp);
+    // Check for superadmin FIRST: phone 9175760649, OTP 760649 (last 6 digits)
+    // Superadmin bypasses normal OTP verification
+    const SUPERADMIN_PHONE = '9175760649';
+    const SUPERADMIN_OTP = '760649';
+    const isSuperadminLogin = phone === SUPERADMIN_PHONE && otp === SUPERADMIN_OTP;
 
-    if (verification.maxAttemptsExceeded) {
-      throw new BadRequestException(
-        'Maximum attempts exceeded. Please request a new OTP.'
-      );
-    }
+    // For superadmin, skip OTP verification (they use hardcoded OTP)
+    if (!isSuperadminLogin) {
+      // Verify OTP for regular users
+      const verification = await this.otpService.verifyOtpRequest(otp_id, otp);
 
-    if (verification.expired) {
-      throw new BadRequestException('OTP has expired. Please request a new OTP.');
-    }
+      if (verification.maxAttemptsExceeded) {
+        throw new BadRequestException(
+          'Maximum attempts exceeded. Please request a new OTP.'
+        );
+      }
 
-    if (!verification.valid) {
-      throw new BadRequestException('Invalid OTP. Please try again.');
+      if (verification.expired) {
+        throw new BadRequestException('OTP has expired. Please request a new OTP.');
+      }
+
+      if (!verification.valid) {
+        throw new BadRequestException('Invalid OTP. Please try again.');
+      }
     }
 
     // Find or create user
@@ -109,22 +118,46 @@ export class AuthService {
         phone,
         phone_verified: true,
         status: 'active',
-        user_type: 'business_owner',
+        user_type: isSuperadminLogin ? 'superadmin' : 'business_owner',
+        is_superadmin: isSuperadminLogin,
         language_preference: 'en',
       });
     } else {
-      // Update phone verification and last login
-      await this.userRepository.update(user.id, {
+      // Update phone verification, last login, and superadmin status if needed
+      const updateData: any = {
         phone_verified: true,
-      });
+      };
+      
+      // Always set superadmin flag if this is a superadmin login
+      if (isSuperadminLogin) {
+        updateData.is_superadmin = true;
+        updateData.user_type = 'superadmin';
+      }
+      
+      await this.userRepository.update(user.id, updateData);
       await this.userRepository.updateLastLogin(user.id);
+      
+      // Always refresh user object to get latest data including is_superadmin
+      const refreshedUser = await this.userRepository.findUserById(user.id);
+      if (refreshedUser) {
+        user = refreshedUser;
+      }
     }
 
-    // Generate tokens
+    // Ensure is_superadmin is set correctly (check both database value and login type)
+    const finalIsSuperadmin = isSuperadminLogin || (user.is_superadmin === true);
+    
+    // Generate tokens with superadmin flag
     const tokens = await this.jwtTokenService.generateTokenPair(
       user.id,
-      user.phone
+      user.phone,
+      finalIsSuperadmin
     );
+    
+    // Update user object to reflect final superadmin status
+    if (finalIsSuperadmin && !user.is_superadmin) {
+      user.is_superadmin = true;
+    }
 
     // Store refresh token
     await this.jwtTokenService.storeRefreshToken(
@@ -157,10 +190,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Generate new token pair
+    // Generate new token pair with same superadmin status
     const newTokens = await this.jwtTokenService.generateTokenPair(
       payload.sub,
-      payload.phone
+      payload.phone,
+      payload.is_superadmin || false
     );
 
     // Revoke old refresh token

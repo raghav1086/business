@@ -6,17 +6,24 @@ import { useAuthStore } from '@/lib/auth-store';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, businessId } = useAuthStore();
+  const { isAuthenticated, isSuperadmin, businessId } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (!businessId) {
-      router.push('/business/select');
-    } else {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, businessId, router]);
+    // Small delay to allow auth store to initialize
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else if (isSuperadmin) {
+        router.push('/admin');
+      } else if (!businessId) {
+        router.push('/business/select');
+      } else {
+        router.push('/dashboard');
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, isSuperadmin, businessId, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

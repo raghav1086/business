@@ -14,7 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/auth-store";
 import { tokenStorage, businessApi } from "@/lib/api-client";
-import { Building2, Receipt, Settings as SettingsIcon, Bell, Shield, Database, Save, Check } from "lucide-react";
+import { Building2, Receipt, Settings as SettingsIcon, Bell, Shield, Database, Save, Check, Users, Key, FileText } from "lucide-react";
+import { UserManagement } from "@/components/rbac/user-management";
+import { PermissionManager } from "@/components/rbac/permission-manager";
+import { AuditLogViewer } from "@/components/rbac/audit-log-viewer";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -334,7 +337,7 @@ export default function SettingsPage() {
         />
 
         <Tabs defaultValue="business" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 lg:w-[900px] overflow-x-auto">
             <TabsTrigger value="business" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Business</span>
@@ -350,6 +353,18 @@ export default function SettingsPage() {
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="permissions" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              <span className="hidden sm:inline">Permissions</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit-logs" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Audit Logs</span>
             </TabsTrigger>
           </TabsList>
 
@@ -820,6 +835,21 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-4">
+            {businessId && <UserManagement businessId={businessId} />}
+          </TabsContent>
+
+          {/* Permissions Tab */}
+          <TabsContent value="permissions" className="space-y-4">
+            {businessId && <PermissionManager businessId={businessId} />}
+          </TabsContent>
+
+          {/* Audit Logs Tab */}
+          <TabsContent value="audit-logs" className="space-y-4">
+            {businessId && <AuditLogViewer businessId={businessId} />}
           </TabsContent>
         </Tabs>
       </div>

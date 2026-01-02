@@ -72,7 +72,7 @@ interface Business {
 
 export default function BusinessSelectPage() {
   const router = useRouter();
-  const { isAuthenticated, setBusinessId, setBusiness, logout } = useAuthStore();
+  const { isAuthenticated, isSuperadmin, setBusinessId, setBusiness, logout } = useAuthStore();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,28 +112,49 @@ export default function BusinessSelectPage() {
 
   // Check authentication and fetch businesses in single effect
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    
-    // Prevent duplicate fetches
-    if (!hasFetched.current) {
-      hasFetched.current = true;
-      fetchBusinesses();
-    }
-  }, [isAuthenticated, router, fetchBusinesses]);
+    // Small delay to allow auth store to initialize
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+      
+      // Superadmin can skip business selection and go to admin dashboard
+      if (isSuperadmin) {
+        router.push('/admin');
+        return;
+      }
+      
+      // Prevent duplicate fetches
+      if (!hasFetched.current) {
+        hasFetched.current = true;
+        fetchBusinesses();
+      }
+    }, 150);
 
-  const handleSelectBusiness = (businessId: string) => {
-    // Find the business to get its name
-    const business = businesses.find(b => b.id === businessId);
-    if (business) {
-      setBusiness(businessId, business.name);
-    } else {
-      setBusinessId(businessId);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, isSuperadmin, router, fetchBusinesses]);
+
+  const handleSelectBusiness = async (businessId: string) => {
+    try {
+      // Find the business to get its name
+      const business = businesses.find(b => b.id === businessId);
+      if (business) {
+        setBusiness(businessId, business.name);
+      } else {
+        setBusinessId(businessId);
+      }
+      toast.success('Business selected');
+      
+      // Small delay to ensure business is set in store
+      await new Promise(resolve => setTimeout(resolve, 100));
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error selecting business:', error);
+      toast.error('Failed to select business', {
+        description: 'Please try again',
+      });
     }
-    toast.success('Business selected');
-    router.push('/dashboard');
   };
 
   const onSubmit = async (data: BusinessFormValues) => {

@@ -16,8 +16,8 @@ import path from 'path';
 const authFile = path.join(__dirname, '../.auth/user.json');
 
 const TEST_CONFIG = {
-  phone: '9876543210',
-  otp: '129012', // Default test OTP
+  phone: '9175760649', // Superadmin phone
+  otp: '760649', // Superadmin OTP (last 6 digits)
 };
 
 setup('authenticate', async ({ page }) => {

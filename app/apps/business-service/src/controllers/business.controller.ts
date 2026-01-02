@@ -10,6 +10,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BusinessService } from '../services/business.service';
@@ -50,15 +51,39 @@ export class BusinessController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all businesses for current user' })
+  @ApiOperation({ summary: 'Get all businesses for current user (or all if superadmin)' })
   @ApiResponse({
     status: 200,
     description: 'List of businesses',
     type: [BusinessResponseDto],
   })
   async findAll(@Request() req: any): Promise<BusinessResponseDto[]> {
+    // If superadmin, return all businesses
+    if (req.user?.is_superadmin) {
+      const businesses = await this.businessService.findAll();
+      return businesses.map((b) => this.toResponseDto(b));
+    }
+    // Otherwise, return only user's businesses
     const businesses = await this.businessService.findByOwner(req.user.id);
     return businesses.map((b) => this.toResponseDto(b));
+  }
+
+  /**
+   * Get system statistics (superadmin only)
+   */
+  @Get('admin/stats')
+  @ApiOperation({ summary: 'Get system statistics (superadmin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'System statistics',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
+  async getSystemStats(@Request() req: any) {
+    if (!req.user?.is_superadmin) {
+      throw new ForbiddenException('Superadmin access required');
+    }
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
+    return this.businessService.getSystemStats(authToken);
   }
 
   @Get(':id')

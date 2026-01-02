@@ -128,6 +128,7 @@ export class VerifyOtpResponseDto {
     name?: string;
     email?: string;
     phone_verified: boolean;
+    is_superadmin?: boolean;
   };
 
   @ApiProperty({

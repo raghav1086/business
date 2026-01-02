@@ -38,6 +38,7 @@ export class AuthGuard implements CanActivate {
       request['user'] = {
         id: payload.sub, // user ID from token
         phone: payload.phone,
+        is_superadmin: payload.is_superadmin || false,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid token');

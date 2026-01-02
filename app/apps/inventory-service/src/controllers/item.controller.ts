@@ -21,6 +21,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../guards/auth.guard';
+import { CrossServiceBusinessContextGuard, PermissionGuard } from '@business-app/shared/guards';
+import { RequirePermission } from '@business-app/shared/decorators';
+import { Permission } from '@business-app/shared/constants';
 import { ItemService } from '../services/item.service';
 import {
   CreateItemDto,
@@ -32,13 +35,15 @@ import { Item } from '../entities/item.entity';
 
 @ApiTags('Items')
 @Controller('api/v1/items')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, CrossServiceBusinessContextGuard)
 @ApiBearerAuth()
 export class ItemController {
   constructor(private readonly itemService: ItemService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_CREATE)
   @ApiOperation({ summary: 'Create a new item' })
   @ApiResponse({
     status: 201,
@@ -46,12 +51,14 @@ export class ItemController {
     type: ItemResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Category or Unit not found' })
   async create(
     @Request() req: any,
     @Body() createDto: CreateItemDto
   ): Promise<ItemResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -60,6 +67,8 @@ export class ItemController {
   }
 
   @Get()
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_READ)
   @ApiOperation({ summary: 'Get all items for business' })
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
@@ -68,12 +77,14 @@ export class ItemController {
     description: 'List of items',
     type: [ItemResponseDto],
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async findAll(
     @Request() req: any,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string
   ): Promise<ItemResponseDto[]> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -89,14 +100,18 @@ export class ItemController {
   }
 
   @Get('low-stock')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_READ)
   @ApiOperation({ summary: 'Get items with low stock' })
   @ApiResponse({
     status: 200,
     description: 'List of low stock items',
     type: [LowStockItemDto],
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async findLowStock(@Request() req: any): Promise<LowStockItemDto[]> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -111,18 +126,22 @@ export class ItemController {
   }
 
   @Get(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_READ)
   @ApiOperation({ summary: 'Get item by ID' })
   @ApiResponse({
     status: 200,
     description: 'Item details',
     type: ItemResponseDto,
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Item not found' })
   async findOne(
     @Request() req: any,
     @Param('id') id: string
   ): Promise<ItemResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -131,19 +150,23 @@ export class ItemController {
   }
 
   @Patch(':id')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_UPDATE)
   @ApiOperation({ summary: 'Update item' })
   @ApiResponse({
     status: 200,
     description: 'Item updated successfully',
     type: ItemResponseDto,
   })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Item not found' })
   async update(
     @Request() req: any,
     @Param('id') id: string,
     @Body() updateDto: UpdateItemDto
   ): Promise<ItemResponseDto> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
@@ -153,11 +176,15 @@ export class ItemController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(PermissionGuard)
+  @RequirePermission(Permission.INVENTORY_DELETE)
   @ApiOperation({ summary: 'Delete item' })
   @ApiResponse({ status: 204, description: 'Item deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Item not found' })
   async remove(@Request() req: any, @Param('id') id: string): Promise<void> {
-    const businessId = req.headers['x-business-id'] || req.business_id;
+    // Business ID is validated by CrossServiceBusinessContextGuard
+    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
