@@ -188,16 +188,14 @@ echo ""
 # Step 5: Backup existing data (MANDATORY)
 echo -e "${YELLOW}Step 5/9: Creating database backup (MANDATORY)...${NC}"
 if [ -f "$SCRIPT_DIR/backup-db.sh" ]; then
-    # Check if pg_dump is available
-    if command -v pg_dump &> /dev/null || docker exec business-postgres pg_dump --version &> /dev/null 2>&1; then
-        echo -e "${BLUE}  → Creating backup before running migrations...${NC}"
-        if bash "$SCRIPT_DIR/backup-db.sh" "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASSWORD"; then
-            echo -e "${GREEN}  ✓ Backup completed successfully${NC}"
-        else
-            echo -e "${YELLOW}  ⚠️  Backup failed, but continuing (may be fresh deployment)${NC}"
-        fi
+    echo -e "${BLUE}  → Creating backup before running migrations...${NC}"
+    echo -e "${BLUE}  → Using Docker for backup (no local psql required)${NC}"
+    
+    # Always try backup - script will use Docker if available
+    if bash "$SCRIPT_DIR/backup-db.sh" "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASSWORD"; then
+        echo -e "${GREEN}  ✓ Backup completed successfully${NC}"
     else
-        echo -e "${YELLOW}  ⚠️  pg_dump not available, skipping backup${NC}"
+        echo -e "${YELLOW}  ⚠️  Backup had issues, but continuing (may be fresh deployment)${NC}"
     fi
 else
     echo -e "${YELLOW}  ⚠️  backup-db.sh not found, skipping backup${NC}"
