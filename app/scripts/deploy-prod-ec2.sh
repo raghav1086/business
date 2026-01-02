@@ -198,7 +198,13 @@ if [ -f "$SCRIPT_DIR/backup-db.sh" ]; then
     echo -e "${BLUE}  → Using Docker for backup (no local psql required)${NC}"
     
     # Always try backup - script will use Docker if available
-    if bash "$SCRIPT_DIR/backup-db.sh" "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASSWORD"; then
+    # Don't fail deployment if backup has issues
+    set +e
+    bash "$SCRIPT_DIR/backup-db.sh" "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASSWORD"
+    BACKUP_EXIT_CODE=$?
+    set -e
+    
+    if [ $BACKUP_EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}  ✓ Backup completed successfully${NC}"
     else
         echo -e "${YELLOW}  ⚠️  Backup had issues, but continuing (may be fresh deployment)${NC}"
@@ -449,6 +455,13 @@ else
     echo ""
     echo -e "${YELLOW}Note: Services may need a few more seconds to fully start${NC}"
     echo -e "${YELLOW}Run health check again in a moment${NC}"
-    exit 0  # Don't fail, services may need more time
+    echo ""
+    echo -e "${YELLOW}Deployment completed with warnings${NC}"
+    echo -e "${YELLOW}Some services may still be starting up${NC}"
+    echo -e "${YELLOW}Check logs with: docker-compose -f docker-compose.prod.yml logs${NC}"
 fi
+
+# Always exit with 0 unless there was a critical failure earlier
+# (Critical failures would have already exited with 1)
+exit 0
 
