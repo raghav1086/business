@@ -72,6 +72,43 @@ fi
 # Validate backup directory exists
 if [ ! -d "$BACKUP_DIR" ]; then
     echo -e "${RED}✗ Backup directory does not exist: $BACKUP_DIR${NC}"
+    echo ""
+    
+    # Check for backups in common locations
+    COMMON_LOCATIONS=("/opt/backups" "$HOME/backups" "/var/backups" "./backups")
+    FOUND_BACKUPS=false
+    
+    echo -e "${YELLOW}Checking common backup locations...${NC}"
+    for location in "${COMMON_LOCATIONS[@]}"; do
+        if [ -d "$location" ] && [ -n "$(find "$location" -maxdepth 1 -name "*.sql" -o -name "*.sql.gz" 2>/dev/null)" ]; then
+            echo -e "${GREEN}  ✓ Found backups in: $location${NC}"
+            FOUND_BACKUPS=true
+        fi
+    done
+    
+    if [ "$FOUND_BACKUPS" = true ]; then
+        echo ""
+        echo -e "${YELLOW}You can upload from one of these locations:${NC}"
+        for location in "${COMMON_LOCATIONS[@]}"; do
+            if [ -d "$location" ] && [ -n "$(find "$location" -maxdepth 1 -name "*.sql" -o -name "*.sql.gz" 2>/dev/null)" ]; then
+                echo -e "${BLUE}    ./upload-backup-to-s3.sh $S3_BUCKET $location${NC}"
+            fi
+        done
+        echo ""
+    fi
+    
+    echo -e "${YELLOW}Options:${NC}"
+    echo -e "${BLUE}  1. Create backups first:${NC}"
+    echo -e "${BLUE}     ./backup-db.sh${NC}"
+    echo -e "${BLUE}     OR${NC}"
+    echo -e "${BLUE}     ./backup-and-upload-to-s3.sh${NC}"
+    echo ""
+    echo -e "${BLUE}  2. Specify a different backup directory:${NC}"
+    echo -e "${BLUE}     ./upload-backup-to-s3.sh $S3_BUCKET /path/to/backups${NC}"
+    echo ""
+    echo -e "${BLUE}  3. Create empty directory (if you have backups elsewhere):${NC}"
+    echo -e "${BLUE}     mkdir -p $BACKUP_DIR${NC}"
+    echo ""
     exit 1
 fi
 
