@@ -288,3 +288,108 @@ echo "✅ All restored! Users: $(docker exec business-postgres psql -U postgres 
 ```
 
 Run the first script to restore all databases. The backup files are in the correct location, so this should work.
+
+
+====================================================
+
+Checking existing scripts for building and deploying only the web-app service:
+
+
+[4 tools called]
+
+
+Here’s how to build and deploy only the web-app service with `--no-cache` in production:
+
+## On EC2 Instance
+
+### Option 1: Quick Command (Recommended)
+
+```bash
+cd /opt/business-app/app
+
+# Load environment variables
+export DB_PASSWORD="Admin112233"
+if [ -f .env.production ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+            key="${line%%=*}"
+            value="${line#*=}"
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+            value=$(echo "$value" | sed "s/^['\"]//; s/['\"]\$//")
+            if [ "$key" != "DB_PASSWORD" ]; then
+                export "$key=$value"
+            fi
+        fi
+    done < .env.production
+fi
+
+# Build web-app with no cache
+docker-compose -f docker-compose.prod.yml build --no-cache web-app
+
+# Restart web-app service
+docker-compose -f docker-compose.prod.yml up -d web-app
+
+# Check status
+docker-compose -f docker-compose.prod.yml ps web-app
+```
+
+### Option 2: One-liner
+
+```bash
+cd /opt/business-app/app && export DB_PASSWORD="Admin112233" && docker-compose -f docker-compose.prod.yml build --no-cache web-app && docker-compose -f docker-compose.prod.yml up -d web-app
+```
+
+### Option 3: Using the Deploy Script
+
+If you want to use the existing deployment script:
+
+```bash
+cd /opt/business-app/app
+bash scripts/deploy-service-to-ec2.sh ap-south-1 business-app-key web-app
+```
+
+But this doesn't use `--no-cache`. For `--no-cache`, use Option 1.
+
+## Verification
+
+After deployment, verify the web-app is running:
+
+```bash
+# Check container status
+docker-compose -f docker-compose.prod.yml ps web-app
+
+# Check logs
+docker logs business-web-app --tail=50
+
+# Check if web-app is responding
+curl -I http://localhost:3000
+
+# Or check from outside (if nginx is configured)
+curl -I http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+```
+
+## Important Notes
+
+1. `--no-cache` forces a full rebuild (no layer reuse). This takes longer but ensures a clean build.
+2. Environment variables: Ensure `DB_PASSWORD` is exported so other services can connect if needed.
+3. Dependencies: The web-app depends on backend services being healthy. If they're not running, the web-app may fail health checks.
+4. Downtime: There will be a brief downtime (10-30 seconds) while the container restarts.
+
+## Troubleshooting
+
+If the build fails:
+
+```bash
+# Check build logs
+docker-compose -f docker-compose.prod.yml build --no-cache web-app --progress=plain
+
+# Check if dependencies are running
+docker-compose -f docker-compose.prod.yml ps
+
+# Restart web-app if needed
+docker-compose -f docker-compose.prod.yml restart web-app
+```
+
+The web-app will be rebuilt from scratch and restarted with the new image.

@@ -11,25 +11,20 @@ interface PageTransitionProps {
 
 export function PageTransition({ children, className }: PageTransitionProps) {
   const pathname = usePathname();
-  const [displayChildren, setDisplayChildren] = React.useState(children);
   const [isTransitioning, setIsTransitioning] = React.useState(false);
-  const childrenRef = React.useRef(children);
+  const prevPathnameRef = React.useRef(pathname);
 
-  // Update ref when children changes
+  // Only trigger transition animation when pathname changes (not on every render)
   React.useEffect(() => {
-    childrenRef.current = children;
-  }, [children]);
-
-  // Only transition when pathname changes
-  React.useEffect(() => {
-    setIsTransitioning(true);
-    const timer = setTimeout(() => {
-      setDisplayChildren(childrenRef.current);
-      setIsTransitioning(false);
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [pathname]); // Only depend on pathname, not children
+    if (prevPathnameRef.current !== pathname) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 150);
+      prevPathnameRef.current = pathname;
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
 
   return (
     <div
@@ -39,7 +34,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
         className
       )}
     >
-      {displayChildren}
+      {children}
     </div>
   );
 }
