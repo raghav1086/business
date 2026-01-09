@@ -13,6 +13,31 @@ echo ""
 
 cd /opt/business-app/app
 
+# CRITICAL: Ensure .env.production exists with fixed password before loading
+if [ ! -f .env.production ]; then
+    echo "⚠️  .env.production not found, creating with default production password..."
+    DB_PASSWORD="Admin112233"
+    JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
+    printf "DB_PASSWORD=%s\nJWT_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n" \
+      "$DB_PASSWORD" "$JWT_SECRET" > .env.production
+    echo "✅ Created .env.production with production password: Admin112233"
+else
+    # Ensure DB_PASSWORD is Admin112233 (update if different)
+    if grep -q "^DB_PASSWORD=" .env.production; then
+        EXISTING_PASSWORD=$(grep "^DB_PASSWORD=" .env.production | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ "$EXISTING_PASSWORD" != "Admin112233" ]; then
+            echo "⚠️  DB_PASSWORD doesn't match production default, updating to Admin112233..."
+            sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=Admin112233/" .env.production
+            rm -f .env.production.bak
+            echo "✅ Updated DB_PASSWORD to Admin112233"
+        fi
+    else
+        echo "⚠️  DB_PASSWORD not found in .env.production, adding..."
+        echo "DB_PASSWORD=Admin112233" >> .env.production
+        echo "✅ Added DB_PASSWORD=Admin112233"
+    fi
+fi
+
 # Load environment variables
 echo "📋 Loading environment variables..."
 while IFS= read -r line || [ -n "$line" ]; do
@@ -26,7 +51,7 @@ while IFS= read -r line || [ -n "$line" ]; do
         export "$key=$value"
     fi
 done < .env.production
-echo "✅ Environment variables loaded"
+echo "✅ Environment variables loaded (DB_PASSWORD=Admin112233)"
 echo ""
 
 # List of services to build

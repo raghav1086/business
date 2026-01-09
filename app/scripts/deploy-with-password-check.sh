@@ -46,10 +46,10 @@ check_existing_password() {
     return 1
 }
 
-# Only generate new password if not exists
+# Use fixed production password (never changes)
 if ! check_existing_password; then
-    echo -e "${YELLOW}⚠️  No existing password found, generating new one...${NC}"
-    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+    echo -e "${YELLOW}⚠️  No existing password found, using default production password...${NC}"
+    DB_PASSWORD="Admin112233"
     export DB_PASSWORD
     
     # Create or update .env.production
@@ -62,7 +62,17 @@ if ! check_existing_password; then
     else
         echo "DB_PASSWORD=$DB_PASSWORD" > "$ENV_FILE"
     fi
-    echo -e "${GREEN}✅ New password generated and saved${NC}"
+    echo -e "${GREEN}✅ Using default production password: Admin112233${NC}"
+else
+    # Ensure existing password is Admin112233, update if not
+    if [ "$DB_PASSWORD" != "Admin112233" ]; then
+        echo -e "${YELLOW}⚠️  Existing password doesn't match default, updating to Admin112233...${NC}"
+        DB_PASSWORD="Admin112233"
+        export DB_PASSWORD
+        sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" "$ENV_FILE"
+        rm -f "${ENV_FILE}.bak"
+        echo -e "${GREEN}✅ Password updated to Admin112233${NC}"
+    fi
 fi
 
 # Check JWT_SECRET
@@ -93,14 +103,54 @@ fi
 echo ""
 
 # =============================================================================
-# STEP 3: Pull latest code
+# STEP 3: Pull latest code (preserve .env.production)
 # =============================================================================
-echo -e "${YELLOW}📋 Step 3/5: Pulling latest code...${NC}"
+echo -e "${YELLOW}📋 Step 3/5: Pulling latest code (preserving .env.production)...${NC}"
 
 if [ -d .git ]; then
+    # Backup .env.production before git reset
+    if [ -f "$ENV_FILE" ]; then
+        cp "$ENV_FILE" "${ENV_FILE}.backup.before-git-reset"
+        echo -e "${BLUE}   → Backed up .env.production before git reset${NC}"
+    fi
+    
     git fetch origin main
     git reset --hard origin/main
-    echo -e "${GREEN}✅ Code updated${NC}"
+    
+    # Restore .env.production after git reset (git reset might have removed it)
+    if [ ! -f "$ENV_FILE" ] && [ -f "${ENV_FILE}.backup.before-git-reset" ]; then
+        mv "${ENV_FILE}.backup.before-git-reset" "$ENV_FILE"
+        echo -e "${GREEN}   → Restored .env.production after git reset${NC}"
+    elif [ -f "${ENV_FILE}.backup.before-git-reset" ]; then
+        # File exists, but ensure password is correct
+        rm -f "${ENV_FILE}.backup.before-git-reset"
+        if grep -q "^DB_PASSWORD=" "$ENV_FILE"; then
+            EXISTING_PASSWORD=$(grep "^DB_PASSWORD=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+            if [ "$EXISTING_PASSWORD" != "Admin112233" ]; then
+                echo -e "${YELLOW}   → Updating DB_PASSWORD to Admin112233...${NC}"
+                sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=Admin112233/" "$ENV_FILE"
+                rm -f "${ENV_FILE}.bak"
+            fi
+        else
+            echo -e "${YELLOW}   → Adding DB_PASSWORD=Admin112233...${NC}"
+            echo "DB_PASSWORD=Admin112233" >> "$ENV_FILE"
+        fi
+    fi
+    
+    # Ensure password is set correctly
+    if [ -f "$ENV_FILE" ]; then
+        export DB_PASSWORD="Admin112233"
+        if ! grep -q "^DB_PASSWORD=Admin112233" "$ENV_FILE"; then
+            if grep -q "^DB_PASSWORD=" "$ENV_FILE"; then
+                sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=Admin112233/" "$ENV_FILE"
+            else
+                echo "DB_PASSWORD=Admin112233" >> "$ENV_FILE"
+            fi
+            rm -f "${ENV_FILE}.bak"
+        fi
+    fi
+    
+    echo -e "${GREEN}✅ Code updated (password preserved)${NC}"
 else
     echo -e "${YELLOW}⚠️  Not a git repository, skipping pull${NC}"
 fi

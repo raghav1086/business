@@ -10,15 +10,15 @@ cd /opt/business-app/app
 
 # Ensure .env files exist and are properly formatted
 if [ ! -f .env.production ] || ! grep -q "^DB_PASSWORD=" .env.production 2>/dev/null; then
-    echo "⚠️  .env.production not found or invalid, creating..."
-    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+    echo "⚠️  .env.production not found or invalid, creating with default password..."
+    DB_PASSWORD="Admin112233"
     JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
     JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
     
     printf "DB_PASSWORD=%s\nJWT_SECRET=%s\nJWT_REFRESH_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n" \
       "$DB_PASSWORD" "$JWT_SECRET" "$JWT_REFRESH_SECRET" > .env.production
     cp .env.production .env
-    echo "✅ Created new .env.production"
+    echo "✅ Created new .env.production with default password: Admin112233"
 else
     echo "✅ Using existing .env.production"
     # Validate and fix format if needed

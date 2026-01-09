@@ -10,15 +10,15 @@ echo ""
 echo "1. Fixing .env.production file..."
 cd /opt/business-app/app
 
-# Read existing values or generate new ones
+# Use fixed production password (never changes)
 if [ -f .env.production ]; then
-    # Extract existing values
-    DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.production | cut -d'=' -f2- || openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+    # Extract existing values, but always use Admin112233 for DB_PASSWORD
+    DB_PASSWORD="Admin112233"
     JWT_SECRET=$(grep "^JWT_SECRET=" .env.production | cut -d'=' -f2- || openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
     JWT_REFRESH_SECRET=$(grep "^JWT_REFRESH_SECRET=" .env.production | cut -d'=' -f2- || openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
 else
-    # Generate new values
-    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+    # Use default password
+    DB_PASSWORD="Admin112233"
     JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
     JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
 fi

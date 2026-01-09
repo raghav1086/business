@@ -57,9 +57,9 @@ for attempt in {1..3}; do
     fi
 done
 
-# Generate secure passwords
-echo "8. Generating secure passwords..."
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+# Use fixed production password (never changes)
+echo "8. Setting up production password..."
+DB_PASSWORD="Admin112233"
 JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
 JWT_REFRESH_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
 

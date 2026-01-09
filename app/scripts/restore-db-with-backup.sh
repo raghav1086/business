@@ -43,38 +43,41 @@ echo -e "${YELLOW}📋 Step 1/6: Checking .env.production for DB_PASSWORD...${NC
 
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}❌ .env.production not found at $ENV_FILE${NC}"
-    echo -e "${YELLOW}Creating .env.production with default values...${NC}"
+    echo -e "${YELLOW}Creating .env.production with default production password...${NC}"
     
-    # Generate a secure password
-    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+    # Use fixed production password (never changes)
+    DB_PASSWORD="Admin112233"
     JWT_SECRET=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
     
     cat > "$ENV_FILE" << EOF
 # Business App Production Environment
 # Generated on $(date)
 
-# Database Configuration - DO NOT CHANGE AFTER INITIAL SETUP
+# Database Configuration - Fixed production password (DO NOT CHANGE)
 DB_PASSWORD=$DB_PASSWORD
 
 # JWT Secret - DO NOT CHANGE AFTER INITIAL SETUP
 JWT_SECRET=$JWT_SECRET
 EOF
-    echo -e "${GREEN}✅ Created .env.production with new credentials${NC}"
+    echo -e "${GREEN}✅ Created .env.production with default production password: Admin112233${NC}"
 else
-    # Check if DB_PASSWORD exists in the file
+    # Check if DB_PASSWORD exists in the file, but always use Admin112233
     if grep -q "^DB_PASSWORD=" "$ENV_FILE"; then
-        DB_PASSWORD=$(grep "^DB_PASSWORD=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-        if [ -z "$DB_PASSWORD" ]; then
-            echo -e "${YELLOW}⚠️  DB_PASSWORD is empty, generating new one...${NC}"
-            DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+        EXISTING_PASSWORD=$(grep "^DB_PASSWORD=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ -z "$EXISTING_PASSWORD" ] || [ "$EXISTING_PASSWORD" != "Admin112233" ]; then
+            echo -e "${YELLOW}⚠️  DB_PASSWORD doesn't match production default, updating to Admin112233...${NC}"
+            DB_PASSWORD="Admin112233"
             sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" "$ENV_FILE"
+            rm -f "${ENV_FILE}.bak"
+        else
+            DB_PASSWORD="Admin112233"
         fi
-        echo -e "${GREEN}✅ Using existing DB_PASSWORD from .env.production${NC}"
+        echo -e "${GREEN}✅ Using production password: Admin112233${NC}"
     else
-        echo -e "${YELLOW}⚠️  DB_PASSWORD not found, adding it...${NC}"
-        DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+        echo -e "${YELLOW}⚠️  DB_PASSWORD not found, adding production password...${NC}"
+        DB_PASSWORD="Admin112233"
         echo "DB_PASSWORD=$DB_PASSWORD" >> "$ENV_FILE"
-        echo -e "${GREEN}✅ Added DB_PASSWORD to .env.production${NC}"
+        echo -e "${GREEN}✅ Added production password: Admin112233${NC}"
     fi
 fi
 

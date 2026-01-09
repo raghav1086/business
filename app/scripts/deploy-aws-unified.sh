@@ -278,7 +278,7 @@ for i in {1..3}; do
     [ $i -lt 3 ] && sleep 10 || exit 1
 done
 
-DB_PASSWORD=$(openssl rand -base64 32|tr -d "=+/"|cut -c1-25)
+DB_PASSWORD="Admin112233"
 JWT_SECRET=$(openssl rand -base64 64|tr -d "=+/"|cut -c1-64)
 JWT_REFRESH_SECRET=$(openssl rand -base64 64|tr -d "=+/"|cut -c1-64)
 cd /opt/business-app/app

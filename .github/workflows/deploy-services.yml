@@ -256,20 +256,41 @@ jobs:
           
           cd /opt/business-app/app
           
-          # Load environment variables
-          if [ -f .env.production ]; then
-            set -a
-            source .env.production
-            set +a
-            echo "✅ Loaded environment variables"
+          # CRITICAL: Ensure .env.production exists with fixed password before loading
+          if [ ! -f .env.production ]; then
+            echo "⚠️  .env.production not found, creating with default production password..."
+            DB_PASSWORD="Admin112233"
+            # Try to preserve JWT_SECRET if .env exists
+            if [ -f .env ] && grep -q "^JWT_SECRET=" .env; then
+              JWT_SECRET=$(grep "^JWT_SECRET=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+            else
+              JWT_SECRET=$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-64)
+            fi
+            printf "DB_PASSWORD=%s\nJWT_SECRET=%s\nENABLE_SYNC=true\nENABLE_FAKE_OTP=true\n" \
+              "$DB_PASSWORD" "$JWT_SECRET" > .env.production
+            echo "✅ Created .env.production with production password: Admin112233"
           else
-            echo "⚠️  .env.production not found, using existing .env"
-            if [ -f .env ]; then
-              set -a
-              source .env
-              set +a
+            # Ensure DB_PASSWORD is Admin112233 (update if different)
+            if grep -q "^DB_PASSWORD=" .env.production; then
+              EXISTING_PASSWORD=$(grep "^DB_PASSWORD=" .env.production | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+              if [ "$EXISTING_PASSWORD" != "Admin112233" ]; then
+                echo "⚠️  DB_PASSWORD doesn't match production default, updating to Admin112233..."
+                sed -i.bak "s/^DB_PASSWORD=.*/DB_PASSWORD=Admin112233/" .env.production
+                rm -f .env.production.bak
+                echo "✅ Updated DB_PASSWORD to Admin112233"
+              fi
+            else
+              echo "⚠️  DB_PASSWORD not found in .env.production, adding..."
+              echo "DB_PASSWORD=Admin112233" >> .env.production
+              echo "✅ Added DB_PASSWORD=Admin112233"
             fi
           fi
+          
+          # Load environment variables
+          set -a
+          source .env.production
+          set +a
+          echo "✅ Loaded environment variables (DB_PASSWORD=Admin112233)"
           
           # Function to rebuild and restart a service
           rebuild_service() {

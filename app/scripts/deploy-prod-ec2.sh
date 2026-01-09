@@ -26,8 +26,8 @@ cd "$PROJECT_ROOT"
 DB_HOST="${1:-${DB_HOST:-localhost}}"
 DB_PORT="${2:-${DB_PORT:-5432}}"
 DB_USER="${3:-${DB_USER:-postgres}}"
-# Use existing Docker database password (default: postgres, or from environment)
-DB_PASSWORD="${4:-${DB_PASSWORD:-postgres}}"
+# Use fixed production password (never changes)
+DB_PASSWORD="${4:-${DB_PASSWORD:-Admin112233}}"
 JWT_SECRET="${5:-${JWT_SECRET}}"
 
 # Generate JWT_SECRET if not provided

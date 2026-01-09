@@ -33,16 +33,21 @@ if ! docker ps | grep -q business-postgres; then
     exit 1
 fi
 
-# Get the password from PostgreSQL container
-echo -e "${YELLOW}📋 Step 1/4: Getting password from PostgreSQL container...${NC}"
-POSTGRES_PASSWORD=$(docker exec business-postgres env | grep POSTGRES_PASSWORD | cut -d'=' -f2)
+# Use fixed production password (never changes)
+echo -e "${YELLOW}📋 Step 1/4: Setting password to fixed production password...${NC}"
+POSTGRES_PASSWORD="Admin112233"
 
-if [ -z "$POSTGRES_PASSWORD" ]; then
-    echo -e "${RED}❌ Could not get password from PostgreSQL container${NC}"
-    exit 1
+# Update PostgreSQL password if it doesn't match
+CURRENT_PASSWORD=$(docker exec business-postgres env | grep POSTGRES_PASSWORD | cut -d'=' -f2 || echo "")
+if [ "$CURRENT_PASSWORD" != "Admin112233" ]; then
+    echo -e "${YELLOW}⚠️  PostgreSQL password doesn't match, updating to Admin112233...${NC}"
+    # Try multiple methods to update password
+    docker exec business-postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'Admin112233';" 2>/dev/null || \
+    docker exec business-postgres sh -c "su - postgres -c \"psql -c \\\"ALTER USER postgres WITH PASSWORD 'Admin112233';\\\"\"" 2>/dev/null || \
+    echo -e "${YELLOW}⚠️  Could not update password automatically, will update via docker-compose restart${NC}"
 fi
 
-echo -e "${GREEN}✅ Found PostgreSQL password (length: ${#POSTGRES_PASSWORD})${NC}"
+echo -e "${GREEN}✅ Using fixed production password: Admin112233${NC}"
 echo ""
 
 # Update .env.production
