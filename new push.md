@@ -393,3 +393,100 @@ docker-compose -f docker-compose.prod.yml restart web-app
 ```
 
 The web-app will be rebuilt from scratch and restarted with the new image.
+
+
+==============================================
+
+
+Checking disk space and identifying what's consuming it:
+
+
+[1 tool called]
+
+
+Providing commands to run on your EC2 instance to diagnose and fix the disk space issue:
+
+
+[2 tools called]
+
+
+Making the scripts executable and providing instructions:
+
+
+[1 tool called]
+
+
+Created two scripts to help with the disk space issue. Run these on your EC2 instance:
+
+## Quick Fix Steps
+
+**1. First, diagnose the issue:**
+```bash
+cd /opt/business-app/app
+bash scripts/fix-disk-space.sh
+```
+
+**2. Then, clean up disk space:**
+```bash
+bash scripts/cleanup-disk-space.sh
+```
+
+**3. After cleanup, retry git pull:**
+```bash
+cd /opt/business-app/app
+git pull origin main
+```
+
+## Manual Quick Fix (if scripts aren't available)
+
+If you need to fix it immediately, run these commands on your EC2 instance:
+
+```bash
+# 1. Remove the stuck git lock file
+rm -f /opt/business-app/.git/index.lock
+
+# 2. Check disk space
+df -h
+
+# 3. Clean git objects
+cd /opt/business-app
+git gc --prune=now
+
+# 4. Remove old build artifacts (can be rebuilt)
+rm -rf /opt/business-app/app/dist
+rm -rf /opt/business-app/web-app/.next
+rm -rf /opt/business-app/web-app/.turbo
+
+# 5. Clean npm cache
+npm cache clean --force
+
+# 6. Remove old logs (optional - keeps last 7 days)
+find /opt/business-app/app/logs -type f -mtime +7 -delete
+
+# 7. Now try git pull again
+cd /opt/business-app/app
+git pull origin main
+```
+
+## What to Check
+
+After running the cleanup, check what's taking up space:
+```bash
+# See overall usage
+df -h
+
+# Find largest directories
+du -h /opt/business-app | sort -rh | head -20
+
+# Find large files
+find /opt/business-app -type f -size +100M
+```
+
+The most common culprits are:
+- `node_modules` directories
+- Build artifacts (`dist`, `.next`)
+- Git objects (`.git` directory)
+- Log files
+- Docker images/containers
+
+After cleanup, you should be able to pull the latest changes. If you still have issues, share the output of `df -h` and we can identify what else to clean up.
