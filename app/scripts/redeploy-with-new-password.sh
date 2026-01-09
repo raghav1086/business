@@ -92,20 +92,63 @@ echo -e "${GREEN}   ✅ Created .env file${NC}"
 echo ""
 
 # =============================================================================
-# STEP 2: Load environment variables
+# STEP 2: Load environment variables (safely)
 # =============================================================================
 echo -e "${YELLOW}📋 Step 2/5: Loading environment variables...${NC}"
 
-# Load environment variables
-set -a
-source "$ENV_FILE"
-set +a
+# Clean and validate .env.production before loading
+echo -e "${BLUE}   → Validating and cleaning .env.production...${NC}"
 
-# Ensure DB_PASSWORD is exported
+# Create a clean version of .env.production
+CLEAN_ENV_FILE="${ENV_FILE}.clean"
+> "$CLEAN_ENV_FILE"
+
+# Read and process each line, only keeping valid KEY=VALUE pairs
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines and comments
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    
+    # Only process lines with KEY=VALUE format
+    if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+        echo "$line" >> "$CLEAN_ENV_FILE"
+    fi
+done < "$ENV_FILE"
+
+# Ensure required variables are present
+if ! grep -q "^DB_PASSWORD=" "$CLEAN_ENV_FILE"; then
+    echo "DB_PASSWORD=$FIXED_PASSWORD" >> "$CLEAN_ENV_FILE"
+fi
+
+# Replace original with clean version
+mv "$CLEAN_ENV_FILE" "$ENV_FILE"
+
+# Load environment variables safely (line by line to avoid command execution)
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines and comments
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    
+    # Only process lines with KEY=VALUE format
+    if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+        key="${line%%=*}"
+        value="${line#*=}"
+        # Remove leading/trailing whitespace
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        # Remove quotes if present
+        value=$(echo "$value" | sed "s/^['\"]//; s/['\"]\$//")
+        # Export the variable
+        export "$key=$value"
+    fi
+done < "$ENV_FILE"
+
+# Ensure DB_PASSWORD is set correctly
 export DB_PASSWORD="$FIXED_PASSWORD"
 
 echo -e "${GREEN}   ✅ Environment variables loaded${NC}"
 echo -e "${BLUE}   → DB_PASSWORD=$FIXED_PASSWORD${NC}"
+if [ -n "$JWT_SECRET" ]; then
+    echo -e "${BLUE}   → JWT_SECRET loaded${NC}"
+fi
 echo ""
 
 # =============================================================================
