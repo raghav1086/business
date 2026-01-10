@@ -15,6 +15,10 @@ import { BusinessContext } from '@business-app/shared/types';
  * Checks if user has the required permission in the current business context.
  * Requires BusinessContextGuard to run first.
  * 
+ * TEMPORARY: RBAC is disabled for all users except superadmin.
+ * All non-superadmin users can perform any operation without permission checks.
+ * This will be re-enabled later.
+ * 
  * Usage:
  * @UseGuards(BusinessContextGuard, PermissionGuard)
  * @RequirePermission(Permission.INVOICE_CREATE)
@@ -44,30 +48,36 @@ export class PermissionGuard implements CanActivate {
       throw new ForbiddenException('Business context not found. Ensure BusinessContextGuard is applied.');
     }
 
-    // Superadmin has all permissions
+    // Superadmin: Keep RBAC checks (they have all permissions anyway)
     if (businessContext.isSuperadmin) {
       return true;
     }
 
-    // Check if user has required permission
-    const hasPermission = businessContext.permissions.includes(requiredPermission);
-
-    // Debug: Log permission check details
-    if (!hasPermission) {
-      console.error(`[PermissionGuard] Permission denied:`, {
-        requiredPermission,
-        userId: businessContext.userId,
-        businessId: businessContext.businessId,
-        permissionsCount: businessContext.permissions.length,
-        permissions: businessContext.permissions.slice(0, 10), // First 10 for debugging
-        hasRequired: businessContext.permissions.includes(requiredPermission),
-      });
-      throw new ForbiddenException(
-        `You do not have permission: ${requiredPermission}`
-      );
-    }
-
+    // TEMPORARY: RBAC disabled for all non-superadmin users
+    // Allow all operations without permission checks
+    // TODO: Re-enable RBAC checks when ready
     return true;
+
+    // Original RBAC check (commented out for now)
+    // // Check if user has required permission
+    // const hasPermission = businessContext.permissions.includes(requiredPermission);
+    //
+    // // Debug: Log permission check details
+    // if (!hasPermission) {
+    //   console.error(`[PermissionGuard] Permission denied:`, {
+    //     requiredPermission,
+    //     userId: businessContext.userId,
+    //     businessId: businessContext.businessId,
+    //     permissionsCount: businessContext.permissions.length,
+    //     permissions: businessContext.permissions.slice(0, 10), // First 10 for debugging
+    //     hasRequired: businessContext.permissions.includes(requiredPermission),
+    //   });
+    //   throw new ForbiddenException(
+    //     `You do not have permission: ${requiredPermission}`
+    //   );
+    // }
+    //
+    // return true;
   }
 }
 
