@@ -122,7 +122,7 @@ export default function EditItemPage() {
       // Note: category and unit are NOT sent - backend expects UUIDs (category_id, unit_id)
       // These fields are kept in form for display only
 
-      const response = await inventoryApi.put(`/items/${itemId}`, payload);
+      const response = await inventoryApi.patch(`/items/${itemId}`, payload);
       return response.data;
     },
     onSuccess: () => {

@@ -126,7 +126,7 @@ export default function EditPartyPage() {
         payload.opening_balance_type = data.balance_type === 'receivable' ? 'debit' : 'credit';
       }
 
-      const response = await partyApi.put(`/parties/${partyId}`, payload);
+      const response = await partyApi.patch(`/parties/${partyId}`, payload);
       return response.data;
     },
     onSuccess: () => {

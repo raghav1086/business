@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuthStore } from "@/lib/auth-store";
-import { tokenStorage } from "@/lib/api-client";
+import { tokenStorage, authApi } from "@/lib/api-client";
 import { User, Mail, Phone, Shield, Key, Camera, Save, Check, AlertTriangle, Trash2 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -53,17 +53,8 @@ export default function ProfilePage() {
   const { data: userData, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      // Mock data - replace with actual API call
-      return {
-        id: user?.id || "1",
-        name: "Admin User",
-        email: "admin@abctraders.com",
-        phone: user?.phone || "+91 98765 43210",
-        avatar_url: "",
-        role: "admin",
-        created_at: "2024-01-15T10:00:00Z",
-        last_login: "2024-01-20T14:30:00Z",
-      };
+      const response = await authApi.get("/users/me");
+      return response.data?.data || response.data;
     },
     enabled: !!token,
   });
@@ -82,16 +73,13 @@ export default function ProfilePage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof profile) => {
-      const response = await fetch("/api/users/me", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
+      const response = await authApi.patch("/users/profile", {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        avatar_url: data.avatar_url,
       });
-      if (!response.ok) throw new Error("Failed to update profile");
-      return response.json();
+      return response.data;
     },
     onSuccess: () => {
       setSaved(true);
@@ -100,18 +88,12 @@ export default function ProfilePage() {
   });
 
   // Change password mutation
+  // NOTE: Password change endpoint not implemented in backend yet
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { current_password: string; new_password: string }) => {
-      const response = await fetch("/api/users/me/password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to change password");
-      return response.json();
+      // TODO: Implement password change endpoint in backend
+      // Endpoint should be: PATCH /api/v1/users/profile/password
+      throw new Error("Password change is not available yet. Backend endpoint needs to be implemented.");
     },
     onSuccess: () => {
       setPasswords({ current_password: "", new_password: "", confirm_password: "" });

@@ -159,7 +159,7 @@ export default function EditInvoicePage() {
         total_amount: subtotal + taxAmount,
       };
       
-      const response = await invoiceApi.put(`/invoices/${invoiceId}`, payload);
+      const response = await invoiceApi.patch(`/invoices/${invoiceId}`, payload);
       return response.data;
     },
     onSuccess: () => {
