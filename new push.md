@@ -490,3 +490,10 @@ The most common culprits are:
 - Docker images/containers
 
 After cleanup, you should be able to pull the latest changes. If you still have issues, share the output of `df -h` and we can identify what else to clean up.
+
+
+
+
+cd /opt/business-app/app
+docker-compose -f docker-compose.prod.yml build web-app
+docker-compose -f docker-compose.prod.yml up -d web-app

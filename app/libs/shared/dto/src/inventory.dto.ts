@@ -162,8 +162,113 @@ export class CreateItemDto {
 }
 
 export class UpdateItemDto {
-  // All fields from CreateItemDto but optional
-  [key: string]: any;
+  @IsOptional()
+  @IsString()
+  @Length(2, 200)
+  name?: string;
+
+  @IsOptional()
+  @IsUUID()
+  category_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  unit_id?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  sku?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(4, 8)
+  hsn_code?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(4, 6)
+  sac_code?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum([
+    'raw_material',
+    'wip',
+    'finished_goods',
+    'trading_goods',
+    'consumables',
+    'services',
+  ])
+  inventory_type?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  selling_price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  purchase_price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  mrp?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  discount_percent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  tax_rate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  cess_rate?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  tax_inclusive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  current_stock?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  low_stock_threshold?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  track_stock?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  track_serial?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  track_batch?: boolean;
 }
 
 export class StockAdjustmentDto {

@@ -171,8 +171,84 @@ export class UpdatePartyDto {
   })
   pan?: string;
 
-  // All other fields same as CreatePartyDto but optional
-  [key: string]: any;
+  // Billing Address
+  @IsOptional()
+  @IsString()
+  billing_address_line1?: string;
+
+  @IsOptional()
+  @IsString()
+  billing_address_line2?: string;
+
+  @IsOptional()
+  @IsString()
+  billing_city?: string;
+
+  @IsOptional()
+  @IsString()
+  billing_state?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(6, 6)
+  billing_pincode?: string;
+
+  // Shipping Address
+  @IsOptional()
+  @IsBoolean()
+  shipping_same_as_billing?: boolean;
+
+  @IsOptional()
+  @IsString()
+  shipping_address_line1?: string;
+
+  @IsOptional()
+  @IsString()
+  shipping_address_line2?: string;
+
+  @IsOptional()
+  @IsString()
+  shipping_city?: string;
+
+  @IsOptional()
+  @IsString()
+  shipping_state?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(6, 6)
+  shipping_pincode?: string;
+
+  // Financial
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  opening_balance?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(['credit', 'debit'])
+  opening_balance_type?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  credit_limit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  credit_period_days?: number;
+
+  // Metadata
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }
 
 export class PartyResponseDto {
