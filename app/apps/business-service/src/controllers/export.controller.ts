@@ -35,10 +35,10 @@ export class ExportController {
   @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
   async exportBusinesses(
     @Request() req: any,
+    @Res() res: Response,
     @Query('format') format: string = 'csv',
     @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Res() res: Response
+    @Query('endDate') endDate?: string
   ) {
     if (!req.user?.is_superadmin) {
       throw new ForbiddenException('Superadmin access required');
@@ -77,10 +77,10 @@ export class ExportController {
   @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
   async exportUsers(
     @Request() req: any,
+    @Res() res: Response,
     @Query('format') format: string = 'csv',
     @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Res() res: Response
+    @Query('endDate') endDate?: string
   ) {
     if (!req.user?.is_superadmin) {
       throw new ForbiddenException('Superadmin access required');
@@ -118,9 +118,9 @@ export class ExportController {
   @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
   async exportAnalytics(
     @Request() req: any,
+    @Res() res: Response,
     @Query('format') format: string = 'csv',
-    @Query('dateRange') dateRange?: string,
-    @Res() res: Response
+    @Query('dateRange') dateRange?: string
   ) {
     if (!req.user?.is_superadmin) {
       throw new ForbiddenException('Superadmin access required');
