@@ -547,3 +547,61 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║     CLEANUP COMPLETE!                                         ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
 
+Checking the deployment script for all available service names:
+
+
+[1 tool called]
+
+
+Available service names for `deploy-smart-service`:
+
+## All Available Services
+
+1. **auth-service** (Port: 3002)
+   - No dependencies
+
+2. **business-service** (Port: 3003)
+   - Depends on: auth-service
+
+3. **party-service** (Port: 3004)
+   - Depends on: auth-service
+
+4. **inventory-service** (Port: 3005)
+   - Depends on: auth-service
+
+5. **invoice-service** (Port: 3006)
+   - Depends on: auth-service
+
+6. **payment-service** (Port: 3007)
+   - Depends on: auth-service
+
+7. **gst-service** (Port: 3008)
+   - Depends on: auth-service, business-service, invoice-service, party-service
+
+8. **web-app** (Port: 3000)
+   - Depends on: auth-service, business-service
+
+## Usage Examples
+
+```bash
+# Deploy auth-service only
+make deploy-smart-service SERVICE=auth-service
+
+# Deploy business-service only
+make deploy-smart-service SERVICE=business-service
+
+# Deploy web-app only
+make deploy-smart-service SERVICE=web-app
+
+# Deploy gst-service (will auto-start dependencies if needed)
+make deploy-smart-service SERVICE=gst-service
+```
+
+## Notes
+
+- Dependencies are started automatically if not running
+- Only the specified service is rebuilt and redeployed
+- Other services continue running unchanged
+- Health checks run after deployment
+
+All 8 services (7 backend services + web-app) are available for selective deployment.
