@@ -99,7 +99,7 @@ echo -e "${YELLOW}Step 4/7: Building GST service...${NC}"
 echo -e "${BLUE}  → Building only gst-service (other services will not be rebuilt)${NC}"
 
 cd "$PROJECT_ROOT"
-$DOCKER_COMPOSE build --no-cache gst-service
+# $DOCKER_COMPOSE build --no-cache gst-service
 
 echo -e "${GREEN}✓ GST service built${NC}"
 echo ""
