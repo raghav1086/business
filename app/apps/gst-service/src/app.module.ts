@@ -102,6 +102,8 @@ import { EWayBillService } from './services/ewaybill.service';
     EInvoiceRequestRepository,
     BusinessGstSettingsRepository,
     EWayBillRepository,
+    Gstr2aImportRepository,
+    Gstr2aReconciliationRepository,
     Gstr1Service,
     Gstr3bService,
     Gstr4Service,
