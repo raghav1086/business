@@ -54,7 +54,20 @@ interface UserDetailsSheetProps {
     status: string;
     created_at: Date;
     last_login_at?: Date;
+    businesses?: {
+      total: number;
+      owned: number;
+      assigned: number;
+      list: Array<{
+        id: string;
+        name: string;
+        role: string;
+        isOwner: boolean;
+        status: string;
+      }>;
+    };
   };
+  onViewBusiness?: (businessId: string) => void;
 }
 
 interface UserBusiness {
@@ -82,6 +95,7 @@ export function UserDetailsSheet({
   open,
   onOpenChange,
   user,
+  onViewBusiness,
 }: UserDetailsSheetProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'businesses' | 'activity'>('overview');
 
@@ -294,66 +308,112 @@ export function UserDetailsSheet({
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : userBusinesses && userBusinesses.businesses && userBusinesses.businesses.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User's Businesses</CardTitle>
-                    <CardDescription>
-                      {userBusinesses.businesses.length} business(es) associated
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="border rounded-lg overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Business Name</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Is Owner</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {userBusinesses.businesses.map((ub) => (
-                            <TableRow key={ub.id}>
-                              <TableCell className="font-medium">{ub.name}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{ub.role}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={ub.status === 'active' ? 'default' : 'secondary'}>
-                                  {ub.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {ub.isOwner ? (
-                                  <Badge variant="default">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Owner
-                                  </Badge>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">No</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    toast.info('Business details coming soon');
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
+              ) : (userBusinesses?.businesses && userBusinesses.businesses.length > 0) || (user?.businesses && user.businesses.list.length > 0) ? (
+                <>
+                  {/* Summary Card */}
+                  {(user?.businesses) && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Business Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div className="text-center">
+                            <p className="text-2xl font-bold">{user.businesses.total}</p>
+                            <p className="text-sm text-muted-foreground">Total Businesses</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-green-600">{user.businesses.owned}</p>
+                            <p className="text-sm text-muted-foreground">Owned</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-blue-600">{user.businesses.assigned}</p>
+                            <p className="text-sm text-muted-foreground">Assigned</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User's Businesses</CardTitle>
+                      <CardDescription>
+                        {(userBusinesses?.businesses?.length || user?.businesses?.list.length || 0)} business(es) associated
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="border rounded-lg overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Business Name</TableHead>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Is Owner</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                          </TableHeader>
+                          <TableBody>
+                            {(userBusinesses?.businesses || user?.businesses?.list || []).map((ub) => (
+                              <TableRow key={ub.id}>
+                                <TableCell>
+                                  <Button
+                                    variant="link"
+                                    className="h-auto p-0 font-medium"
+                                    onClick={() => {
+                                      if (onViewBusiness) {
+                                        onViewBusiness(ub.id);
+                                      } else {
+                                        toast.info('Business details coming soon');
+                                      }
+                                    }}
+                                  >
+                                    {ub.name}
+                                  </Button>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{ub.role}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={ub.status === 'active' ? 'default' : 'secondary'}>
+                                    {ub.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {ub.isOwner ? (
+                                    <Badge variant="default">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Owner
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (onViewBusiness) {
+                                        onViewBusiness(ub.id);
+                                      } else {
+                                        toast.info('Business details coming soon');
+                                      }
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               ) : (
                 <Card>
                   <CardContent className="py-8 text-center">

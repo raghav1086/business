@@ -55,7 +55,17 @@ interface BusinessDetailsSheetProps {
     gstin?: string;
     status: string;
     created_at: Date;
+    owner?: {
+      id: string;
+      name?: string;
+      phone: string;
+      email?: string;
+      last_login_at?: Date;
+      total_businesses: number;
+    };
   };
+  onViewOwner?: (ownerId: string) => void;
+  onViewOwnerBusinesses?: (ownerId: string) => void;
 }
 
 interface BusinessUser {
@@ -88,6 +98,8 @@ export function BusinessDetailsSheet({
   open,
   onOpenChange,
   business,
+  onViewOwner,
+  onViewOwnerBusinesses,
 }: BusinessDetailsSheetProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity'>('overview');
 
@@ -235,34 +247,84 @@ export function BusinessDetailsSheet({
                   </Card>
 
                   {/* Owner Information */}
-                  {ownerDetails && (
+                  {(ownerDetails || business?.owner) && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Owner Information</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Owner Information
+                        </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold">
-                              {ownerDetails.name || 'N/A'}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatPhoneNumber(ownerDetails.phone)}
-                            </p>
-                            {ownerDetails.email && (
-                              <p className="text-sm text-muted-foreground">{ownerDetails.email}</p>
-                            )}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1 flex-1">
+                              <p className="text-sm font-semibold">
+                                {business?.owner?.name || ownerDetails?.name || 'N/A'}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                  {formatPhoneNumber(business?.owner?.phone || ownerDetails?.phone || '')}
+                                </p>
+                              </div>
+                              {business?.owner?.email || ownerDetails?.email ? (
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground">
+                                    {business?.owner?.email || ownerDetails?.email}
+                                  </p>
+                                </div>
+                              ) : null}
+                              {business?.owner?.last_login_at || ownerDetails?.last_login_at ? (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground">
+                                    Last login: {new Date(business?.owner?.last_login_at || ownerDetails?.last_login_at || '').toLocaleString()}
+                                  </p>
+                                </div>
+                              ) : null}
+                              {business?.owner?.total_businesses !== undefined && business.owner.total_businesses > 1 && (
+                                <div className="mt-2">
+                                  <Badge variant="outline">
+                                    {business.owner.total_businesses} business{business.owner.total_businesses !== 1 ? 'es' : ''}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              {onViewOwner && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const ownerId = business?.owner?.id || businessDetails?.owner_id;
+                                    if (ownerId) {
+                                      onViewOwner(ownerId);
+                                    }
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Profile
+                                </Button>
+                              )}
+                              {onViewOwnerBusinesses && business?.owner?.total_businesses && business.owner.total_businesses > 1 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const ownerId = business?.owner?.id || businessDetails?.owner_id;
+                                    if (ownerId) {
+                                      onViewOwnerBusinesses(ownerId);
+                                    }
+                                  }}
+                                >
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  View All Businesses
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              toast.info('User profile view coming soon');
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Profile
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>

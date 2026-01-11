@@ -29,6 +29,14 @@ export interface BusinessListItem {
   status: string;
   created_at: Date;
   updated_at: Date;
+  owner?: {
+    id: string;
+    name?: string;
+    phone: string;
+    email?: string;
+    last_login_at?: Date;
+    total_businesses: number;
+  };
 }
 
 export interface UserListItem {
@@ -40,6 +48,18 @@ export interface UserListItem {
   status: string;
   created_at: Date;
   last_login_at?: Date;
+  businesses?: {
+    total: number;
+    owned: number;
+    assigned: number;
+    list: Array<{
+      id: string;
+      name: string;
+      role: string;
+      isOwner: boolean;
+      status: string;
+    }>;
+  };
 }
 
 /**
@@ -61,8 +81,10 @@ export async function getAllBusinesses(): Promise<BusinessListItem[]> {
 /**
  * Get all users (superadmin only)
  */
-export async function getAllUsers(limit?: number): Promise<UserListItem[]> {
-  const params = limit ? { limit: limit.toString() } : {};
+export async function getAllUsers(limit?: number, includeBusinesses?: boolean): Promise<UserListItem[]> {
+  const params: any = {};
+  if (limit) params.limit = limit.toString();
+  if (includeBusinesses) params.includeBusinesses = 'true';
   const response = await authApi.get('/users/admin/all', { params });
   return response.data || [];
 }
@@ -134,6 +156,130 @@ export async function getAllAuditLogs(filters?: AuditLogFilters): Promise<{ tota
  */
 export async function getAuditLogStatistics(): Promise<AuditLogStatistics> {
   const response = await businessApi.get('/admin/audit-logs/statistics');
+  return response.data;
+}
+
+/**
+ * Analytics Types
+ */
+export interface OverviewAnalytics {
+  userEngagement: {
+    totalUsers: number;
+    activeUsers: number;
+    activePercentage: number;
+    newUsersThisMonth: number;
+  };
+  businessActivity: {
+    totalBusinesses: number;
+    activeBusinesses: number;
+    newBusinessesThisMonth: number;
+    averageBusinessesPerUser: number;
+  };
+  growthRates: {
+    userGrowthRate: number;
+    businessGrowthRate: number;
+  };
+}
+
+export interface UserAnalytics {
+  retention: Array<{ month: string; newUsers: number; returningUsers: number }>;
+  activeInactive: {
+    active: number;
+    inactive: number;
+  };
+  registrationFunnel: Array<{ stage: string; count: number }>;
+  loginFrequency: Array<{ period: string; count: number }>;
+}
+
+export interface BusinessAnalytics {
+  growthTrends: Array<{ month: string; count: number }>;
+  typeAnalysis: Array<{ type: string; count: number }>;
+  sizeDistribution: Array<{ size: string; count: number }>;
+  activityHeatmap: Array<{ date: string; count: number }>;
+}
+
+export interface MarketAnalytics {
+  marketPenetration: {
+    totalPotentialUsers: number;
+    currentUsers: number;
+    penetrationRate: number;
+  };
+  acquisitionChannels: Array<{ channel: string; count: number }>;
+  lifecycle: {
+    newUsers: number;
+    activeUsers: number;
+    churnedUsers: number;
+  };
+  churn: {
+    churnRate: number;
+    retentionRate: number;
+  };
+}
+
+/**
+ * Get overview analytics (superadmin only)
+ */
+export async function getAnalyticsOverview(): Promise<OverviewAnalytics> {
+  const response = await businessApi.get('/admin/analytics/overview');
+  return response.data;
+}
+
+/**
+ * Get user analytics (superadmin only)
+ */
+export async function getUserAnalytics(): Promise<UserAnalytics> {
+  const response = await businessApi.get('/admin/analytics/users');
+  return response.data;
+}
+
+/**
+ * Get business analytics (superadmin only)
+ */
+export async function getBusinessAnalytics(): Promise<BusinessAnalytics> {
+  const response = await businessApi.get('/admin/analytics/businesses');
+  return response.data;
+}
+
+/**
+ * Get market analytics (superadmin only)
+ */
+export async function getMarketAnalytics(): Promise<MarketAnalytics> {
+  const response = await businessApi.get('/admin/analytics/market');
+  return response.data;
+}
+
+/**
+ * Export functions
+ */
+export async function exportBusinesses(format: 'csv' | 'json' = 'csv', startDate?: string, endDate?: string): Promise<Blob> {
+  const params: any = { format };
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+  const response = await businessApi.get('/admin/export/businesses', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function exportUsers(format: 'csv' | 'json' = 'csv', startDate?: string, endDate?: string): Promise<Blob> {
+  const params: any = { format };
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+  const response = await businessApi.get('/admin/export/users', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function exportAnalytics(format: 'csv' | 'json' = 'csv', dateRange?: string): Promise<Blob> {
+  const params: any = { format };
+  if (dateRange) params.dateRange = dateRange;
+  const response = await businessApi.get('/admin/export/analytics', {
+    params,
+    responseType: 'blob',
+  });
   return response.data;
 }
 

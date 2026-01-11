@@ -9,9 +9,13 @@ import { BusinessUserController } from './controllers/business-user.controller';
 import { UserBusinessController } from './controllers/user-business.controller';
 import { PermissionsController } from './controllers/permissions.controller';
 import { AuditLogController } from './controllers/audit-log.controller';
+import { AnalyticsController } from './controllers/analytics.controller';
+import { ExportController } from './controllers/export.controller';
 import { BusinessService } from './services/business.service';
 import { BusinessUserService } from './services/business-user.service';
 import { BusinessContextService } from './services/business-context.service';
+import { AnalyticsService } from './services/analytics.service';
+import { ExportService } from './services/export.service';
 import { BusinessRepository } from './repositories/business.repository';
 import { BusinessUserRepository } from './repositories/business-user.repository';
 import { Business } from './entities/business.entity';
@@ -63,12 +67,16 @@ import { AuditLogRepository } from './repositories/audit-log.repository';
     UserBusinessController,
     PermissionsController,
     AuditLogController,
+    AnalyticsController,
+    ExportController,
   ],
   providers: [
     BusinessService,
     BusinessUserService,
     BusinessContextService,
     AuditService,
+    AnalyticsService,
+    ExportService,
     BusinessRepository,
     BusinessUserRepository,
     AuditLogRepository,

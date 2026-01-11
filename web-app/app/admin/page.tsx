@@ -47,12 +47,20 @@ import {
   getAllUsers,
   getAllAuditLogs,
   getAuditLogStatistics,
+  getAnalyticsOverview,
+  getUserAnalytics,
+  getBusinessAnalytics,
+  getMarketAnalytics,
   type SystemStats,
   type BusinessListItem,
   type UserListItem,
   type AuditLog,
   type AuditLogStatistics,
   type AuditLogFilters,
+  type OverviewAnalytics,
+  type UserAnalytics,
+  type BusinessAnalytics,
+  type MarketAnalytics,
 } from '@/lib/services/superadmin.service';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -151,10 +159,35 @@ export default function SuperAdminPage() {
     enabled: isAuthenticated && isSuperadmin,
   });
 
-  // Fetch all users
+  // Fetch all users with businesses
   const { data: users, isLoading: loadingUsers } = useQuery<UserListItem[]>({
     queryKey: ['superadmin-users'],
-    queryFn: () => getAllUsers(100),
+    queryFn: () => getAllUsers(100, true), // Include businesses
+    enabled: isAuthenticated && isSuperadmin,
+  });
+
+  // Fetch analytics data
+  const { data: overviewAnalytics, isLoading: loadingOverview } = useQuery<OverviewAnalytics>({
+    queryKey: ['analytics-overview'],
+    queryFn: getAnalyticsOverview,
+    enabled: isAuthenticated && isSuperadmin,
+  });
+
+  const { data: userAnalytics, isLoading: loadingUserAnalytics } = useQuery<UserAnalytics>({
+    queryKey: ['analytics-users'],
+    queryFn: getUserAnalytics,
+    enabled: isAuthenticated && isSuperadmin,
+  });
+
+  const { data: businessAnalytics, isLoading: loadingBusinessAnalytics } = useQuery<BusinessAnalytics>({
+    queryKey: ['analytics-businesses'],
+    queryFn: getBusinessAnalytics,
+    enabled: isAuthenticated && isSuperadmin,
+  });
+
+  const { data: marketAnalytics, isLoading: loadingMarketAnalytics } = useQuery<MarketAnalytics>({
+    queryKey: ['analytics-market'],
+    queryFn: getMarketAnalytics,
     enabled: isAuthenticated && isSuperadmin,
   });
 
@@ -351,64 +384,63 @@ export default function SuperAdminPage() {
     users: stats?.recentUsers || 0,
   };
 
-  // Export functions
-  const exportBusinesses = () => {
-    const headers = ['ID', 'Name', 'Owner ID', 'Type', 'GSTIN', 'Status', 'Created At'];
-    const rows = filteredBusinesses.map((b) => [
-      b.id,
-      b.name,
-      b.owner_id,
-      b.type,
-      b.gstin || 'N/A',
-      b.status,
-      new Date(b.created_at).toISOString(),
-    ]);
+  // Export functions with enhanced options
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [exportStartDate, setExportStartDate] = useState<string>('');
+  const [exportEndDate, setExportEndDate] = useState<string>('');
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `all-businesses-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Businesses exported successfully');
+  const handleExportBusinesses = async () => {
+    try {
+      const blob = await exportBusinesses(exportFormat, exportStartDate || undefined, exportEndDate || undefined);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `businesses-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Businesses exported as ${exportFormat.toUpperCase()}`);
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message || 'Unknown error'}`);
+    }
   };
 
-  const exportUsers = () => {
-    const headers = ['ID', 'Phone', 'Name', 'Email', 'Superadmin', 'Status', 'Created At', 'Last Login'];
-    const rows = filteredUsers.map((u) => [
-      u.id,
-      u.phone,
-      u.name || 'N/A',
-      u.email || 'N/A',
-      u.is_superadmin ? 'Yes' : 'No',
-      u.status,
-      new Date(u.created_at).toISOString(),
-      u.last_login_at ? new Date(u.last_login_at).toISOString() : 'N/A',
-    ]);
+  const handleExportUsers = async () => {
+    try {
+      const blob = await exportUsers(exportFormat, exportStartDate || undefined, exportEndDate || undefined);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `users-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Users exported as ${exportFormat.toUpperCase()}`);
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message || 'Unknown error'}`);
+    }
+  };
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `all-users-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Users exported successfully');
+  const handleExportAnalytics = async (dateRange?: string) => {
+    try {
+      const blob = await exportAnalytics(exportFormat, dateRange);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `analytics-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Analytics exported as ${exportFormat.toUpperCase()}`);
+    } catch (error: any) {
+      toast.error(`Export failed: ${error.message || 'Unknown error'}`);
+    }
   };
 
   // Global search state
@@ -452,10 +484,9 @@ export default function SuperAdminPage() {
     setGlobalSearchOpen(!globalSearchOpen);
   };
 
-  const handleExportAll = () => {
-    exportBusinesses();
-    setTimeout(() => exportUsers(), 500);
-    toast.success('All data exported');
+  const handleExportAll = async () => {
+    await handleExportBusinesses();
+    setTimeout(() => handleExportUsers(), 500);
   };
 
   // Show loading state while checking authentication
@@ -501,6 +532,10 @@ export default function SuperAdminPage() {
           <TabsTrigger value="users">
             <Users className="h-4 w-4 mr-2" />
             Users
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
           </TabsTrigger>
           <TabsTrigger value="audit-logs">
             <Activity className="h-4 w-4 mr-2" />
@@ -1036,10 +1071,21 @@ export default function SuperAdminPage() {
             <div className="text-sm text-muted-foreground">
               Showing {paginatedBusinesses.length} of {filteredBusinesses.length} businesses
             </div>
-            <Button variant="outline" onClick={exportBusinesses} disabled={!filteredBusinesses.length}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={exportFormat} onValueChange={(v: 'csv' | 'json') => setExportFormat(v)}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleExportBusinesses} disabled={!filteredBusinesses.length}>
+                <Download className="h-4 w-4 mr-2" />
+                Export {exportFormat.toUpperCase()}
+              </Button>
+            </div>
           </div>
 
           {loadingBusinesses ? (
@@ -1063,7 +1109,10 @@ export default function SuperAdminPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
-                          <TableHead>Owner ID</TableHead>
+                          <TableHead>Owner</TableHead>
+                          <TableHead>Owner Phone</TableHead>
+                          <TableHead>Owner Email</TableHead>
+                          <TableHead>Owner Last Login</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>GSTIN</TableHead>
                           <TableHead>Status</TableHead>
@@ -1075,8 +1124,43 @@ export default function SuperAdminPage() {
                         {paginatedBusinesses.map((business: BusinessListItem) => (
                           <TableRow key={business.id}>
                             <TableCell className="font-medium">{business.name}</TableCell>
-                            <TableCell className="font-mono text-xs">
-                              {business.owner_id.substring(0, 8)}...
+                            <TableCell>
+                              {business.owner ? (
+                                <Button
+                                  variant="link"
+                                  className="h-auto p-0 font-medium"
+                                  onClick={() => {
+                                    setSelectedUser(business.owner!.id);
+                                    setUserDetailsOpen(true);
+                                  }}
+                                >
+                                  {business.owner.name || 'N/A'}
+                                  {business.owner.total_businesses > 1 && (
+                                    <Badge variant="outline" className="ml-2">
+                                      {business.owner.total_businesses}
+                                    </Badge>
+                                  )}
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-xs font-mono">
+                                  {business.owner_id.substring(0, 8)}...
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {business.owner ? formatPhoneNumber(business.owner.phone) : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {business.owner?.email || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {business.owner?.last_login_at ? (
+                                <span className="text-sm">
+                                  {new Date(business.owner.last_login_at).toLocaleDateString()}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">Never</span>
+                              )}
                             </TableCell>
                             <TableCell>{business.type}</TableCell>
                             <TableCell>{business.gstin || 'N/A'}</TableCell>
@@ -1150,6 +1234,17 @@ export default function SuperAdminPage() {
             open={businessDetailsOpen}
             onOpenChange={setBusinessDetailsOpen}
             business={businesses?.find(b => b.id === selectedBusiness)}
+            onViewOwner={(ownerId) => {
+              setSelectedUser(ownerId);
+              setUserDetailsOpen(true);
+              setBusinessDetailsOpen(false);
+            }}
+            onViewOwnerBusinesses={(ownerId) => {
+              // Filter businesses by owner and show in businesses tab
+              setBusinessSearch(ownerId);
+              // Switch to businesses tab would require tab state management
+              toast.info(`Showing businesses for owner ${ownerId}`);
+            }}
           />
         </TabsContent>
 
@@ -1258,10 +1353,21 @@ export default function SuperAdminPage() {
             <div className="text-sm text-muted-foreground">
               Showing {paginatedUsers.length} of {filteredUsers.length} users
             </div>
-            <Button variant="outline" onClick={exportUsers} disabled={!filteredUsers.length}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={exportFormat} onValueChange={(v: 'csv' | 'json') => setExportFormat(v)}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleExportUsers} disabled={!filteredUsers.length}>
+                <Download className="h-4 w-4 mr-2" />
+                Export {exportFormat.toUpperCase()}
+              </Button>
+            </div>
           </div>
 
           {loadingUsers ? (
@@ -1295,6 +1401,7 @@ export default function SuperAdminPage() {
                           <TableHead>Phone</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
+                          <TableHead>Businesses</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Login</TableHead>
@@ -1302,49 +1409,114 @@ export default function SuperAdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <input
-                                type="checkbox"
-                                checked={selectedUserIds.has(user.id)}
-                                onChange={() => handleToggleUserSelection(user.id)}
-                                className="rounded"
-                              />
-                            </TableCell>
-                            <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
-                            <TableCell>{user.name || 'N/A'}</TableCell>
-                            <TableCell>{user.email || 'N/A'}</TableCell>
-                            <TableCell>
-                              <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
-                                <Shield className="h-3 w-3 mr-1" />
-                                {user.is_superadmin ? 'Superadmin' : 'User'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                                {user.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {user.last_login_at
-                                ? new Date(user.last_login_at).toLocaleDateString()
-                                : 'Never'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user.id);
-                                  setUserDetailsOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {paginatedUsers.map((user) => {
+                          const formatRelativeTime = (date: Date) => {
+                            const now = new Date();
+                            const diff = now.getTime() - date.getTime();
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const minutes = Math.floor(diff / (1000 * 60));
+                            
+                            if (days > 0) return `${days} day${days !== 1 ? 's' : ''} ago`;
+                            if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+                            if (minutes > 0) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+                            return 'Just now';
+                          };
+
+                          return (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedUserIds.has(user.id)}
+                                  onChange={() => handleToggleUserSelection(user.id)}
+                                  className="rounded"
+                                />
+                              </TableCell>
+                              <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
+                              <TableCell>{user.name || 'N/A'}</TableCell>
+                              <TableCell>{user.email || 'N/A'}</TableCell>
+                              <TableCell>
+                                {user.businesses ? (
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline">
+                                        {user.businesses.total} total
+                                      </Badge>
+                                      {user.businesses.owned > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {user.businesses.owned} owned
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {user.businesses.list.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {user.businesses.list.slice(0, 3).map((b) => (
+                                          <Button
+                                            key={b.id}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 text-xs px-2"
+                                            onClick={() => {
+                                              setSelectedBusiness(b.id);
+                                              setBusinessDetailsOpen(true);
+                                            }}
+                                          >
+                                            {b.name}
+                                          </Button>
+                                        ))}
+                                        {user.businesses.list.length > 3 && (
+                                          <span className="text-xs text-muted-foreground">
+                                            +{user.businesses.list.length - 3} more
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">Loading...</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  {user.is_superadmin ? 'Superadmin' : 'User'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                                  {user.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {user.last_login_at ? (
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">
+                                      {formatRelativeTime(new Date(user.last_login_at))}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(user.last_login_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">Never</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(user.id);
+                                    setUserDetailsOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -1393,7 +1565,305 @@ export default function SuperAdminPage() {
             open={userDetailsOpen}
             onOpenChange={setUserDetailsOpen}
             user={users?.find(u => u.id === selectedUser)}
+            onViewBusiness={(businessId) => {
+              setSelectedBusiness(businessId);
+              setBusinessDetailsOpen(true);
+              setUserDetailsOpen(false);
+            }}
           />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          {/* Market Insights */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {loadingMarketAnalytics ? (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <Skeleton className="h-4 w-24" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-8 w-16" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            ) : marketAnalytics ? (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Market Penetration</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{marketAnalytics.marketPenetration.penetrationRate.toFixed(2)}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      {marketAnalytics.marketPenetration.currentUsers} of {marketAnalytics.marketPenetration.totalPotentialUsers.toLocaleString()} potential users
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">User Acquisition Rate</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{marketAnalytics.lifecycle.newUsers}</div>
+                    <p className="text-xs text-muted-foreground">New users this month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Business Growth Rate</CardTitle>
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {overviewAnalytics?.growthRates.businessGrowthRate.toFixed(1) || 0}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">Month-over-month growth</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active User %</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {overviewAnalytics?.userEngagement.activePercentage.toFixed(1) || 0}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {overviewAnalytics?.userEngagement.activeUsers || 0} active users
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            ) : null}
+          </div>
+
+          {/* User Behavior Analytics */}
+          <Card>
+            <CardHeader>
+              <CardTitle>User Behavior Analytics</CardTitle>
+              <CardDescription>User retention, login frequency, and registration funnel</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* User Retention Chart */}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">User Retention</h3>
+                  {loadingUserAnalytics ? (
+                    <Skeleton className="h-[300px] w-full" />
+                  ) : userAnalytics?.retention && userAnalytics.retention.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={userAnalytics.retention}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="newUsers"
+                          stroke={CHART_COLORS.primary}
+                          strokeWidth={2}
+                          name="New Users"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="returningUsers"
+                          stroke={CHART_COLORS.secondary}
+                          strokeWidth={2}
+                          name="Returning Users"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </div>
+
+                {/* Login Frequency Distribution */}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Login Frequency Distribution</h3>
+                  {loadingUserAnalytics ? (
+                    <Skeleton className="h-[300px] w-full" />
+                  ) : userAnalytics?.loginFrequency && userAnalytics.loginFrequency.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={userAnalytics.loginFrequency}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="period" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="count" fill={CHART_COLORS.primary} name="Users" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </div>
+
+                {/* Registration Funnel */}
+                <div className="md:col-span-2">
+                  <h3 className="text-sm font-medium mb-4">Registration Funnel</h3>
+                  {loadingUserAnalytics ? (
+                    <Skeleton className="h-[200px] w-full" />
+                  ) : userAnalytics?.registrationFunnel && userAnalytics.registrationFunnel.length > 0 ? (
+                    <div className="space-y-2">
+                      {userAnalytics.registrationFunnel.map((stage, index) => {
+                        const maxCount = userAnalytics.registrationFunnel[0]?.count || 1;
+                        const percentage = (stage.count / maxCount) * 100;
+                        return (
+                          <div key={stage.stage} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{stage.stage}</span>
+                              <span className="text-muted-foreground">{stage.count} users</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div
+                                className="bg-primary h-2 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Business Performance Metrics */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Performance Metrics</CardTitle>
+              <CardDescription>Business growth trends, type distribution, and activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Business Growth Trends */}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Business Growth Trends</h3>
+                  {loadingBusinessAnalytics ? (
+                    <Skeleton className="h-[300px] w-full" />
+                  ) : businessAnalytics?.growthTrends && businessAnalytics.growthTrends.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={businessAnalytics.growthTrends}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={CHART_COLORS.success}
+                          strokeWidth={2}
+                          name="Businesses"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </div>
+
+                {/* Business Type Distribution */}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Business Type Distribution</h3>
+                  {loadingBusinessAnalytics ? (
+                    <Skeleton className="h-[300px] w-full" />
+                  ) : businessAnalytics?.typeAnalysis && businessAnalytics.typeAnalysis.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={businessAnalytics.typeAnalysis}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={(props: any) => `${props.type || ''} ${((props.percent || 0) * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="count"
+                        >
+                          {businessAnalytics.typeAnalysis.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No data available
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Export Analytics */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Analytics</CardTitle>
+              <CardDescription>Download analytics reports in various formats</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="analytics-format">Format</Label>
+                    <Select value={exportFormat} onValueChange={(v: 'csv' | 'json') => setExportFormat(v)}>
+                      <SelectTrigger id="analytics-format" className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="csv">CSV</SelectItem>
+                        <SelectItem value="json">JSON</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="analytics-date-range">Date Range</Label>
+                    <Select onValueChange={(v) => handleExportAnalytics(v)}>
+                      <SelectTrigger id="analytics-date-range" className="w-40">
+                        <SelectValue placeholder="Select range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7d">Last 7 days</SelectItem>
+                        <SelectItem value="30d">Last 30 days</SelectItem>
+                        <SelectItem value="90d">Last 90 days</SelectItem>
+                        <SelectItem value="all">All time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleExportAnalytics('30d')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Analytics ({exportFormat.toUpperCase()})
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Audit Logs Tab */}

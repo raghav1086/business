@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { SessionController } from './controllers/session.controller';
@@ -26,6 +27,9 @@ import { UserSession } from './entities/user-session.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    HttpModule.register({
+      timeout: 10000,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

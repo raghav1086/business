@@ -141,5 +141,41 @@ export class BusinessRepository extends BaseRepository<Business> {
       count: parseInt(r.count, 10),
     }));
   }
+
+  /**
+   * Get business activity by date (for heatmap)
+   */
+  async getActivityByDate(startDate: Date, endDate: Date): Promise<Array<{ date: string; count: number }>> {
+    const results = await this.repository
+      .createQueryBuilder('business')
+      .select("TO_CHAR(business.created_at, 'YYYY-MM-DD')", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('business.created_at >= :startDate', { startDate })
+      .andWhere('business.created_at <= :endDate', { endDate })
+      .groupBy("TO_CHAR(business.created_at, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    return results.map((r) => ({
+      date: r.date,
+      count: parseInt(r.count, 10),
+    }));
+  }
+
+  /**
+   * Get businesses by size distribution (based on creation date grouping)
+   */
+  async getSizeDistribution(): Promise<Array<{ size: string; count: number }>> {
+    // This is a simplified version - in a real system, you'd have actual business size metrics
+    const total = await this.countAll();
+    const active = await this.countByStatus('active');
+    const inactive = await this.countByStatus('inactive');
+    
+    return [
+      { size: 'active', count: active },
+      { size: 'inactive', count: inactive },
+      { size: 'total', count: total },
+    ];
+  }
 }
 

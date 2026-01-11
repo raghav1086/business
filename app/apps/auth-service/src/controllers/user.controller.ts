@@ -154,6 +154,8 @@ export class UserController {
    */
   @Get('admin/all')
   @ApiOperation({ summary: 'Get all users (superadmin only)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Limit number of results', type: Number })
+  @ApiQuery({ name: 'includeBusinesses', required: false, description: 'Include businesses for each user', type: Boolean })
   @ApiResponse({
     status: 200,
     description: 'List of all users',
@@ -162,12 +164,21 @@ export class UserController {
   @ApiResponse({ status: 403, description: 'Forbidden - Superadmin access required' })
   async getAllUsers(
     @Request() req: any,
-    @Query('limit') limit?: string
-  ): Promise<UserProfileResponseDto[]> {
+    @Query('limit') limit?: string,
+    @Query('includeBusinesses') includeBusinesses?: string
+  ): Promise<UserProfileResponseDto[] | any[]> {
     if (!req.user?.is_superadmin) {
       throw new ForbiddenException('Superadmin access required');
     }
     const userLimit = limit ? parseInt(limit, 10) : undefined;
+    const shouldIncludeBusinesses = includeBusinesses === 'true';
+    
+    if (shouldIncludeBusinesses) {
+      const authToken = req.headers.authorization?.replace('Bearer ', '');
+      const users = await this.userService.getAllUsersWithBusinesses(userLimit, authToken);
+      return users.map((user) => this.toResponseDtoWithBusinesses(user));
+    }
+    
     const users = await this.userService.getAllUsers(userLimit);
     return users.map((user) => this.toResponseDto(user));
   }
@@ -323,7 +334,7 @@ export class UserController {
   /**
    * Convert entity to response DTO
    */
-  private toResponseDto(user: User): UserProfileResponseDto {
+  private toResponseDto(user: User): UserProfileResponseDto & { is_superadmin?: boolean } {
     return {
       id: user.id,
       phone: user.phone,
@@ -338,6 +349,44 @@ export class UserController {
       last_login_at: user.last_login_at,
       created_at: user.created_at,
       updated_at: user.updated_at,
+      is_superadmin: user.is_superadmin,
+    };
+  }
+
+  /**
+   * Convert entity with businesses to response DTO
+   */
+  private toResponseDtoWithBusinesses(user: User & {
+    businesses?: {
+      total: number;
+      owned: number;
+      assigned: number;
+      list: Array<{
+        id: string;
+        name: string;
+        role: string;
+        isOwner: boolean;
+        status: string;
+      }>;
+    };
+  }): UserProfileResponseDto & {
+    businesses?: {
+      total: number;
+      owned: number;
+      assigned: number;
+      list: Array<{
+        id: string;
+        name: string;
+        role: string;
+        isOwner: boolean;
+        status: string;
+      }>;
+    };
+  } {
+    const baseDto = this.toResponseDto(user);
+    return {
+      ...baseDto,
+      businesses: user.businesses,
     };
   }
 }

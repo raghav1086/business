@@ -286,6 +286,36 @@ deploy-gst: ## Deploy only GST service (selective deployment, other services unc
 	@echo ""
 	@bash scripts/deploy-gst-service.sh
 
+deploy-smart: ## Smart deployment - auto-detects changes and deploys only affected services
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║     SEAMLESS DEPLOYMENT - INTELLIGENT SERVICE UPDATES      ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(YELLOW)This will:$(NC)"
+	@echo "  ✅ Auto-detect which services have changed"
+	@echo "  ✅ Deploy only changed services (zero impact on others)"
+	@echo "  ✅ Handle service dependencies automatically"
+	@echo "  ✅ Perform zero-downtime rolling updates"
+	@echo "  ✅ Create automatic rollback backups"
+	@echo "  ✅ Verify health of all deployed services"
+	@echo ""
+	@bash scripts/deploy-seamless.sh
+
+deploy-smart-service: ## Deploy specific service only (usage: make deploy-smart-service SERVICE=auth-service)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)Error: SERVICE is required$(NC)"; \
+		echo "Usage: make deploy-smart-service SERVICE=auth-service"; \
+		exit 1; \
+	fi
+	@bash scripts/deploy-seamless.sh --service $(SERVICE)
+
+deploy-smart-all: ## Force deploy all services (use when shared libs change)
+	@bash scripts/deploy-seamless.sh --all
+
+deploy-rollback: ## Rollback to previous deployment
+	@echo "$(YELLOW)Rolling back to previous deployment...$(NC)"
+	@bash scripts/deploy-seamless.sh --rollback
+
 # =============================================================================
 # AWS DEPLOYMENT (FULLY AUTOMATED - SINGLE COMMAND)
 # =============================================================================

@@ -98,6 +98,103 @@ export class BusinessService {
   }
 
   /**
+   * Get all businesses with owner details (superadmin only)
+   * Fetches businesses and enriches them with owner information from auth-service
+   */
+  async findAllWithOwners(authToken?: string): Promise<Array<Business & {
+    owner?: {
+      id: string;
+      name?: string;
+      phone: string;
+      email?: string;
+      last_login_at?: Date;
+      total_businesses: number;
+    };
+  }>> {
+    // Fetch all businesses
+    const businesses = await this.businessRepository.findAll();
+    
+    if (!authToken || businesses.length === 0) {
+      return businesses.map(b => ({ ...b, owner: undefined }));
+    }
+
+    // Get unique owner IDs
+    const ownerIds = [...new Set(businesses.map(b => b.owner_id))];
+    
+    // Batch fetch owner details from auth-service
+    const authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL', 'http://localhost:3002');
+    const headers = {
+      'Authorization': `Bearer ${authToken}`,
+      'Content-Type': 'application/json',
+    };
+
+    const ownerDetailsMap = new Map<string, any>();
+    const ownerBusinessCountsMap = new Map<string, number>();
+
+    try {
+      // Fetch owner details in batches (to avoid too many requests)
+      const batchSize = 50;
+      for (let i = 0; i < ownerIds.length; i += batchSize) {
+        const batch = ownerIds.slice(i, i + batchSize);
+        
+        // Fetch each owner's details
+        const ownerPromises = batch.map(async (ownerId) => {
+          try {
+            const response = await firstValueFrom(
+              this.httpService.get(`${authServiceUrl}/api/v1/users/${ownerId}`, { headers })
+            );
+            return { id: ownerId, data: response.data };
+          } catch (error) {
+            console.warn(`Failed to fetch owner ${ownerId}:`, error);
+            return null;
+          }
+        });
+
+        const ownerResults = await Promise.allSettled(ownerPromises);
+        
+        ownerResults.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value) {
+            const { id, data } = result.value;
+            ownerDetailsMap.set(id, data);
+          }
+        });
+      }
+
+      // Count businesses per owner
+      businesses.forEach(business => {
+        const count = ownerBusinessCountsMap.get(business.owner_id) || 0;
+        ownerBusinessCountsMap.set(business.owner_id, count + 1);
+      });
+
+      // Enrich businesses with owner details
+      return businesses.map(business => {
+        const ownerData = ownerDetailsMap.get(business.owner_id);
+        const totalBusinesses = ownerBusinessCountsMap.get(business.owner_id) || 0;
+
+        if (ownerData) {
+          return {
+            ...business,
+            owner: {
+              id: ownerData.id,
+              name: ownerData.name,
+              phone: ownerData.phone,
+              email: ownerData.email,
+              last_login_at: ownerData.last_login_at,
+              total_businesses: totalBusinesses,
+            },
+          };
+        }
+
+        return { ...business, owner: undefined };
+      });
+    } catch (error) {
+      console.warn('Failed to fetch owner details from auth-service:', error);
+      // Return businesses without owner details if fetch fails
+      return businesses.map(b => ({ ...b, owner: undefined }));
+    }
+  }
+
+  /**
    * Get system statistics (superadmin only)
    */
   async getSystemStats(authToken?: string): Promise<{

@@ -57,11 +57,12 @@ export class BusinessController {
     description: 'List of businesses',
     type: [BusinessResponseDto],
   })
-  async findAll(@Request() req: any): Promise<BusinessResponseDto[]> {
-    // If superadmin, return all businesses
+  async findAll(@Request() req: any): Promise<BusinessResponseDto[] | any[]> {
+    // If superadmin, return all businesses with owner details
     if (req.user?.is_superadmin) {
-      const businesses = await this.businessService.findAll();
-      return businesses.map((b) => this.toResponseDto(b));
+      const authToken = req.headers.authorization?.replace('Bearer ', '');
+      const businesses = await this.businessService.findAllWithOwners(authToken);
+      return businesses.map((b) => this.toResponseDtoWithOwner(b));
     }
     // Otherwise, return only user's businesses
     const businesses = await this.businessService.findByOwner(req.user.id);
@@ -155,6 +156,35 @@ export class BusinessController {
       status: business.status,
       created_at: business.created_at,
       updated_at: business.updated_at,
+    };
+  }
+
+  /**
+   * Convert entity with owner to response DTO
+   */
+  private toResponseDtoWithOwner(business: Business & {
+    owner?: {
+      id: string;
+      name?: string;
+      phone: string;
+      email?: string;
+      last_login_at?: Date;
+      total_businesses: number;
+    };
+  }): BusinessResponseDto & {
+    owner?: {
+      id: string;
+      name?: string;
+      phone: string;
+      email?: string;
+      last_login_at?: Date;
+      total_businesses: number;
+    };
+  } {
+    const baseDto = this.toResponseDto(business);
+    return {
+      ...baseDto,
+      owner: business.owner,
     };
   }
 }
