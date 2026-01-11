@@ -30,7 +30,7 @@ mkdir -p "$BACKUP_DIR"
 echo -e "${BLUE}Creating database backup...${NC}"
 
 # Backup each database
-DATABASES=("auth_db" "business_db" "party_db" "inventory_db" "invoice_db" "payment_db")
+DATABASES=("auth_db" "business_db" "party_db" "inventory_db" "invoice_db" "payment_db" "gst_db")
 
 BACKUP_SUCCESS=0
 BACKUP_FAILED=0

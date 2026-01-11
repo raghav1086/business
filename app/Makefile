@@ -433,6 +433,20 @@ backup-upload: ## Upload existing backups to S3 (usage: make backup-upload BUCKE
 	fi
 	@echo "$(GREEN)✅ Upload complete$(NC)"
 
+setup-backup-cron: ## Setup cron job for automated backups every 4 hours
+	@echo "$(BLUE)⏰ Setting up automated backup cron job...$(NC)"
+	@bash scripts/setup-backup-cron.sh
+	@echo "$(GREEN)✅ Cron job setup complete$(NC)"
+
+remove-backup-cron: ## Remove automated backup cron job
+	@echo "$(YELLOW)⚠️  Removing backup cron job...$(NC)"
+	@crontab -l 2>/dev/null | grep -v "cron-backup-to-s3.sh" | crontab - || true
+	@echo "$(GREEN)✅ Cron job removed$(NC)"
+
+view-backup-cron: ## View backup cron job logs
+	@echo "$(BLUE)📋 Backup cron job logs:$(NC)"
+	@tail -n 50 logs/backup-cron.log 2>/dev/null || echo "No logs found"
+
 # =============================================================================
 # VERIFICATION
 # =============================================================================
