@@ -254,7 +254,7 @@ export default function ProfilePage() {
 
                 <div className="flex justify-end">
                   <Button onClick={handleSaveProfile} disabled={updateProfileMutation.isPending}>
-                    {saved && !changePasswordMutation.isPending ? (
+                    {saved && !updateProfileMutation.isPending ? (
                       <>
                         <Check className="mr-2 h-4 w-4" />
                         Saved

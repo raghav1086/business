@@ -257,11 +257,11 @@ export function BusinessDetailsSheet({
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                             <div className="space-y-1 flex-1">
-                              <p className="text-sm font-semibold">
+                            <p className="text-sm font-semibold">
                                 {business?.owner?.name || ownerDetails?.name || 'N/A'}
-                              </p>
+                            </p>
                               <div className="flex items-center gap-2">
                                 <Phone className="h-3 w-3 text-muted-foreground" />
                                 <p className="text-sm text-muted-foreground">
@@ -271,9 +271,9 @@ export function BusinessDetailsSheet({
                               {business?.owner?.email || ownerDetails?.email ? (
                                 <div className="flex items-center gap-2">
                                   <Mail className="h-3 w-3 text-muted-foreground" />
-                                  <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                     {business?.owner?.email || ownerDetails?.email}
-                                  </p>
+                            </p>
                                 </div>
                               ) : null}
                               {business?.owner?.last_login_at || ownerDetails?.last_login_at ? (
@@ -290,23 +290,23 @@ export function BusinessDetailsSheet({
                                     {business.owner.total_businesses} business{business.owner.total_businesses !== 1 ? 'es' : ''}
                                   </Badge>
                                 </div>
-                              )}
-                            </div>
+                            )}
+                          </div>
                             <div className="flex flex-col gap-2">
                               {onViewOwner && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
                                     const ownerId = business?.owner?.id || businessDetails?.owner_id;
                                     if (ownerId) {
                                       onViewOwner(ownerId);
                                     }
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Profile
-                                </Button>
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Profile
+                          </Button>
                               )}
                               {onViewOwnerBusinesses && business?.owner?.total_businesses && business.owner.total_businesses > 1 && (
                                 <Button

@@ -335,28 +335,28 @@ export function UserDetailsSheet({
                     </Card>
                   )}
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>User's Businesses</CardTitle>
-                      <CardDescription>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User's Businesses</CardTitle>
+                    <CardDescription>
                         {(userBusinesses?.businesses?.length || user?.businesses?.list.length || 0)} business(es) associated
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="border rounded-lg overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Business Name</TableHead>
-                              <TableHead>Role</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Is Owner</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="border rounded-lg overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Business Name</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Is Owner</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {(userBusinesses?.businesses || user?.businesses?.list || []).map((ub) => (
-                              <TableRow key={ub.id}>
+                            <TableRow key={ub.id}>
                                 <TableCell>
                                   <Button
                                     variant="link"
@@ -372,47 +372,47 @@ export function UserDetailsSheet({
                                     {ub.name}
                                   </Button>
                                 </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">{ub.role}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={ub.status === 'active' ? 'default' : 'secondary'}>
-                                    {ub.status}
+                              <TableCell>
+                                <Badge variant="outline">{ub.role}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={ub.status === 'active' ? 'default' : 'secondary'}>
+                                  {ub.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {ub.isOwner ? (
+                                  <Badge variant="default">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Owner
                                   </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {ub.isOwner ? (
-                                    <Badge variant="default">
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Owner
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">No</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">No</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
                                       if (onViewBusiness) {
                                         onViewBusiness(ub.id);
                                       } else {
-                                        toast.info('Business details coming soon');
+                                    toast.info('Business details coming soon');
                                       }
-                                    }}
-                                  >
+                                  }}
+                                >
                                     <Eye className="h-4 w-4 mr-2" />
                                     View
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
                 </>
               ) : (
                 <Card>

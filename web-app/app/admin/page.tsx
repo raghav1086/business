@@ -51,6 +51,9 @@ import {
   getUserAnalytics,
   getBusinessAnalytics,
   getMarketAnalytics,
+  exportBusinesses,
+  exportUsers,
+  exportAnalytics,
   type SystemStats,
   type BusinessListItem,
   type UserListItem,
@@ -392,14 +395,14 @@ export default function SuperAdminPage() {
   const handleExportBusinesses = async () => {
     try {
       const blob = await exportBusinesses(exportFormat, exportStartDate || undefined, exportEndDate || undefined);
-      const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', url);
+    link.setAttribute('href', url);
       link.setAttribute('download', `businesses-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success(`Businesses exported as ${exportFormat.toUpperCase()}`);
     } catch (error: any) {
@@ -411,7 +414,7 @@ export default function SuperAdminPage() {
     try {
       const blob = await exportUsers(exportFormat, exportStartDate || undefined, exportEndDate || undefined);
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+    const link = document.createElement('a');
       link.setAttribute('href', url);
       link.setAttribute('download', `users-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
       link.style.visibility = 'hidden';
@@ -428,14 +431,14 @@ export default function SuperAdminPage() {
   const handleExportAnalytics = async (dateRange?: string) => {
     try {
       const blob = await exportAnalytics(exportFormat, dateRange);
-      const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', url);
+    link.setAttribute('href', url);
       link.setAttribute('download', `analytics-${new Date().toISOString().split('T')[0]}.${exportFormat}`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success(`Analytics exported as ${exportFormat.toUpperCase()}`);
     } catch (error: any) {
@@ -1082,9 +1085,9 @@ export default function SuperAdminPage() {
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={handleExportBusinesses} disabled={!filteredBusinesses.length}>
-                <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" />
                 Export {exportFormat.toUpperCase()}
-              </Button>
+            </Button>
             </div>
           </div>
 
@@ -1143,7 +1146,7 @@ export default function SuperAdminPage() {
                                 </Button>
                               ) : (
                                 <span className="text-muted-foreground text-xs font-mono">
-                                  {business.owner_id.substring(0, 8)}...
+                              {business.owner_id.substring(0, 8)}...
                                 </span>
                               )}
                             </TableCell>
@@ -1364,9 +1367,9 @@ export default function SuperAdminPage() {
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={handleExportUsers} disabled={!filteredUsers.length}>
-                <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" />
                 Export {exportFormat.toUpperCase()}
-              </Button>
+            </Button>
             </div>
           </div>
 
@@ -1424,18 +1427,18 @@ export default function SuperAdminPage() {
                           };
 
                           return (
-                            <TableRow key={user.id}>
-                              <TableCell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedUserIds.has(user.id)}
-                                  onChange={() => handleToggleUserSelection(user.id)}
-                                  className="rounded"
-                                />
-                              </TableCell>
-                              <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
-                              <TableCell>{user.name || 'N/A'}</TableCell>
-                              <TableCell>{user.email || 'N/A'}</TableCell>
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedUserIds.has(user.id)}
+                                onChange={() => handleToggleUserSelection(user.id)}
+                                className="rounded"
+                              />
+                            </TableCell>
+                            <TableCell>{formatPhoneNumber(user.phone)}</TableCell>
+                            <TableCell>{user.name || 'N/A'}</TableCell>
+                            <TableCell>{user.email || 'N/A'}</TableCell>
                               <TableCell>
                                 {user.businesses ? (
                                   <div className="flex flex-col gap-1">
@@ -1477,18 +1480,18 @@ export default function SuperAdminPage() {
                                   <span className="text-muted-foreground text-sm">Loading...</span>
                                 )}
                               </TableCell>
-                              <TableCell>
-                                <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  {user.is_superadmin ? 'Superadmin' : 'User'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                                  {user.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
+                            <TableCell>
+                              <Badge variant={user.is_superadmin ? 'default' : 'secondary'}>
+                                <Shield className="h-3 w-3 mr-1" />
+                                {user.is_superadmin ? 'Superadmin' : 'User'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                                {user.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
                                 {user.last_login_at ? (
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">
@@ -1501,20 +1504,20 @@ export default function SuperAdminPage() {
                                 ) : (
                                   <span className="text-muted-foreground">Never</span>
                                 )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedUser(user.id);
-                                    setUserDetailsOpen(true);
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user.id);
+                                  setUserDetailsOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
                           );
                         })}
                       </TableBody>
