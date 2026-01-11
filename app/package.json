@@ -54,6 +54,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "multer": "^1.4.5-lts.1",
+    "exceljs": "^4.4.0",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.14",
     "rxjs": "^7.8.1",

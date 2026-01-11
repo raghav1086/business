@@ -24,7 +24,7 @@ export class EInvoiceRequest extends BaseEntity {
   qr_code?: string; // QR code data
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status: string; // 'pending', 'success', 'failed'
+  declare status: string; // 'pending', 'success', 'failed' - overrides BaseEntity status
 
   @Column({ type: 'text', nullable: true, name: 'error_message' })
   error_message?: string;

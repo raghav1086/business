@@ -76,18 +76,18 @@ export class Gstr4Service {
     }
 
     // Verify business is registered under composition scheme
-    if (business.gst_type !== 'composition') {
+    if ((business as any).gst_type !== 'composition') {
       throw new BadRequestException(
         'GSTR-4 is only for businesses registered under Composition Scheme'
       );
     }
 
     // Get composition rate
-    const compositionRate = business.composition_rate || 1; // Default 1%
+    const compositionRate = (business as any).composition_rate || 1; // Default 1%
 
     // Get GST settings
     const gstSettings = await this.businessGstSettingsRepository.findOne({
-      where: { business_id: businessId },
+      where: { business_id: businessId } as any,
     });
 
     // Fetch all invoices for the period
@@ -184,10 +184,11 @@ export class Gstr4Service {
       const party = partyMap.get(invoice.party_id);
 
       let invoiceDate: string;
-      if (invoice.invoice_date instanceof Date) {
-        invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-      } else if (typeof invoice.invoice_date === 'string') {
-        invoiceDate = invoice.invoice_date.split('T')[0];
+      const invoiceDateValue = invoice.invoice_date as any;
+      if (invoiceDateValue instanceof Date) {
+        invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+      } else if (typeof invoiceDateValue === 'string') {
+        invoiceDate = invoiceDateValue.split('T')[0];
       } else {
         invoiceDate = new Date().toISOString().split('T')[0];
       }
@@ -218,10 +219,11 @@ export class Gstr4Service {
       const party = partyMap.get(invoice.party_id);
 
       let invoiceDate: string;
-      if (invoice.invoice_date instanceof Date) {
-        invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-      } else if (typeof invoice.invoice_date === 'string') {
-        invoiceDate = invoice.invoice_date.split('T')[0];
+      const invoiceDateValue = invoice.invoice_date as any;
+      if (invoiceDateValue instanceof Date) {
+        invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+      } else if (typeof invoiceDateValue === 'string') {
+        invoiceDate = invoiceDateValue.split('T')[0];
       } else {
         invoiceDate = new Date().toISOString().split('T')[0];
       }

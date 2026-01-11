@@ -266,10 +266,11 @@ export class Gstr1Service {
 
     // Handle invoice_date - could be Date object or string
     let invoiceDate: string;
-    if (invoice.invoice_date instanceof Date) {
-      invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-    } else if (typeof invoice.invoice_date === 'string') {
-      invoiceDate = invoice.invoice_date.split('T')[0];
+    const invoiceDateValue = invoice.invoice_date as any;
+    if (invoiceDateValue instanceof Date) {
+      invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+    } else if (typeof invoiceDateValue === 'string') {
+      invoiceDate = invoiceDateValue.split('T')[0];
     } else {
       invoiceDate = new Date().toISOString().split('T')[0];
     }
@@ -390,10 +391,11 @@ export class Gstr1Service {
 
       // Handle invoice_date
       let invoiceDate: string;
-      if (invoice.invoice_date instanceof Date) {
-        invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-      } else if (typeof invoice.invoice_date === 'string') {
-        invoiceDate = invoice.invoice_date.split('T')[0];
+      const invoiceDateValue = invoice.invoice_date as any;
+      if (invoiceDateValue instanceof Date) {
+        invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+      } else if (typeof invoiceDateValue === 'string') {
+        invoiceDate = invoiceDateValue.split('T')[0];
       } else {
         invoiceDate = new Date().toISOString().split('T')[0];
       }
@@ -451,17 +453,18 @@ export class Gstr1Service {
 
       // Handle invoice_date
       let invoiceDate: string;
-      if (invoice.invoice_date instanceof Date) {
-        invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-      } else if (typeof invoice.invoice_date === 'string') {
-        invoiceDate = invoice.invoice_date.split('T')[0];
+      const invoiceDateValue = invoice.invoice_date as any;
+      if (invoiceDateValue instanceof Date) {
+        invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+      } else if (typeof invoiceDateValue === 'string') {
+        invoiceDate = invoiceDateValue.split('T')[0];
       } else {
         invoiceDate = new Date().toISOString().split('T')[0];
       }
 
       // Extract port code and shipping bill from notes (if available)
       // In a real implementation, these would be separate fields
-      const notes = invoice.notes || '';
+      const notes = (invoice as any).notes || '';
       const portCodeMatch = notes.match(/port[:\s]+([A-Z0-9]+)/i);
       const shippingBillMatch = notes.match(/shipping[:\s]+bill[:\s]+([A-Z0-9]+)/i);
 
@@ -552,15 +555,17 @@ export class Gstr1Service {
     // Process credit notes
     for (const note of creditNotes) {
       // Extract original invoice number from notes or use a reference field
-      const originalInvoiceNumber = note.notes?.match(/original[:\s]+invoice[:\s]+([A-Z0-9-]+)/i)?.[1] || 
-                                      note.notes?.match(/against[:\s]+([A-Z0-9-]+)/i)?.[1] ||
+      const noteNotes = (note as any).notes || '';
+      const originalInvoiceNumber = noteNotes.match(/original[:\s]+invoice[:\s]+([A-Z0-9-]+)/i)?.[1] || 
+                                      noteNotes.match(/against[:\s]+([A-Z0-9-]+)/i)?.[1] ||
                                       'N/A';
 
       let noteDate: string;
-      if (note.invoice_date instanceof Date) {
-        noteDate = note.invoice_date.toISOString().split('T')[0];
-      } else if (typeof note.invoice_date === 'string') {
-        noteDate = note.invoice_date.split('T')[0];
+      const noteDateValue = note.invoice_date as any;
+      if (noteDateValue instanceof Date) {
+        noteDate = noteDateValue.toISOString().split('T')[0];
+      } else if (typeof noteDateValue === 'string') {
+        noteDate = noteDateValue.split('T')[0];
       } else {
         noteDate = new Date().toISOString().split('T')[0];
       }
@@ -590,15 +595,17 @@ export class Gstr1Service {
 
     // Process debit notes
     for (const note of debitNotes) {
-      const originalInvoiceNumber = note.notes?.match(/original[:\s]+invoice[:\s]+([A-Z0-9-]+)/i)?.[1] || 
-                                      note.notes?.match(/against[:\s]+([A-Z0-9-]+)/i)?.[1] ||
+      const noteNotes = (note as any).notes || '';
+      const originalInvoiceNumber = noteNotes.match(/original[:\s]+invoice[:\s]+([A-Z0-9-]+)/i)?.[1] || 
+                                      noteNotes.match(/against[:\s]+([A-Z0-9-]+)/i)?.[1] ||
                                       'N/A';
 
       let noteDate: string;
-      if (note.invoice_date instanceof Date) {
-        noteDate = note.invoice_date.toISOString().split('T')[0];
-      } else if (typeof note.invoice_date === 'string') {
-        noteDate = note.invoice_date.split('T')[0];
+      const noteDateValue = note.invoice_date as any;
+      if (noteDateValue instanceof Date) {
+        noteDate = noteDateValue.toISOString().split('T')[0];
+      } else if (typeof noteDateValue === 'string') {
+        noteDate = noteDateValue.split('T')[0];
       } else {
         noteDate = new Date().toISOString().split('T')[0];
       }
@@ -654,10 +661,11 @@ export class Gstr1Service {
 
     for (const receipt of advanceInvoices) {
       let receiptDate: string;
-      if (receipt.invoice_date instanceof Date) {
-        receiptDate = receipt.invoice_date.toISOString().split('T')[0];
-      } else if (typeof receipt.invoice_date === 'string') {
-        receiptDate = receipt.invoice_date.split('T')[0];
+      const receiptDateValue = receipt.invoice_date as any;
+      if (receiptDateValue instanceof Date) {
+        receiptDate = receiptDateValue.toISOString().split('T')[0];
+      } else if (typeof receiptDateValue === 'string') {
+        receiptDate = receiptDateValue.split('T')[0];
       } else {
         receiptDate = new Date().toISOString().split('T')[0];
       }

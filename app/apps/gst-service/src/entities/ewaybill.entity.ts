@@ -21,7 +21,7 @@ export class EWayBill extends BaseEntity {
   ewaybill_number?: string;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status: string; // 'pending', 'generated', 'cancelled', 'expired'
+  declare status: string; // 'pending', 'generated', 'cancelled', 'expired' - overrides BaseEntity status
 
   @Column({ type: 'timestamptz', nullable: true, name: 'valid_until' })
   valid_until?: Date;

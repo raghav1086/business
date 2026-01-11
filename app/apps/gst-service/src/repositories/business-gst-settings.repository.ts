@@ -23,8 +23,15 @@ export class BusinessGstSettingsRepository extends BaseRepository<BusinessGstSet
     return this.repository.findOne({
       where: {
         business_id: businessId,
-      },
+      } as any,
     });
+  }
+
+  /**
+   * Find one (exposes repository method)
+   */
+  async findOne(options: any): Promise<BusinessGstSettings | null> {
+    return this.repository.findOne(options);
   }
 
   /**

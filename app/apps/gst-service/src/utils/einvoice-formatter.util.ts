@@ -95,7 +95,7 @@ export class EInvoiceFormatter {
         StCesVal: 0,
         Discount: this.roundToTwoDecimals(invoice.discount_amount || 0),
         OthChrg: 0,
-        RndOffAmt: this.roundToTwoDecimals(invoice.round_off || 0),
+        RndOffAmt: this.roundToTwoDecimals((invoice as any).round_off || 0),
         TotInvVal: this.roundToTwoDecimals(invoice.total_amount || 0),
       },
     };
@@ -103,8 +103,8 @@ export class EInvoiceFormatter {
     // Add payment details if available
     if (invoice.payment_status && invoice.payment_status !== 'unpaid') {
       payload.PayDtls = {
-        PaidAmt: this.roundToTwoDecimals(invoice.paid_amount || 0),
-        PaymtDue: this.roundToTwoDecimals((invoice.total_amount || 0) - (invoice.paid_amount || 0)),
+        PaidAmt: this.roundToTwoDecimals((invoice as any).paid_amount || 0),
+        PaymtDue: this.roundToTwoDecimals((invoice.total_amount || 0) - ((invoice as any).paid_amount || 0)),
       };
     }
 

@@ -75,18 +75,19 @@ export class EWayBillFormatter {
 
     // Add transport details if available (from invoice notes or separate fields)
     // For now, these are optional and can be added later
-    if (invoice.notes) {
-      const transportMatch = invoice.notes.match(/transport[:\s]+([A-Z0-9]+)/i);
+    const invoiceNotes = (invoice as any).notes;
+    if (invoiceNotes) {
+      const transportMatch = invoiceNotes.match(/transport[:\s]+([A-Z0-9]+)/i);
       if (transportMatch) {
         payload.transporterId = transportMatch[1];
       }
 
-      const vehicleMatch = invoice.notes.match(/vehicle[:\s]+([A-Z0-9]+)/i);
+      const vehicleMatch = invoiceNotes.match(/vehicle[:\s]+([A-Z0-9]+)/i);
       if (vehicleMatch) {
         payload.vehicleNo = vehicleMatch[1];
       }
 
-      const distanceMatch = invoice.notes.match(/distance[:\s]+(\d+)/i);
+      const distanceMatch = invoiceNotes.match(/distance[:\s]+(\d+)/i);
       if (distanceMatch) {
         payload.transDistance = parseInt(distanceMatch[1]);
       }

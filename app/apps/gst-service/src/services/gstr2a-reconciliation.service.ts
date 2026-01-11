@@ -169,10 +169,11 @@ export class Gstr2aReconciliationService {
         }
 
         let invoiceDate: string;
-        if (invoice.invoice_date instanceof Date) {
-          invoiceDate = invoice.invoice_date.toISOString().split('T')[0];
-        } else if (typeof invoice.invoice_date === 'string') {
-          invoiceDate = invoice.invoice_date.split('T')[0];
+        const invoiceDateValue = invoice.invoice_date as any;
+        if (invoiceDateValue instanceof Date) {
+          invoiceDate = invoiceDateValue.toISOString().split('T')[0];
+        } else if (typeof invoiceDateValue === 'string') {
+          invoiceDate = invoiceDateValue.split('T')[0];
         } else {
           invoiceDate = new Date().toISOString().split('T')[0];
         }
