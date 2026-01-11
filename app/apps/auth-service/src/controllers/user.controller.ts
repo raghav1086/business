@@ -77,22 +77,8 @@ export class UserController {
     return this.toResponseDto(user);
   }
 
-  @Patch('profile')
-  @ApiOperation({ summary: 'Update user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile updated successfully',
-    type: UserProfileResponseDto,
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async updateProfile(
-    @Request() req: any,
-    @Body() updateDto: UpdateUserProfileDto
-  ): Promise<UserProfileResponseDto> {
-    const user = await this.userService.updateProfile(req.user.id, updateDto);
-    return this.toResponseDto(user);
-  }
-
+  // More specific route must come before less specific route
+  // Otherwise NestJS will match PATCH /profile before PATCH /profile/passcode
   @Patch('profile/passcode')
   @ApiOperation({ summary: 'Change user passcode' })
   @ApiResponse({
@@ -113,6 +99,22 @@ export class UserController {
   ): Promise<{ message: string }> {
     await this.userService.changePasscode(req.user.id, changePasscodeDto);
     return { message: 'Passcode changed successfully' };
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: UserProfileResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateProfile(
+    @Request() req: any,
+    @Body() updateDto: UpdateUserProfileDto
+  ): Promise<UserProfileResponseDto> {
+    const user = await this.userService.updateProfile(req.user.id, updateDto);
+    return this.toResponseDto(user);
   }
 
   @Post('profile/avatar')
