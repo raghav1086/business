@@ -440,8 +440,13 @@ setup-backup-cron: ## Setup cron job for automated backups every 4 hours
 
 remove-backup-cron: ## Remove automated backup cron job
 	@echo "$(YELLOW)⚠️  Removing backup cron job...$(NC)"
-	@crontab -l 2>/dev/null | grep -v "cron-backup-to-s3.sh" | crontab - || true
-	@echo "$(GREEN)✅ Cron job removed$(NC)"
+	@if command -v crontab &> /dev/null; then \
+		crontab -l 2>/dev/null | grep -v "cron-backup-to-s3.sh" | crontab - || true; \
+		echo "$(GREEN)✅ Cron job removed$(NC)"; \
+	else \
+		echo "$(RED)❌ crontab command not found$(NC)"; \
+		echo "$(YELLOW)  Install cronie: sudo yum install -y cronie$(NC)"; \
+	fi
 
 view-backup-cron: ## View backup cron job logs
 	@echo "$(BLUE)📋 Backup cron job logs:$(NC)"
