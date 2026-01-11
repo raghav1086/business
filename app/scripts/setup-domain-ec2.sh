@@ -86,6 +86,17 @@ server {
         proxy_connect_timeout 75s;
     }
     
+    # User endpoints (auth service) - preserve full path /api/v1/users/*
+    location /api/v1/users {
+        proxy_pass http://auth_service;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+    
     # Business service
     location /api/v1/businesses {
         proxy_pass http://business_service;
