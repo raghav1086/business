@@ -53,7 +53,7 @@ import { UserSession } from './entities/user-session.entity';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET', 'default-secret'),
         signOptions: {
-          expiresIn: '15m',
+          expiresIn: '5d',
         },
       }),
       inject: [ConfigService],

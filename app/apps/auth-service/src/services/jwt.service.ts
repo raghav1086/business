@@ -24,7 +24,7 @@ export interface TokenPair {
  */
 @Injectable()
 export class JwtTokenService {
-  private readonly ACCESS_TOKEN_EXPIRY = '15m';
+  private readonly ACCESS_TOKEN_EXPIRY = '5d';
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 30;
 
   constructor(
