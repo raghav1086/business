@@ -19,8 +19,22 @@ async function bootstrap() {
     })
   );
 
-  // CORS
-  app.enableCors();
+  // CORS - Configure to handle preflight requests properly
+  app.enableCors({
+    origin: true, // Allow all origins (in production, specify your domain)
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-business-id',
+      'X-Requested-With',
+      'Accept',
+    ],
+    exposedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
 
   // Swagger documentation
   const config = new DocumentBuilder()
