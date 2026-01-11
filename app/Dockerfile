@@ -11,6 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY nx.json ./
 COPY tsconfig*.json ./
+COPY jest.preset.js ./
 
 # Install dependencies with retry logic for network issues
 RUN for i in 1 2 3 4 5; do \
@@ -22,8 +23,8 @@ RUN for i in 1 2 3 4 5; do \
 COPY apps ./apps
 COPY libs ./libs
 
-# Build the specific service
-RUN npx nx build ${SERVICE_NAME} --prod
+# Build the specific service using local NX installation
+RUN ./node_modules/.bin/nx build ${SERVICE_NAME} --prod
 
 # Production stage
 FROM node:20-alpine AS production
