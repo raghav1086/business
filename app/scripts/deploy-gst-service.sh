@@ -82,8 +82,20 @@ fi
 echo -e "${GREEN}✓ Database verified${NC}"
 echo ""
 
-# Step 3: Build only GST service (no other services)
-echo -e "${YELLOW}Step 3/6: Building GST service...${NC}"
+# Step 3: Ensure assets directory exists
+echo -e "${YELLOW}Step 3/7: Ensuring assets directory exists...${NC}"
+ASSETS_DIR="$PROJECT_ROOT/apps/gst-service/src/assets"
+if [ ! -d "$ASSETS_DIR" ]; then
+    mkdir -p "$ASSETS_DIR"
+fi
+if [ ! -f "$ASSETS_DIR/.gitkeep" ]; then
+    echo "# Placeholder file for NX build" > "$ASSETS_DIR/.gitkeep"
+fi
+echo -e "${GREEN}✓ Assets directory verified${NC}"
+echo ""
+
+# Step 4: Build only GST service (no other services)
+echo -e "${YELLOW}Step 4/7: Building GST service...${NC}"
 echo -e "${BLUE}  → Building only gst-service (other services will not be rebuilt)${NC}"
 
 cd "$PROJECT_ROOT"
@@ -92,8 +104,8 @@ $DOCKER_COMPOSE build --no-cache gst-service
 echo -e "${GREEN}✓ GST service built${NC}"
 echo ""
 
-# Step 4: Build web-app (needs GST API URL)
-echo -e "${YELLOW}Step 4/6: Building web-app (with GST API URL)...${NC}"
+# Step 5: Build web-app (needs GST API URL)
+echo -e "${YELLOW}Step 5/7: Building web-app (with GST API URL)...${NC}"
 echo -e "${BLUE}  → Rebuilding web-app to include GST API configuration${NC}"
 
 $DOCKER_COMPOSE build --no-cache web-app
@@ -101,8 +113,8 @@ $DOCKER_COMPOSE build --no-cache web-app
 echo -e "${GREEN}✓ Web-app built${NC}"
 echo ""
 
-# Step 5: Start GST service
-echo -e "${YELLOW}Step 5/6: Starting GST service...${NC}"
+# Step 6: Start GST service
+echo -e "${YELLOW}Step 6/7: Starting GST service...${NC}"
 echo -e "${BLUE}  → Starting gst-service (other services remain running)${NC}"
 
 # Ensure dependencies are running
@@ -118,8 +130,8 @@ $DOCKER_COMPOSE up -d gst-service
 echo -e "${GREEN}✓ GST service started${NC}"
 echo ""
 
-# Step 6: Restart web-app to pick up new environment
-echo -e "${YELLOW}Step 6/6: Restarting web-app...${NC}"
+# Step 7: Restart web-app to pick up new environment
+echo -e "${YELLOW}Step 7/7: Restarting web-app...${NC}"
 echo -e "${BLUE}  → Restarting web-app to use GST API${NC}"
 
 $DOCKER_COMPOSE restart web-app
