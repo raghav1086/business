@@ -28,6 +28,8 @@ import { invoiceApi, partyApi, paymentApi } from '@/lib/api-client';
 import { generateInvoicePDF } from '@/lib/export-utils';
 import { validateUrlUUID, validateQueryUUID } from '@/lib/validation';
 import { useAuthStore } from '@/lib/auth-store';
+import { EInvoiceSection } from '@/components/gst/einvoice-section';
+import { EWayBillSection } from '@/components/gst/ewaybill-section';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -446,6 +448,12 @@ export default function InvoiceDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* E-Invoice Section */}
+      <EInvoiceSection invoiceId={invoiceId} invoice={invoice} />
+
+      {/* E-Way Bill Section */}
+      <EWayBillSection invoiceId={invoiceId} invoice={invoice} />
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between gap-4 pb-20 md:pb-6">

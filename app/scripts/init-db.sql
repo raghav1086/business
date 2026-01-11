@@ -8,6 +8,7 @@ CREATE DATABASE party_db;
 CREATE DATABASE inventory_db;
 CREATE DATABASE invoice_db;
 CREATE DATABASE payment_db;
+CREATE DATABASE gst_db;
 
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE auth_db TO postgres;
@@ -16,6 +17,7 @@ GRANT ALL PRIVILEGES ON DATABASE party_db TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE inventory_db TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE invoice_db TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE payment_db TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE gst_db TO postgres;
 
 -- Create extensions (optional, for UUID support)
 \c auth_db
@@ -34,4 +36,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 \c payment_db
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+\c gst_db
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

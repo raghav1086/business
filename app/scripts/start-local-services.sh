@@ -126,6 +126,13 @@ start_service() {
       export PAYMENT_DB_NAME=payment_db
       export AUTH_SERVICE_URL=http://localhost:3002
       ;;
+    gst-service)
+      export GST_DB_NAME=gst_db
+      export AUTH_SERVICE_URL=http://localhost:3002
+      export INVOICE_SERVICE_URL=http://localhost:3006
+      export PARTY_SERVICE_URL=http://localhost:3004
+      export BUSINESS_SERVICE_URL=http://localhost:3003
+      ;;
   esac
   
   # Start service in background and log output
@@ -152,6 +159,9 @@ start_service invoice-service 3006
 sleep 2
 
 start_service payment-service 3007
+sleep 2
+
+start_service gst-service 3008
 sleep 3
 
 echo ""
@@ -166,6 +176,7 @@ echo -e "  ${GREEN}Party Service:${NC}     http://localhost:3004"
 echo -e "  ${GREEN}Inventory Service:${NC} http://localhost:3005"
 echo -e "  ${GREEN}Invoice Service:${NC}   http://localhost:3006"
 echo -e "  ${GREEN}Payment Service:${NC}    http://localhost:3007"
+echo -e "  ${GREEN}GST Service:${NC}       http://localhost:3008"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
 echo -e "  All service logs are in ${YELLOW}logs/${NC} directory"
@@ -180,7 +191,7 @@ sleep 10
 echo ""
 echo -e "${BLUE}Health Check:${NC}"
 echo "──────────────────────────────────────"
-for port in 3002 3003 3004 3005 3006 3007; do
+for port in 3002 3003 3004 3005 3006 3007 3008; do
   service_name=""
   case $port in
     3002) service_name="Auth Service     " ;;
@@ -189,6 +200,7 @@ for port in 3002 3003 3004 3005 3006 3007; do
     3005) service_name="Inventory Service" ;;
     3006) service_name="Invoice Service  " ;;
     3007) service_name="Payment Service  " ;;
+    3008) service_name="GST Service      " ;;
   esac
   
   if curl -s http://localhost:${port}/health > /dev/null 2>&1; then

@@ -28,6 +28,7 @@ export const API_URLS = {
   inventory: process.env.NEXT_PUBLIC_INVENTORY_API_URL || '/api/v1',
   invoice: process.env.NEXT_PUBLIC_INVOICE_API_URL || '/api/v1',
   payment: process.env.NEXT_PUBLIC_PAYMENT_API_URL || '/api/v1',
+  gst: process.env.NEXT_PUBLIC_GST_API_URL || '/api/v1',
 };
 
 // Token storage keys
@@ -275,6 +276,7 @@ export const partyApi = createApiClient(API_URLS.party, 'party');
 export const inventoryApi = createApiClient(API_URLS.inventory, 'inventory');
 export const invoiceApi = createApiClient(API_URLS.invoice, 'invoice');
 export const paymentApi = createApiClient(API_URLS.payment, 'payment');
+export const gstApi = createApiClient(API_URLS.gst, 'gst');
 
 // Helper function to make requests with retry logic
 export async function apiRequest<T>(

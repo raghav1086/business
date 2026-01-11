@@ -202,6 +202,7 @@ health: ## Check health of all services
 	@curl -s http://localhost:3005/health > /dev/null 2>&1 && echo "$(GREEN)✅ Inventory Service(3005)$(NC)" || echo "$(RED)❌ Inventory Service(3005)$(NC)"
 	@curl -s http://localhost:3006/health > /dev/null 2>&1 && echo "$(GREEN)✅ Invoice Service  (3006)$(NC)" || echo "$(RED)❌ Invoice Service  (3006)$(NC)"
 	@curl -s http://localhost:3007/health > /dev/null 2>&1 && echo "$(GREEN)✅ Payment Service  (3007)$(NC)" || echo "$(RED)❌ Payment Service  (3007)$(NC)"
+	@curl -s http://localhost:3008/health > /dev/null 2>&1 && echo "$(GREEN)✅ GST Service       (3008)$(NC)" || echo "$(RED)❌ GST Service       (3008)$(NC)"
 	@echo "──────────────────────────────────────"
 
 # =============================================================================
@@ -267,6 +268,23 @@ deploy-prod-quick: ## Quick production deploy - uses existing Docker DB (no prom
 	bash scripts/deploy-prod-ec2.sh localhost 5432 postgres postgres
 
 start-prod-quick: start-prod ## Alias for start-prod
+
+deploy-gst: ## Deploy only GST service (selective deployment, other services unchanged)
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║     GST SERVICE SELECTIVE DEPLOYMENT                         ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(YELLOW)This will:$(NC)"
+	@echo "  ✅ Build only GST service (other services NOT rebuilt)"
+	@echo "  ✅ Rebuild web-app (to include GST API URL)"
+	@echo "  ✅ Create gst_db database if needed (safe, non-destructive)"
+	@echo "  ✅ Start GST service"
+	@echo "  ✅ Restart web-app"
+	@echo "  ✅ Preserve all existing data"
+	@echo ""
+	@echo "$(GREEN)Other services will continue running unchanged$(NC)"
+	@echo ""
+	@bash scripts/deploy-gst-service.sh
 
 # =============================================================================
 # AWS DEPLOYMENT (FULLY AUTOMATED - SINGLE COMMAND)

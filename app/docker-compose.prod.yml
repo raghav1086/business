@@ -260,6 +260,53 @@ services:
       - business-network
     restart: unless-stopped
 
+  gst-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: gst-service
+    container_name: business-gst
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - GST_DB_NAME=gst_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_SERVICE_URL=http://auth-service:3002
+      - INVOICE_SERVICE_URL=http://invoice-service:3006
+      - PARTY_SERVICE_URL=http://party-service:3004
+      - BUSINESS_SERVICE_URL=http://business-service:3003
+      - JWT_SECRET=${JWT_SECRET}
+      - ENABLE_SYNC=true
+    ports:
+      - "3008:3008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      invoice-service:
+        condition: service_healthy
+      party-service:
+        condition: service_healthy
+      business-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - business-network
+    restart: unless-stopped
+
   web-app:
     build:
       context: ../web-app
@@ -273,6 +320,7 @@ services:
       - NEXT_PUBLIC_INVENTORY_API_URL=/api/v1
       - NEXT_PUBLIC_INVOICE_API_URL=/api/v1
       - NEXT_PUBLIC_PAYMENT_API_URL=/api/v1
+      - NEXT_PUBLIC_GST_API_URL=/api/v1
     ports:
       - "3000:3000"
     depends_on:
@@ -287,6 +335,8 @@ services:
       invoice-service:
         condition: service_healthy
       payment-service:
+        condition: service_healthy
+      gst-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
