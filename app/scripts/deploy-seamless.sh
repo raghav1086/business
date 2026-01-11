@@ -35,6 +35,7 @@ ROLLBACK_DIR="$DEPLOYMENT_LOG_DIR/rollback"
 HEALTH_CHECK_TIMEOUT=60
 HEALTH_CHECK_INTERVAL=5
 MAX_ROLLBACK_ATTEMPTS=3
+LAST_DEPLOYED_COMMIT_FILE="$DEPLOYMENT_LOG_DIR/last_deployed_commit.txt"
 
 # Service definitions with dependencies
 declare -A SERVICE_PATHS=(
@@ -177,7 +178,7 @@ check_service_health() {
 
 # Get changed files from git
 get_changed_files() {
-    local base_ref="${1:-HEAD~1}"
+    local base_ref="${1:-}"
     local current_ref="${2:-HEAD}"
     
     if [ ! -d ".git" ]; then
@@ -185,16 +186,40 @@ get_changed_files() {
         return 1
     fi
     
-    # Try to get changes, handle cases where HEAD~1 doesn't exist
+    # If no base_ref provided, try to get last deployed commit
+    if [ -z "$base_ref" ]; then
+        local last_deployed_file="$DEPLOYMENT_LOG_DIR/last_deployed_commit.txt"
+        if [ -f "$last_deployed_file" ]; then
+            base_ref=$(cat "$last_deployed_file" 2>/dev/null | head -1 || echo "")
+            if [ -n "$base_ref" ] && git rev-parse --verify "$base_ref" > /dev/null 2>&1; then
+                info "Comparing against last deployed commit: ${base_ref:0:7}"
+            else
+                base_ref=""
+            fi
+        fi
+        
+        # Fallback to HEAD~1 if no last deployed commit
+        if [ -z "$base_ref" ]; then
+            if git rev-parse --verify "HEAD~1" > /dev/null 2>&1; then
+                base_ref="HEAD~1"
+                info "Comparing against previous commit (HEAD~1)"
+            else
+                base_ref=""
+            fi
+        fi
+    fi
+    
+    # Try to get changes
     local changed_files=""
-    if git rev-parse --verify "$base_ref" > /dev/null 2>&1; then
-        changed_files=$(git diff --name-only "$base_ref" "$current_ref" 2>/dev/null || echo "")
+    if [ -n "$base_ref" ] && git rev-parse --verify "$base_ref" > /dev/null 2>&1; then
+        # Get modified, added, copied, and renamed files (exclude deleted)
+        changed_files=$(git diff --name-only --diff-filter=ACMR "$base_ref" "$current_ref" 2>/dev/null || echo "")
     else
         # If no previous commit, check for uncommitted changes
-        changed_files=$(git diff --name-only HEAD 2>/dev/null || echo "")
+        changed_files=$(git diff --name-only --diff-filter=ACMR HEAD 2>/dev/null || echo "")
         if [ -z "$changed_files" ]; then
             # Check staged changes
-            changed_files=$(git diff --cached --name-only 2>/dev/null || echo "")
+            changed_files=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || echo "")
         fi
     fi
     
@@ -210,8 +235,18 @@ detect_changed_services() {
         return 0
     fi
     
+    # Filter out non-deployment files (docs, tests, etc.)
+    # These files don't require service rebuilds
+    local deployment_files=$(echo "$changed_files" | grep -vE "\.(md|txt|log|test\.ts|spec\.ts|e2e\.ts|stories\.tsx|snap)$|^docs/|^\.github/|^scripts/.*\.md$|^README|^CHANGELOG|^LICENSE|^\.gitignore|^\.editorconfig")
+    
+    if [ -z "$deployment_files" ]; then
+        info "Only non-deployment files changed (docs, tests, etc.) - no services need rebuild"
+        echo ""
+        return 0
+    fi
+    
     # Check shared libraries (if changed, all services need rebuild)
-    if echo "$changed_files" | grep -qE "^libs/|^app/libs/"; then
+    if echo "$deployment_files" | grep -qE "^libs/|^app/libs/|^apps/libs/"; then
         info "Shared libraries changed - all services will be rebuilt"
         for service in "${!SERVICE_PATHS[@]}"; do
             changed_services+=("$service")
@@ -221,7 +256,7 @@ detect_changed_services() {
     fi
     
     # Check root level files that affect all services
-    if echo "$changed_files" | grep -qE "^(package\.json|nx\.json|tsconfig.*\.json|Dockerfile|docker-compose.*\.yml|\.env)"; then
+    if echo "$deployment_files" | grep -qE "^(package\.json|package-lock\.json|nx\.json|tsconfig.*\.json|Dockerfile|docker-compose.*\.yml|\.env|\.env\..*)"; then
         info "Root configuration files changed - all services will be rebuilt"
         for service in "${!SERVICE_PATHS[@]}"; do
             changed_services+=("$service")
@@ -230,19 +265,22 @@ detect_changed_services() {
         return 0
     fi
     
-    # Check each service
+    # Check each service with improved path matching
     for service in "${!SERVICE_PATHS[@]}"; do
         local service_path="${SERVICE_PATHS[$service]}"
         
-        # Special handling for web-app (can be in parent directory)
+        # Special handling for web-app (can be in parent directory or current)
         if [ "$service" = "web-app" ]; then
-            if echo "$changed_files" | grep -qE "(^|/)web-app/|(^|\.\./)web-app/"; then
+            # Match web-app in various locations: web-app/, ../web-app/, or web-app/ at root
+            if echo "$deployment_files" | grep -qE "(^|/|\.\./)web-app/|^web-app/"; then
                 changed_services+=("$service")
             fi
         else
-            # Check if any files in this service changed
-            # Match patterns: service_path/, apps/service/, or service name in path
-            if echo "$changed_files" | grep -qE "(^|/)${service_path}/|(^|/)apps/${service}/"; then
+            # Improved pattern matching for services
+            # Match: apps/service/, apps/service-name/, service/ (if in root)
+            # Escape special characters in service_path for regex
+            local escaped_path=$(echo "$service_path" | sed 's/[.[\*^$()+?{|]/\\&/g')
+            if echo "$deployment_files" | grep -qE "(^|/)${escaped_path}/|(^|/)apps/${service}(-service)?/"; then
                 changed_services+=("$service")
             fi
         fi
@@ -591,6 +629,14 @@ main() {
     if [ "$all_healthy" = true ]; then
         echo ""
         success "All services are healthy! Deployment complete."
+        
+        # Save last deployed commit for future comparisons
+        local current_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
+        if [ -n "$current_commit" ]; then
+            mkdir -p "$DEPLOYMENT_LOG_DIR"
+            echo "$current_commit" > "$DEPLOYMENT_LOG_DIR/last_deployed_commit.txt"
+            info "Saved last deployed commit: ${current_commit:0:7}"
+        fi
     else
         echo ""
         warning "Some services failed health check. Review logs: $DOCKER_COMPOSE -f $COMPOSE_FILE logs"

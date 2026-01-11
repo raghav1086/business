@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Handle phone submit - auto-fill default passcode
+  // Handle phone submit - don't auto-fill passcode
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -31,9 +31,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Calculate and set default passcode (last 6 digits)
-    const defaultPasscode = phone.slice(-6);
-    setPasscode(defaultPasscode);
+    // Don't auto-fill passcode - let user type it
+    // The hint text already tells them it's the last 6 digits
+    setPasscode(''); // Clear any previous passcode
     setStep('passcode');
   };
 
