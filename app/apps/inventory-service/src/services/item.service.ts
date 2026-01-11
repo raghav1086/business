@@ -154,5 +154,19 @@ export class ItemService {
     // Soft delete
     await this.itemRepository.delete(id);
   }
+
+  /**
+   * Get all items across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(categoryId?: string): Promise<Item[]> {
+    return this.itemRepository.findAllForSuperadmin(categoryId);
+  }
+
+  /**
+   * Search all items across all businesses (for superadmin)
+   */
+  async searchAllForSuperadmin(searchTerm: string): Promise<Item[]> {
+    return this.itemRepository.searchAllForSuperadmin(searchTerm);
+  }
 }
 

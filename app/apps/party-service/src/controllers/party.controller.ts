@@ -74,7 +74,7 @@ export class PartyController {
   @Get()
   @UseGuards(PermissionGuard)
   @RequirePermission(Permission.PARTY_READ)
-  @ApiOperation({ summary: 'Get all parties for business' })
+  @ApiOperation({ summary: 'Get all parties for business (or all parties for superadmin)' })
   @ApiQuery({ name: 'type', required: false, enum: ['customer', 'supplier', 'both'] })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({
@@ -88,12 +88,28 @@ export class PartyController {
     @Query('type') type?: string,
     @Query('search') search?: string
   ): Promise<PartyResponseDto[]> {
-    // Business ID is validated by CrossServiceBusinessContextGuard
-    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
+    const businessContext = req.businessContext;
+    const isSuperadmin = businessContext?.isSuperadmin || false;
+    const businessId = businessContext?.businessId;
+
+    // If superadmin and no business ID, return all parties across all businesses
+    if (isSuperadmin && !businessId) {
+      let parties: Party[];
+      if (search) {
+        parties = await this.partyService.searchAllForSuperadmin(search);
+      } else {
+        parties = await this.partyService.findAllForSuperadmin(type);
+      }
+      return parties.map((p) => this.toResponseDto(p));
+    }
+
+    // For non-superadmin users OR superadmin with business ID: filter by business ID
+    // This preserves backward compatibility - existing users work exactly as before
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
 
+    // Existing flow for non-superadmin users (unchanged)
     let parties: Party[];
     if (search) {
       parties = await this.partyService.search(businessId, search);

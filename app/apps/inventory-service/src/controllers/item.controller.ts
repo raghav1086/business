@@ -69,7 +69,7 @@ export class ItemController {
   @Get()
   @UseGuards(PermissionGuard)
   @RequirePermission(Permission.INVENTORY_READ)
-  @ApiOperation({ summary: 'Get all items for business' })
+  @ApiOperation({ summary: 'Get all items for business (or all items for superadmin)' })
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({
@@ -83,12 +83,28 @@ export class ItemController {
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string
   ): Promise<ItemResponseDto[]> {
-    // Business ID is validated by CrossServiceBusinessContextGuard
-    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
+    const businessContext = req.businessContext;
+    const isSuperadmin = businessContext?.isSuperadmin || false;
+    const businessId = businessContext?.businessId;
+
+    // If superadmin and no business ID, return all items across all businesses
+    if (isSuperadmin && !businessId) {
+      let items: Item[];
+      if (search) {
+        items = await this.itemService.searchAllForSuperadmin(search);
+      } else {
+        items = await this.itemService.findAllForSuperadmin(categoryId);
+      }
+      return items.map((i) => this.toResponseDto(i));
+    }
+
+    // For non-superadmin users OR superadmin with business ID: filter by business ID
+    // This preserves backward compatibility - existing users work exactly as before
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
 
+    // Existing flow for non-superadmin users (unchanged)
     let items: Item[];
     if (search) {
       items = await this.itemService.search(businessId, search);

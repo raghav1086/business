@@ -201,5 +201,47 @@ export class PaymentService {
     // Soft delete
     await this.transactionRepository.delete(id);
   }
+
+  /**
+   * Get all payments across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(
+    filters?: {
+      partyId?: string;
+      invoiceId?: string;
+      transactionType?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{
+    transactions: Transaction[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+
+    // Handle "new" as invoiceId (frontend sends this when creating new invoice)
+    const processedFilters = {
+      ...filters,
+      invoiceId: filters?.invoiceId === 'new' ? undefined : filters?.invoiceId,
+      startDate: filters?.startDate ? new Date(filters.startDate) : undefined,
+      endDate: filters?.endDate ? new Date(filters.endDate) : undefined,
+      page,
+      limit,
+    };
+
+    const result = await this.transactionRepository.findAllForSuperadmin(processedFilters);
+
+    return {
+      transactions: result.transactions,
+      total: result.total,
+      page,
+      limit,
+    };
+  }
 }
 

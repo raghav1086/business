@@ -7,7 +7,7 @@ import { Role } from '@business-app/shared/constants';
  * Contains user's role, permissions, and access status for a business.
  */
 export interface BusinessContext {
-  businessId: string;
+  businessId: string | null; // Allow null for superadmin viewing all data
   userId: string;
   role: Role;
   isOwner: boolean;

@@ -118,5 +118,19 @@ export class PartyService {
     // Soft delete
     await this.partyRepository.delete(id);
   }
+
+  /**
+   * Get all parties across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(type?: string): Promise<Party[]> {
+    return this.partyRepository.findAllForSuperadmin(type);
+  }
+
+  /**
+   * Search all parties across all businesses (for superadmin)
+   */
+  async searchAllForSuperadmin(searchTerm: string): Promise<Party[]> {
+    return this.partyRepository.searchAllForSuperadmin(searchTerm);
+  }
 }
 

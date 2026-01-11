@@ -71,5 +71,37 @@ export class PartyRepository extends BaseRepository<Party> {
       where: { business_id: businessId, id, status: 'active' },
     });
   }
+
+  /**
+   * Find all parties across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(type?: string): Promise<Party[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('party')
+      .where('party.status = :status', { status: 'active' });
+
+    if (type) {
+      queryBuilder.andWhere('party.type = :type', { type });
+    }
+
+    queryBuilder.orderBy('party.name', 'ASC');
+
+    return queryBuilder.getMany();
+  }
+
+  /**
+   * Search all parties across all businesses (for superadmin)
+   */
+  async searchAllForSuperadmin(searchTerm: string): Promise<Party[]> {
+    return this.repository
+      .createQueryBuilder('party')
+      .where('party.status = :status', { status: 'active' })
+      .andWhere(
+        '(party.name ILIKE :searchTerm OR party.phone ILIKE :searchTerm OR party.email ILIKE :searchTerm)',
+        { searchTerm: `%${searchTerm}%` }
+      )
+      .orderBy('party.name', 'ASC')
+      .getMany();
+  }
 }
 

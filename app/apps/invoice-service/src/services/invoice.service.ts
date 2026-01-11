@@ -344,5 +344,40 @@ export class InvoiceService {
     // Soft delete
     await this.invoiceRepository.delete(id);
   }
+
+  /**
+   * Get all invoices across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(
+    filters?: {
+      partyId?: string;
+      invoiceType?: string;
+      paymentStatus?: string;
+      status?: string;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ invoices: Invoice[]; total: number; page: number; limit: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+
+    const result = await this.invoiceRepository.findAllForSuperadmin({
+      ...filters,
+      startDate: filters?.startDate ? new Date(filters.startDate) : undefined,
+      endDate: filters?.endDate ? new Date(filters.endDate) : undefined,
+      page,
+      limit,
+    });
+
+    return {
+      invoices: result.invoices,
+      total: result.total,
+      page,
+      limit,
+    };
+  }
 }
 

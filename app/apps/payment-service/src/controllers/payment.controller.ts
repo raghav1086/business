@@ -75,7 +75,7 @@ export class PaymentController {
   @Get()
   @UseGuards(PermissionGuard)
   @RequirePermission(Permission.PAYMENT_READ)
-  @ApiOperation({ summary: 'Get all payments for business' })
+  @ApiOperation({ summary: 'Get all payments for business (or all payments for superadmin)' })
   @ApiResponse({
     status: 200,
     description: 'List of payments with pagination',
@@ -102,11 +102,37 @@ export class PaymentController {
     }
     // invoiceId="new" is handled in service, so we don't validate it here
 
-    // Business ID is validated by CrossServiceBusinessContextGuard
-    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
+    const businessContext = req.businessContext;
+    const isSuperadmin = businessContext?.isSuperadmin || false;
+    const businessId = businessContext?.businessId;
+
+    // If superadmin and no business ID, return all payments across all businesses
+    if (isSuperadmin && !businessId) {
+      const result = await this.paymentService.findAllForSuperadmin({
+        partyId,
+        invoiceId,
+        transactionType,
+        startDate,
+        endDate,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 20,
+      });
+
+      return {
+        payments: result.transactions.map((t) => this.toResponseDto(t)),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    }
+
+    // For non-superadmin users OR superadmin with business ID: filter by business ID
+    // This preserves backward compatibility - existing users work exactly as before
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
+
+    // Existing flow for non-superadmin users (unchanged)
     const result = await this.paymentService.findByBusinessId(businessId, {
       partyId,
       invoiceId,

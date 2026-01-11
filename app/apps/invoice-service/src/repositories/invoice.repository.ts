@@ -158,5 +158,86 @@ export class InvoiceRepository extends BaseRepository<Invoice> {
 
     return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
   }
+
+  /**
+   * Find all invoices across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(
+    filters?: {
+      partyId?: string;
+      invoiceType?: string;
+      paymentStatus?: string;
+      status?: string;
+      startDate?: Date;
+      endDate?: Date;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ invoices: Invoice[]; total: number }> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.items', 'items');
+
+    if (filters?.partyId) {
+      queryBuilder.andWhere('invoice.party_id = :partyId', {
+        partyId: filters.partyId,
+      });
+    }
+
+    if (filters?.invoiceType) {
+      queryBuilder.andWhere('invoice.invoice_type = :invoiceType', {
+        invoiceType: filters.invoiceType,
+      });
+    }
+
+    if (filters?.paymentStatus) {
+      queryBuilder.andWhere('invoice.payment_status = :paymentStatus', {
+        paymentStatus: filters.paymentStatus,
+      });
+    }
+
+    if (filters?.status) {
+      queryBuilder.andWhere('invoice.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters?.startDate) {
+      queryBuilder.andWhere('invoice.invoice_date >= :startDate', {
+        startDate: filters.startDate,
+      });
+    }
+
+    if (filters?.endDate) {
+      queryBuilder.andWhere('invoice.invoice_date <= :endDate', {
+        endDate: filters.endDate,
+      });
+    }
+
+    if (filters?.search) {
+      queryBuilder.andWhere(
+        '(invoice.invoice_number ILIKE :search OR invoice.notes ILIKE :search)',
+        { search: `%${filters.search}%` }
+      );
+    }
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    if (filters?.page && filters?.limit) {
+      const skip = (filters.page - 1) * filters.limit;
+      queryBuilder.skip(skip).take(filters.limit);
+    }
+
+    // Order by
+    queryBuilder.orderBy('invoice.invoice_date', 'DESC');
+    queryBuilder.addOrderBy('invoice.created_at', 'DESC');
+
+    const invoices = await queryBuilder.getMany();
+
+    return { invoices, total };
+  }
 }
 

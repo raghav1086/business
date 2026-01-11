@@ -41,15 +41,15 @@ export class CrossServiceBusinessContextGuard implements CanActivate {
       request.body?.businessId ||
       request.query?.businessId;
 
-    if (!businessId) {
-      throw new BadRequestException('Business ID is required. Provide via x-business-id header, URL param, body, or query.');
-    }
-
-    // If superadmin, grant all permissions
+    // If superadmin, allow access even without business ID (for viewing all data)
+    // This does NOT affect non-superadmin users - they still require business ID
     if (user.is_superadmin) {
       const allPermissions = Object.values(Permission);
+      
+      // If business ID is provided, set business context with it (for filtered superadmin view)
+      // If not provided, set context with null businessId (for viewing all data across businesses)
       request.businessContext = {
-        businessId,
+        businessId: businessId || null,
         userId: user.id,
         role: Role.SUPERADMIN,
         isOwner: false,
@@ -57,6 +57,12 @@ export class CrossServiceBusinessContextGuard implements CanActivate {
         permissions: allPermissions,
       };
       return true;
+    }
+
+    // For non-superadmin users, business ID is REQUIRED (unchanged behavior)
+    // This ensures backward compatibility - existing users continue to work as before
+    if (!businessId) {
+      throw new BadRequestException('Business ID is required. Provide via x-business-id header, URL param, body, or query.');
     }
 
     // For existing users: Grant full permissions (backward compatibility)

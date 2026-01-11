@@ -93,5 +93,37 @@ export class ItemRepository extends BaseRepository<Item> {
       current_stock: quantity,
     });
   }
+
+  /**
+   * Find all items across all businesses (for superadmin)
+   */
+  async findAllForSuperadmin(categoryId?: string): Promise<Item[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('item')
+      .where('item.status = :status', { status: 'active' });
+
+    if (categoryId) {
+      queryBuilder.andWhere('item.category_id = :categoryId', { categoryId });
+    }
+
+    queryBuilder.orderBy('item.name', 'ASC');
+
+    return queryBuilder.getMany();
+  }
+
+  /**
+   * Search all items across all businesses (for superadmin)
+   */
+  async searchAllForSuperadmin(searchTerm: string): Promise<Item[]> {
+    return this.repository
+      .createQueryBuilder('item')
+      .where('item.status = :status', { status: 'active' })
+      .andWhere(
+        '(item.name ILIKE :searchTerm OR item.sku ILIKE :searchTerm OR item.barcode ILIKE :searchTerm)',
+        { searchTerm: `%${searchTerm}%` }
+      )
+      .orderBy('item.name', 'ASC')
+      .getMany();
+  }
 }
 

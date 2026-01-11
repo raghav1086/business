@@ -95,7 +95,7 @@ export class InvoiceController {
   @Get()
   @UseGuards(PermissionGuard)
   @RequirePermission(Permission.INVOICE_READ)
-  @ApiOperation({ summary: 'Get all invoices for business' })
+  @ApiOperation({ summary: 'Get all invoices for business (or all invoices for superadmin)' })
   @ApiResponse({
     status: 200,
     description: 'List of invoices with pagination',
@@ -123,11 +123,39 @@ export class InvoiceController {
       validateOptionalUUID(partyId, 'partyId');
     }
 
-    // Business ID is validated by CrossServiceBusinessContextGuard
-    const businessId = req.businessContext?.businessId || req.headers['x-business-id'] || req.business_id;
+    const businessContext = req.businessContext;
+    const isSuperadmin = businessContext?.isSuperadmin || false;
+    const businessId = businessContext?.businessId;
+
+    // If superadmin and no business ID, return all invoices across all businesses
+    if (isSuperadmin && !businessId) {
+      const result = await this.invoiceService.findAllForSuperadmin({
+        partyId,
+        invoiceType,
+        paymentStatus,
+        status,
+        startDate,
+        endDate,
+        search,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 20,
+      });
+
+      return {
+        invoices: result.invoices.map((i) => this.toResponseDto(i)),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    }
+
+    // For non-superadmin users OR superadmin with business ID: filter by business ID
+    // This preserves backward compatibility - existing users work exactly as before
     if (!businessId) {
       throw new BadRequestException('Business ID is required');
     }
+
+    // Existing flow for non-superadmin users (unchanged)
     const result = await this.invoiceService.findByBusinessId(businessId, {
       partyId,
       invoiceType,
