@@ -24,7 +24,9 @@ COPY apps ./apps
 COPY libs ./libs
 
 # Build the specific service using local NX installation
-RUN ./node_modules/.bin/nx build ${SERVICE_NAME} --prod
+# npx will use local installation if available in node_modules
+# Set NX_DAEMON to false to avoid daemon issues in Docker
+RUN NX_DAEMON=false npx --yes nx build ${SERVICE_NAME} --prod
 
 # Production stage
 FROM node:20-alpine AS production
