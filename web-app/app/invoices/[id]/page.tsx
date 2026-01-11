@@ -37,12 +37,17 @@ export default function InvoiceDetailPage() {
   const { businessId } = useAuthStore();
   const invoiceId = validateUrlUUID(params.id, 'Invoice ID');
 
-  // Redirect if business not selected
+  // Redirect if business not selected or invoice ID is invalid
   useEffect(() => {
     if (!businessId) {
       router.push('/business/select');
+      return;
     }
-  }, [businessId, router]);
+    if (!invoiceId) {
+      router.push('/invoices');
+      return;
+    }
+  }, [businessId, invoiceId, router]);
 
   // Fetch invoice details
   const { data: invoice, isLoading } = useQuery({
@@ -450,10 +455,10 @@ export default function InvoiceDetailPage() {
       </Card>
 
       {/* E-Invoice Section */}
-      <EInvoiceSection invoiceId={invoiceId} invoice={invoice} />
+      {invoiceId && <EInvoiceSection invoiceId={invoiceId} invoice={invoice} />}
 
       {/* E-Way Bill Section */}
-      <EWayBillSection invoiceId={invoiceId} invoice={invoice} />
+      {invoiceId && <EWayBillSection invoiceId={invoiceId} invoice={invoice} />}
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between gap-4 pb-20 md:pb-6">
