@@ -29,6 +29,7 @@ import { StorageService } from '../services/storage.service';
 import {
   UpdateUserProfileDto,
   UserProfileResponseDto,
+  ChangePasscodeDto,
 } from '@business-app/shared/dto';
 import { User } from '../entities/user.entity';
 
@@ -90,6 +91,28 @@ export class UserController {
   ): Promise<UserProfileResponseDto> {
     const user = await this.userService.updateProfile(req.user.id, updateDto);
     return this.toResponseDto(user);
+  }
+
+  @Patch('profile/passcode')
+  @ApiOperation({ summary: 'Change user passcode' })
+  @ApiResponse({
+    status: 200,
+    description: 'Passcode changed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid current passcode' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async changePasscode(
+    @Request() req: any,
+    @Body() changePasscodeDto: ChangePasscodeDto
+  ): Promise<{ message: string }> {
+    await this.userService.changePasscode(req.user.id, changePasscodeDto);
+    return { message: 'Passcode changed successfully' };
   }
 
   @Post('profile/avatar')

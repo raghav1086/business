@@ -13,15 +13,13 @@ import { useAuthStore } from '@/lib/auth-store';
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuthStore();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'passcode'>('phone');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpId, setOtpId] = useState('');
-  const [displayOtp, setDisplayOtp] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Send OTP with auto-detection for new users
+  // Handle phone submit - auto-fill default passcode
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -33,67 +31,33 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // First try with 'login' purpose
-      let response;
-      try {
-        response = await authApi.post('/auth/send-otp', {
-          phone: phone,
-          purpose: 'login',
-        });
-      } catch (loginError: any) {
-        // If user not found, automatically try registration
-        if (loginError.response?.status === 400 && 
-            loginError.response?.data?.message?.includes('User not found')) {
-          response = await authApi.post('/auth/send-otp', {
-            phone: phone,
-            purpose: 'registration',
-          });
-        } else {
-          throw loginError;
-        }
-      }
-      
-      // Store otp_id and display OTP for testing
-      const { otp_id, otp: receivedOtp } = response.data;
-      setOtpId(otp_id);
-      setDisplayOtp(receivedOtp);
-      
-      setStep('otp');
-      toast.success('OTP sent successfully', {
-        description: `OTP: ${receivedOtp}`,
-        duration: 10000,
-      });
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to send OTP';
-      setError(message);
-      toast.error('Failed to send OTP', {
-        description: message,
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // Calculate and set default passcode (last 6 digits)
+    const defaultPasscode = phone.slice(-6);
+    setPasscode(defaultPasscode);
+    setStep('passcode');
   };
 
-  // Verify OTP
-  const handleOtpSubmit = async (e: React.FormEvent) => {
+  // Verify passcode
+  const handlePasscodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    // Validate OTP
-    if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
-      setError('Please enter a valid 6-digit OTP');
-      toast.error('Invalid OTP');
+    // Validate passcode
+    if (!passcode || passcode.length !== 6 || !/^\d{6}$/.test(passcode)) {
+      setError('Please enter a valid 6-digit passcode');
+      toast.error('Invalid passcode');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await authApi.post('/auth/verify-otp', {
+      const response = await authApi.post('/auth/verify-passcode', {
         phone,
-        otp_id: otpId,
-        otp: otp,
+        passcode: passcode,
+        device_info: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+        },
       });
 
       const { tokens, user, is_new_user } = response.data;
@@ -103,7 +67,7 @@ export default function LoginPage() {
       tokenStorage.setAccessToken(access_token);
       tokenStorage.setRefreshToken(refresh_token);
       
-      // Set user in store (include is_superadmin if available)
+      // Set user in store
       const isSuperadmin = user.is_superadmin || false;
       setUser({ 
         id: user.id, 
@@ -115,7 +79,7 @@ export default function LoginPage() {
         description: is_new_user ? 'Welcome! Let\'s set up your business.' : 'Welcome back!',
       });
 
-      // Wait a moment for store to update, then redirect based on user type
+      // Wait a moment for store to update, then redirect
       setTimeout(() => {
         if (isSuperadmin) {
           router.push('/admin');
@@ -124,53 +88,10 @@ export default function LoginPage() {
         }
       }, 100);
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Invalid OTP';
+      const message = error.response?.data?.message || 'Invalid passcode';
       setError(message);
-      toast.error('Invalid OTP', {
+      toast.error('Invalid passcode', {
         description: message,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Resend OTP with auto-detection for new users
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      // Try login first, fallback to registration
-      let response;
-      try {
-        response = await authApi.post('/auth/send-otp', {
-          phone,
-          purpose: 'login',
-        });
-      } catch (loginError: any) {
-        // If user not found, automatically try registration
-        if (loginError.response?.status === 400 && 
-            loginError.response?.data?.message?.includes('User not found')) {
-          response = await authApi.post('/auth/send-otp', {
-            phone,
-            purpose: 'registration',
-          });
-        } else {
-          throw loginError;
-        }
-      }
-      
-      // Store new otp_id and display OTP
-      const { otp_id, otp: receivedOtp } = response.data;
-      setOtpId(otp_id);
-      setDisplayOtp(receivedOtp);
-      
-      toast.success('OTP resent successfully', {
-        description: `OTP: ${receivedOtp}`,
-        duration: 10000,
-      });
-      setOtp('');
-    } catch (error: any) {
-      toast.error('Failed to resend OTP', {
-        description: error.response?.data?.message || 'Please try again',
       });
     } finally {
       setIsLoading(false);
@@ -300,16 +221,16 @@ export default function LoginPage() {
                     Sign in to access your business dashboard
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter your phone number to receive a secure OTP
+                    Enter your phone number to continue
                   </p>
                 </>
               ) : (
                 <>
                   <p className="font-medium text-gray-700 dark:text-gray-300">
-                    We've sent a 6-digit code to your phone
+                    Enter your 6-digit passcode
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter the code below to complete verification
+                    Default: Last 6 digits of your phone number
                   </p>
                 </>
               )}
@@ -346,7 +267,7 @@ export default function LoginPage() {
                   </div>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 px-1">
-                  By continuing, you agree to receive OTP via SMS. Standard message rates may apply.
+                  By continuing, you agree to our Terms of Service and Privacy Policy.
                 </p>
               </div>
               <Button 
@@ -356,24 +277,24 @@ export default function LoginPage() {
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
-                    <span className="animate-spin">⏳</span> Sending OTP...
+                    <span className="animate-spin">⏳</span> Processing...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    <span>📲</span> Send OTP
+                    <span>📲</span> Continue
                   </span>
                 )}
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleOtpSubmit} className="space-y-5">
+            <form onSubmit={handlePasscodeSubmit} className="space-y-5">
               <div className="space-y-4">
                 <label className="text-sm font-semibold text-foreground block text-center">
-                  Enter OTP
+                  Enter Passcode
                 </label>
                 <OTPInput
-                  value={otp}
-                  onChange={setOtp}
+                  value={passcode}
+                  onChange={setPasscode}
                   length={6}
                   disabled={isLoading}
                   autoFocus={true}
@@ -391,43 +312,23 @@ export default function LoginPage() {
               <div className="text-sm text-center space-y-3 py-2">
                 <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-2 px-2">
                   <span className="text-base">📱</span>
-                  <span className="font-medium">Sent to +91 {phone}</span>
+                  <span className="font-medium">Phone: +91 {phone}</span>
                   <Button
                     type="button"
                     variant="link"
                     className="p-0 h-auto text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold underline"
                     onClick={() => {
                       setStep('phone');
-                      setOtp('');
+                      setPasscode('');
                       setError('');
-                      setDisplayOtp('');
                     }}
                     disabled={isLoading}
                   >
                     Change Number
                   </Button>
                 </div>
-                {displayOtp && (
-                  <div className="text-green-700 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/30 py-3 px-4 rounded-lg border-2 border-green-300 dark:border-green-700 shadow-sm">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-lg">🔑</span>
-                      <span>Your OTP: <span className="font-mono text-lg tracking-wider">{displayOtp}</span></span>
-                    </div>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-normal">
-                      For testing purposes only
-                    </p>
-                  </div>
-                )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-                  Didn't receive the code? Check your SMS or{' '}
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={isLoading}
-                    className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
-                  >
-                    resend OTP
-                  </button>
+                  Forgot your passcode? You can change it from Settings after logging in.
                 </p>
               </div>
 
@@ -446,26 +347,6 @@ export default function LoginPage() {
                   </span>
                 )}
               </Button>
-
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 font-medium transition-all"
-                  onClick={handleResendOtp}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin">⏳</span> Sending...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <span>↻</span> Resend OTP
-                    </span>
-                  )}
-                </Button>
-              </div>
             </form>
           )}
         </CardContent>

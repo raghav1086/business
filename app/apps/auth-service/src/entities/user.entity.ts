@@ -46,5 +46,8 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamptz', nullable: true, name: 'last_login_at' })
   last_login_at?: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'passcode_hash' })
+  passcode_hash?: string; // Hashed custom passcode. NULL means using default (last 6 digits of phone)
 }
 

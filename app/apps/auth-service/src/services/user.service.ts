@@ -3,9 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '../entities/user.entity';
-import { UpdateUserProfileDto } from '@business-app/shared/dto';
+import { UpdateUserProfileDto, ChangePasscodeDto } from '@business-app/shared/dto';
 
 /**
  * User Service
@@ -118,6 +119,49 @@ export class UserService {
   async getRecentUsersCount(days: number = 7): Promise<number> {
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     return this.userRepository.countByDateRange(startDate, new Date());
+  }
+
+  /**
+   * Change user passcode
+   */
+  async changePasscode(
+    userId: string,
+    changePasscodeDto: ChangePasscodeDto
+  ): Promise<void> {
+    const user = await this.getProfile(userId);
+    
+    // Verify current passcode
+    const isValid = await this.verifyUserPasscode(user, changePasscodeDto.current_passcode);
+    if (!isValid) {
+      throw new BadRequestException('Current passcode is incorrect');
+    }
+
+    // Validate new passcode is different
+    const isSame = await this.verifyUserPasscode(user, changePasscodeDto.new_passcode);
+    if (isSame) {
+      throw new BadRequestException('New passcode must be different from current passcode');
+    }
+    
+    // Hash new passcode
+    const hashedPasscode = await bcrypt.hash(changePasscodeDto.new_passcode, 10);
+    
+    // Update user
+    await this.userRepository.update(userId, {
+      passcode_hash: hashedPasscode
+    });
+  }
+
+  /**
+   * Verify user passcode (default or custom)
+   */
+  private async verifyUserPasscode(user: User, passcode: string): Promise<boolean> {
+    // If user has custom passcode, verify it
+    if (user.passcode_hash) {
+      return await bcrypt.compare(passcode, user.passcode_hash);
+    }
+    
+    // Otherwise, use default (last 6 digits of phone)
+    return passcode === user.phone.slice(-6);
   }
 }
 

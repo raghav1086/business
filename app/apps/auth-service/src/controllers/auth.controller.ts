@@ -14,6 +14,7 @@ import { AuthService } from '../services/auth.service';
 import {
   SendOtpDto,
   VerifyOtpDto,
+  VerifyPasscodeDto,
   RefreshTokenDto,
   SendOtpResponseDto,
   VerifyOtpResponseDto,
@@ -52,6 +53,37 @@ export class AuthController {
     @Body() verifyOtpDto: VerifyOtpDto
   ): Promise<VerifyOtpResponseDto> {
     const result = await this.authService.verifyOtp(verifyOtpDto);
+    
+    // Ensure is_superadmin is explicitly included
+    const isSuperadmin = result.user.is_superadmin === true || Boolean(result.user.is_superadmin);
+    
+    return {
+      user: {
+        id: result.user.id,
+        phone: result.user.phone,
+        name: result.user.name || null,
+        email: result.user.email || null,
+        phone_verified: result.user.phone_verified || false,
+        is_superadmin: isSuperadmin,
+      },
+      tokens: result.tokens,
+      is_new_user: result.is_new_user,
+    };
+  }
+
+  @Post('verify-passcode')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify passcode and authenticate user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Authentication successful',
+    type: VerifyOtpResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid passcode' })
+  async verifyPasscode(
+    @Body() verifyPasscodeDto: VerifyPasscodeDto
+  ): Promise<VerifyOtpResponseDto> {
+    const result = await this.authService.verifyPasscode(verifyPasscodeDto);
     
     // Ensure is_superadmin is explicitly included
     const isSuperadmin = result.user.is_superadmin === true || Boolean(result.user.is_superadmin);

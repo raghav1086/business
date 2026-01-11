@@ -25,6 +25,7 @@ import {
 import { useAuthStore } from "@/lib/auth-store";
 import { tokenStorage, authApi } from "@/lib/api-client";
 import { User, Mail, Phone, Shield, Key, Camera, Save, Check, AlertTriangle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -40,14 +41,14 @@ export default function ProfilePage() {
     avatar_url: "",
   });
 
-  // Password change state
-  const [passwords, setPasswords] = useState({
-    current_password: "",
-    new_password: "",
-    confirm_password: "",
+  // Passcode change state
+  const [passcodeSettings, setPasscodeSettings] = useState({
+    current_passcode: "",
+    new_passcode: "",
+    confirm_passcode: "",
   });
 
-  const [passwordError, setPasswordError] = useState("");
+  const [passcodeError, setPasscodeError] = useState("");
 
   // Fetch user profile
   const { data: userData, isLoading } = useQuery({
@@ -87,18 +88,24 @@ export default function ProfilePage() {
     },
   });
 
-  // Change password mutation
-  // NOTE: Password change endpoint not implemented in backend yet
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data: { current_password: string; new_password: string }) => {
-      // TODO: Implement password change endpoint in backend
-      // Endpoint should be: PATCH /api/v1/users/profile/password
-      throw new Error("Password change is not available yet. Backend endpoint needs to be implemented.");
+  // Change passcode mutation
+  const changePasscodeMutation = useMutation({
+    mutationFn: async (data: { current_passcode: string; new_passcode: string }) => {
+      const response = await authApi.patch("/users/profile/passcode", {
+        current_passcode: data.current_passcode,
+        new_passcode: data.new_passcode,
+      });
+      return response.data;
     },
     onSuccess: () => {
-      setPasswords({ current_password: "", new_password: "", confirm_password: "" });
+      setPasscodeSettings({ current_passcode: "", new_passcode: "", confirm_passcode: "" });
+      setPasscodeError("");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      toast.success("Passcode changed successfully");
+    },
+    onError: (error: any) => {
+      setPasscodeError(error.response?.data?.message || "Failed to change passcode");
     },
   });
 
@@ -106,22 +113,27 @@ export default function ProfilePage() {
     updateProfileMutation.mutate(profile);
   };
 
-  const handleChangePassword = () => {
-    setPasswordError("");
+  const handleChangePasscode = () => {
+    setPasscodeError("");
     
-    if (passwords.new_password !== passwords.confirm_password) {
-      setPasswordError("New passwords do not match");
+    if (!passcodeSettings.current_passcode || passcodeSettings.current_passcode.length !== 6) {
+      setPasscodeError("Current passcode must be 6 digits");
       return;
     }
 
-    if (passwords.new_password.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
+    if (!passcodeSettings.new_passcode || passcodeSettings.new_passcode.length !== 6) {
+      setPasscodeError("New passcode must be 6 digits");
       return;
     }
 
-    changePasswordMutation.mutate({
-      current_password: passwords.current_password,
-      new_password: passwords.new_password,
+    if (passcodeSettings.new_passcode !== passcodeSettings.confirm_passcode) {
+      setPasscodeError("New passcodes do not match");
+      return;
+    }
+
+    changePasscodeMutation.mutate({
+      current_passcode: passcodeSettings.current_passcode,
+      new_passcode: passcodeSettings.new_passcode,
     });
   };
 
@@ -258,72 +270,99 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Change Password */}
+            {/* Change Passcode */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Key className="h-5 w-5" />
-                  Change Password
+                  Change Passcode
                 </CardTitle>
                 <CardDescription>
-                  Update your password to keep your account secure
+                  Update your login passcode. Default is last 6 digits of your phone number.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {passwordError && (
+                {passcodeError && (
                   <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                     <AlertTriangle className="h-4 w-4" />
-                    {passwordError}
+                    {passcodeError}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
+                  <Label htmlFor="current-passcode">Current Passcode</Label>
                   <Input
-                    id="current-password"
+                    id="current-passcode"
                     type="password"
-                    value={passwords.current_password}
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={passcodeSettings.current_passcode}
                     onChange={(e) =>
-                      setPasswords({ ...passwords, current_password: e.target.value })
+                      setPasscodeSettings({
+                        ...passcodeSettings,
+                        current_passcode: e.target.value.replace(/\D/g, '').slice(0, 6)
+                      })
                     }
-                    placeholder="Enter current password"
+                    placeholder="000000"
+                    className="font-mono text-center text-lg tracking-widest"
                   />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
+                    <Label htmlFor="new-passcode">New Passcode</Label>
                     <Input
-                      id="new-password"
+                      id="new-passcode"
                       type="password"
-                      value={passwords.new_password}
+                      maxLength={6}
+                      inputMode="numeric"
+                      value={passcodeSettings.new_passcode}
                       onChange={(e) =>
-                        setPasswords({ ...passwords, new_password: e.target.value })
+                        setPasscodeSettings({
+                          ...passcodeSettings,
+                          new_passcode: e.target.value.replace(/\D/g, '').slice(0, 6)
+                        })
                       }
-                      placeholder="Enter new password"
+                      placeholder="000000"
+                      className="font-mono text-center text-lg tracking-widest"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <Label htmlFor="confirm-passcode">Confirm New Passcode</Label>
                     <Input
-                      id="confirm-password"
+                      id="confirm-passcode"
                       type="password"
-                      value={passwords.confirm_password}
+                      maxLength={6}
+                      inputMode="numeric"
+                      value={passcodeSettings.confirm_passcode}
                       onChange={(e) =>
-                        setPasswords({ ...passwords, confirm_password: e.target.value })
+                        setPasscodeSettings({
+                          ...passcodeSettings,
+                          confirm_passcode: e.target.value.replace(/\D/g, '').slice(0, 6)
+                        })
                       }
-                      placeholder="Confirm new password"
+                      placeholder="000000"
+                      className="font-mono text-center text-lg tracking-widest"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end">
                   <Button
-                    onClick={handleChangePassword}
-                    disabled={changePasswordMutation.isPending || !passwords.current_password || !passwords.new_password}
+                    onClick={handleChangePasscode}
+                    disabled={changePasscodeMutation.isPending || !passcodeSettings.current_passcode || !passcodeSettings.new_passcode}
                     variant="outline"
                   >
-                    {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                    {changePasscodeMutation.isPending ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⏳</span> Changing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Save className="h-4 w-4" />
+                        Change Passcode
+                      </span>
+                    )}
                   </Button>
                 </div>
               </CardContent>

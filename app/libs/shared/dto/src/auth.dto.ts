@@ -82,6 +82,69 @@ export class VerifyOtpDto {
   device_info?: Record<string, any>;
 }
 
+export class VerifyPasscodeDto {
+  @ApiProperty({
+    description: 'Indian mobile number (10 digits)',
+    example: '9876543210',
+    pattern: '^[6-9][0-9]{9}$',
+  })
+  @IsString()
+  @Length(10, 10)
+  @Matches(/^[6-9][0-9]{9}$/, {
+    message: 'Invalid phone number format',
+  })
+  phone: string;
+
+  @ApiProperty({
+    description: '6-digit passcode',
+    example: '432110',
+    pattern: '^\\d{6}$',
+    minLength: 6,
+    maxLength: 6,
+  })
+  @IsString()
+  @Length(6, 6)
+  @Matches(/^\d{6}$/, {
+    message: 'Passcode must be 6 digits',
+  })
+  passcode: string;
+
+  @ApiProperty({
+    description: 'Optional device information for tracking',
+    required: false,
+    example: { device: 'mobile', os: 'iOS' },
+  })
+  @IsOptional()
+  @IsObject()
+  device_info?: Record<string, any>;
+}
+
+export class ChangePasscodeDto {
+  @ApiProperty({
+    description: 'Current 6-digit passcode',
+    example: '432110',
+    pattern: '^\\d{6}$',
+  })
+  @IsString()
+  @Length(6, 6)
+  @Matches(/^\d{6}$/, {
+    message: 'Current passcode must be 6 digits',
+  })
+  current_passcode: string;
+
+  @ApiProperty({
+    description: 'New 6-digit passcode',
+    example: '123456',
+    pattern: '^\\d{6}$',
+  })
+  @IsString()
+  @Length(6, 6)
+  @Matches(/^\d{6}$/, {
+    message: 'New passcode must be 6 digits',
+  })
+  new_passcode: string;
+}
+
 export class RefreshTokenDto {
   @ApiProperty({
     description: 'Refresh token from login response',
